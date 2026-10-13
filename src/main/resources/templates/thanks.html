@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Gracias por participar')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+<main class="container message-main" id="contenido"><div class="message-card"><span class="success-mark" aria-hidden="true">✓</span><p class="eyebrow">Encuesta enviada</p><h1>Gracias por compartir tu experiencia.</h1><p>Tus respuestas se guardaron correctamente. Tu participación aporta información al estudio de mercado de Ingeniería de Sistemas.</p><a class="button button-primary" th:href="@{/}">Volver al inicio <span aria-hidden="true">→</span></a></div></main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

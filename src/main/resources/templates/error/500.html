@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('No pudimos completar la solicitud')}"></head>
+<body><header th:replace="~{fragments/layout :: header('')}"></header><main class="container message-main" id="contenido"><div class="message-card"><p class="eyebrow">Ocurrió un problema</p><h1>No pudimos completar la solicitud.</h1><p>Vuelve a intentarlo en unos momentos. Si estabas enviando una encuesta, conserva esta pestaña y vuelve al formulario con el botón Atrás de tu navegador.</p><a class="button button-primary" th:href="@{/}">Volver al inicio <span aria-hidden="true">→</span></a></div></main><footer th:replace="~{fragments/layout :: footer}"></footer></body>
+</html>

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Detalle de respuesta')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+<div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main response-main" id="contenido"><a class="back-link" th:href="@{/admin}"><span aria-hidden="true">←</span> Volver al panel</a><p class="eyebrow">Respuesta registrada</p><h1 th:text="${response.summary.surveyTitle}">Detalle de respuesta</h1><div class="response-meta"><span>Enviada el <strong th:text="${response.summary.submittedAt}"></strong></span><span>Versión <strong th:text="${response.summary.version}"></strong></span></div><div class="confidential-note"><span class="note-icon" aria-hidden="true">i</span><p>Esta vista contiene información del estudio. Los datos de contacto están limitados a personas con acceso al panel de gestión.</p></div><dl class="answers-list"><div class="answer-row" th:each="answer : ${response.answers}"><dt th:text="${answer.label}"></dt><dd><span class="unanswered" th:if="${#lists.isEmpty(answer.values)}">Sin respuesta</span><ul class="answer-values" th:unless="${#lists.isEmpty(answer.values)}"><li th:each="value : ${answer.values}" th:text="${value}"></li></ul></dd></div></dl><a class="button button-outline" th:href="@{/admin}"><span aria-hidden="true">←</span> Volver a las respuestas</a></main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

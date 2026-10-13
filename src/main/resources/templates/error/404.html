@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Página no encontrada')}"></head>
+<body><header th:replace="~{fragments/layout :: header('')}"></header><main class="container message-main" id="contenido"><div class="message-card"><p class="eyebrow">Error 404</p><h1>No encontramos esta página.</h1><p>El enlace puede estar incompleto o la página ya no está disponible.</p><a class="button button-primary" th:href="@{/}">Volver al inicio <span aria-hidden="true">→</span></a></div></main><footer th:replace="~{fragments/layout :: footer}"></footer></body>
+</html>

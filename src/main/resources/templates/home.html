@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Encuestas')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+<main id="contenido">
+  <section class="home-hero">
+    <div class="container hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="line" aria-hidden="true"></span> Estudio de mercado</p>
+        <h1>Tu experiencia ayuda a comprender el futuro de nuestra profesión.</h1>
+        <p class="hero-intro">Recogemos la perspectiva de titulados y empleadores para conocer la formación, el desempeño laboral y las necesidades del sector.</p>
+        <a class="button button-primary" href="#encuestas">Elegir mi encuesta <span aria-hidden="true">↓</span></a>
+        <p class="hero-footnote">Acceso público · Sin crear una cuenta</p>
+      </div>
+      <div class="hero-visual" aria-hidden="true">
+        <div class="visual-topline"><span>FORMACIÓN</span><span>↗</span></div>
+        <div class="visual-title">Conectar<br>experiencias.<br><em>Construir evidencia.</em></div>
+        <div class="visual-diagram"><span class="diagram-node node-one">Titulados</span><span class="diagram-node node-two">Empleadores</span><span class="diagram-center">IS</span></div>
+        <div class="visual-bottomline"><span>UNIVERSIDAD</span><span>ENTORNO LABORAL</span></div>
+      </div>
+    </div>
+  </section>
+  <section class="container survey-section" id="encuestas" aria-labelledby="encuestas-titulo">
+    <div class="section-intro"><div><p class="eyebrow">Participa en el estudio</p><h2 id="encuestas-titulo">Elige la encuesta que corresponde a tu perfil.</h2></div><span class="badge">Versión inicial para revisión</span></div>
+    <div class="survey-cards">
+      <article class="survey-card" th:each="survey, position : ${surveys}">
+        <div class="card-top"><span class="card-number" th:text="${position.index < 9 ? '0' + (position.index + 1) : position.index + 1}">01</span><span class="card-arrow" aria-hidden="true">↗</span></div>
+        <h3 th:text="${survey.title}">Encuesta</h3>
+        <p th:text="${survey.description}">Comparte tu experiencia.</p>
+        <a class="button button-outline" th:href="@{/encuestas/{slug}(slug=${survey.slug})}">Responder encuesta <span aria-hidden="true">→</span><span class="sr-only" th:text="${': ' + survey.title}"></span></a>
+      </article>
+    </div>
+    <div class="participation-note"><span class="note-icon" aria-hidden="true">i</span><p><strong>Antes de comenzar.</strong> Responde según tu experiencia. Los campos obligatorios están marcados con un asterisco. Esta versión permite revisar el instrumento antes de su aplicación formal.</p></div>
+  </section>
+  <section class="trust-section">
+    <div class="container trust-grid"><div><p class="eyebrow">Tratamiento de la información</p><h2>Tu participación, con acceso controlado.</h2></div><div><p>Las encuestas son públicas. Las respuestas, los datos de contacto, las estadísticas y las exportaciones solo están disponibles en el panel de gestión, con usuario y contraseña.</p><a class="text-link" th:href="@{/admin}">Ingresar al panel de gestión <span aria-hidden="true">→</span></a></div></div>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${survey.title})}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('home')}"></header>
+<main id="contenido" class="container page-main">
+  <a class="back-link" th:href="@{/}"><span aria-hidden="true">←</span> Todas las encuestas</a>
+  <div class="survey-heading"><p class="eyebrow">Estudio de mercado · UMSS</p><h1 th:text="${survey.title}">Encuesta</h1><p class="page-intro" th:text="${survey.description}"></p><span class="badge">Versión inicial para revisión</span></div>
+  <div class="survey-layout">
+    <aside class="survey-sidebar">
+      <div class="sidebar-inner"><p class="eyebrow">En esta encuesta</p><nav aria-label="Secciones de la encuesta"><a th:each="q, status : ${survey.questions}" th:if="${status.first or q.section != survey.questions[status.index - 1].section}" th:href="${'#section-' + status.index}" th:text="${q.section}">Sección</a><a href="#consentimiento">Confirmación y envío</a></nav><div class="sidebar-tip"><span class="note-icon" aria-hidden="true">i</span><p>Puedes revisar tus respuestas antes de enviar.<br><br><strong>* Campo obligatorio</strong></p></div></div>
+    </aside>
+    <form class="survey-form" th:action="@{/encuestas/{slug}(slug=${survey.slug})}" method="post" data-survey-form>
+      <input type="hidden" name="formToken" th:value="${formToken}">
+      <noscript><div class="participation-note"><span class="note-icon" aria-hidden="true">i</span><p>El formulario puede completarse sin JavaScript. Algunas preguntas dependen de respuestas anteriores: completa solo las que correspondan a tu situación.</p></div></noscript>
+      <div class="alert alert-error" role="alert" tabindex="-1" data-error-summary th:if="${not #maps.isEmpty(errors)}"><strong>Revisa los campos indicados.</strong><p>Algunas respuestas necesitan una corrección. Tus respuestas se mantienen en el formulario.</p><p th:if="${errors['_form'] != null}" th:text="${errors['_form']}"></p></div>
+      <div class="question-block" th:each="q, status : ${survey.questions}">
+        <div class="form-section-heading" th:if="${status.first or q.section != survey.questions[status.index - 1].section}" th:id="${'section-' + status.index}"><span class="section-rule" aria-hidden="true"></span><h2 th:text="${q.section}"></h2></div>
+        <fieldset class="question" th:classappend="${errors[q.id] != null} ? 'question-error'" th:attr="data-question-id=${q.id},data-depends-on=${q.dependsOn},data-depends-value=${q.dependsValue},data-required=${q.required},data-min-selections=${q.minSelections},data-max-selections=${q.maxSelections}">
+          <legend><span th:text="${q.label}"></span> <span class="required-mark" th:if="${q.required}" aria-label="obligatorio">*</span></legend>
+          <p class="field-hint" th:if="${q.hint != null and not #strings.isEmpty(q.hint)}" th:id="${'hint-' + q.id}" th:text="${q.hint}"></p>
+          <div th:switch="${q.type}">
+            <textarea th:case="'textarea'" rows="4" maxlength="2000" th:id="${'q-' + q.id}" th:name="${q.id}" th:required="${q.required and #strings.isEmpty(q.dependsOn)}" th:aria-label="${q.label}" th:attr="aria-describedby=${'hint-' + q.id + ' error-' + q.id},aria-invalid=${errors[q.id] != null}" th:text="${values[q.id] != null and not #lists.isEmpty(values[q.id]) ? values[q.id][0] : ''}"></textarea>
+            <select th:case="'select'" th:id="${'q-' + q.id}" th:name="${q.id}" th:required="${q.required and #strings.isEmpty(q.dependsOn)}" th:aria-label="${q.label}" th:attr="aria-describedby=${'hint-' + q.id + ' error-' + q.id},aria-invalid=${errors[q.id] != null}"><option value="">Selecciona una opción</option><option th:each="option : ${q.options}" th:value="${option.value}" th:text="${option.label}" th:selected="${values[q.id] != null and #lists.contains(values[q.id], option.value)}"></option></select>
+            <div th:case="'radio'" class="choice-list"><label class="choice" th:each="option, optionStatus : ${q.options}"><input type="radio" th:id="${'q-' + q.id + '-' + optionStatus.index}" th:name="${q.id}" th:value="${option.value}" th:required="${q.required and #strings.isEmpty(q.dependsOn)}" th:checked="${values[q.id] != null and #lists.contains(values[q.id], option.value)}" th:attr="aria-describedby=${'hint-' + q.id + ' error-' + q.id},aria-invalid=${errors[q.id] != null}"><span th:text="${option.label}"></span></label></div>
+            <div th:case="'checkbox'" class="choice-list"><label class="choice" th:each="option, optionStatus : ${q.options}"><input type="checkbox" th:id="${'q-' + q.id + '-' + optionStatus.index}" th:name="${q.id}" th:value="${option.value}" th:checked="${values[q.id] != null and #lists.contains(values[q.id], option.value)}" th:attr="aria-describedby=${'hint-' + q.id + ' error-' + q.id},aria-invalid=${errors[q.id] != null}"><span th:text="${option.label}"></span></label><p class="selection-count" data-selection-count aria-live="polite"></p></div>
+            <input th:case="*" th:type="${q.type}" th:id="${'q-' + q.id}" th:name="${q.id}" th:value="${values[q.id] != null and not #lists.isEmpty(values[q.id]) ? values[q.id][0] : ''}" th:required="${q.required and #strings.isEmpty(q.dependsOn)}" th:min="${q.min}" th:max="${q.max}" th:maxlength="${q.type == 'number' ? null : 1000}" th:aria-label="${q.label}" th:attr="aria-describedby=${'hint-' + q.id + ' error-' + q.id},aria-invalid=${errors[q.id] != null}">
+          </div>
+          <p class="field-error" th:if="${errors[q.id] != null}" th:id="${'error-' + q.id}" th:text="${errors[q.id]}"></p>
+        </fieldset>
+      </div>
+      <section class="consent-box" id="consentimiento" aria-labelledby="consent-title"><h2 id="consent-title">Confirmación y envío</h2><p>Las respuestas se utilizarán en este estudio de mercado. El acceso a tus respuestas y a los datos de contacto que proporciones está limitado al panel de gestión protegido.</p><label class="choice consent-choice"><input type="checkbox" name="consent" value="SI" required th:checked="${values['consent'] != null and #lists.contains(values['consent'], 'SI')}" th:attr="aria-invalid=${errors['consent'] != null},aria-describedby='consent-error'"><span>Acepto el uso de la información que proporciono para este estudio y confirmo que he revisado mis respuestas. <span class="required-mark" aria-label="obligatorio">*</span></span></label><p id="consent-error" class="field-error" th:if="${errors['consent'] != null}" th:text="${errors['consent']}"></p><div class="submit-row"><button class="button button-primary" type="submit">Enviar mis respuestas <span aria-hidden="true">→</span></button><span>Revisa tus respuestas antes de enviarlas.</span></div></section>
+    </form>
+  </div>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

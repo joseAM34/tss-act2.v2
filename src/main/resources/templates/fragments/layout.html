@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#17324d">
+  <title th:text="${title + ' · Estudio de mercado UMSS'}">Estudio de mercado UMSS</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<header class="site-header" th:fragment="header(active)">
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <div class="container header-inner">
+    <a class="brand" th:href="@{/}" aria-label="Estudio de mercado UMSS, inicio">
+      <span class="brand-mark" aria-hidden="true">IS</span>
+      <span><strong>Ingeniería de Sistemas</strong><small>Universidad Mayor de San Simón</small></span>
+    </a>
+    <nav class="header-nav" aria-label="Navegación principal">
+      <a th:href="@{/}" th:classappend="${active == 'home'} ? 'active'" th:attr="aria-current=${active == 'home' ? 'page' : null}">Encuestas</a>
+      <a class="nav-admin" th:href="@{/admin}" th:classappend="${active == 'admin'} ? 'active'" th:attr="aria-current=${active == 'admin' ? 'page' : null}">Panel de gestión <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+<footer class="site-footer" th:fragment="footer">
+  <div class="container footer-inner">
+    <div><strong>Ingeniería de Sistemas · UMSS</strong><p>Estudio de mercado y perfil profesional</p></div>
+    <p class="footer-note">Versión inicial para revisión<br>El acceso a las respuestas está protegido.</p>
+  </div>
+</footer>
+<div th:fragment="adminBar" class="admin-bar">
+  <div class="container admin-bar-inner">
+    <span><span class="status-dot" aria-hidden="true"></span> Sesión de administración</span>
+    <form th:action="@{/logout}" method="post"><button type="submit" class="button-text">Cerrar sesión <span aria-hidden="true">↗</span></button></form>
+  </div>
+</div>
+</body>
+</html>

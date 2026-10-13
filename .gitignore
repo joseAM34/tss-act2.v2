@@ -1,0 +1,25 @@
+# Secretos y configuración local
+.env
+.env.*
+!.env.example
+application-local.properties
+application-local.yml
+application-local.yaml
+
+# Fuentes y datos de campo privados
+data/private/
+data/raw/
+data/processed/
+exports/
+docs/fuentes-locales/
+
+# Construcción y herramientas
+target/
+.m2/
+.codex-tmp/
+*.log
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db
