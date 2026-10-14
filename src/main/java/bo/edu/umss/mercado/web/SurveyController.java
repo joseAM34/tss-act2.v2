@@ -1,10 +1,14 @@
 package bo.edu.umss.mercado.web;
 
 import bo.edu.umss.mercado.response.SurveyResponseRepository;
+import bo.edu.umss.mercado.security.AdministratorService;
+import bo.edu.umss.mercado.security.AdministratorSetupAccess;
 import bo.edu.umss.mercado.survey.SurveyCatalog;
 import bo.edu.umss.mercado.survey.SurveyDefinition;
 import bo.edu.umss.mercado.survey.SurveyValidator;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,17 +22,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.server.ResponseStatusException;
 
 @Controller
 public class SurveyController {
     private final SurveyCatalog catalog;
     private final SurveyValidator validator;
     private final SurveyResponseRepository repository;
+    private final AdministratorService administrators;
+    private final AdministratorSetupAccess setupAccess;
 
-    public SurveyController(SurveyCatalog catalog, SurveyValidator validator, SurveyResponseRepository repository) {
+    public SurveyController(SurveyCatalog catalog, SurveyValidator validator, SurveyResponseRepository repository,
+                            AdministratorService administrators, AdministratorSetupAccess setupAccess) {
         this.catalog = catalog;
         this.validator = validator;
         this.repository = repository;
+        this.administrators = administrators;
+        this.setupAccess = setupAccess;
     }
 
     @GetMapping("/")
@@ -52,7 +62,7 @@ public class SurveyController {
 
     @PostMapping("/encuestas/{slug}")
     String submit(@PathVariable String slug, @RequestParam MultiValueMap<String, String> submitted,
-                  Model model, HttpSession session) {
+                  Model model, HttpSession session, HttpServletResponse response) {
         SurveyDefinition definition = catalog.get(slug);
         var validation = validator.validate(definition, submitted);
         var errors = new LinkedHashMap<>(validation.errors());
@@ -69,13 +79,22 @@ public class SurveyController {
             form(model, definition, submitted, errors, expected);
             return "survey";
         }
-        if (!repository.submitted(expected)) {
+        String reference;
+        try {
             try {
-                repository.save(definition, expected, validation.answers());
+                reference = repository.save(definition, expected, validation);
             } catch (DuplicateKeyException ex) {
-                if (!repository.submitted(expected)) throw ex;
+                var existing = repository.responseIdForToken(expected);
+                if (existing.isEmpty()) throw ex;
+                reference = repository.verifyRetry(existing.get(), definition, validation);
             }
+        } catch (ResponseStatusException ex) {
+            if (ex.getStatusCode().value() != 409) throw ex;
+            response.setStatus(409);
+            form(model, definition, submitted, Map.of("_form", ex.getReason()), expected);
+            return "survey";
         }
+        session.setAttribute("lastSubmissionReference", reference);
         return "redirect:/gracias";
     }
 
@@ -100,12 +119,17 @@ public class SurveyController {
     }
 
     @GetMapping("/gracias")
-    String thanks() {
+    String thanks(HttpServletRequest request, Model model) {
+        HttpSession session = request.getSession(false);
+        model.addAttribute("responseReference", session == null ? null : session.getAttribute("lastSubmissionReference"));
         return "thanks";
     }
 
     @GetMapping("/login")
-    String login() {
+    String login(HttpServletRequest request, Model model) {
+        boolean pending = !administrators.exists();
+        if (pending && setupAccess.allowed(request)) return "redirect:/configuracion-inicial";
+        model.addAttribute("initialSetupPending", pending);
         return "login";
     }
 }

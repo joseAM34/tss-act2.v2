@@ -1,7 +1,5 @@
 package bo.edu.umss.mercado.survey;
 
-import java.time.Year;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 /** Instrumento inicial: los códigos y las escalas se conservan en las respuestas. */
 @Component
 public class SurveyCatalog {
-    private static final String VERSION = "2026-10-borrador-1";
+    private static final String VERSION = "2026-10-borrador-2";
     private static final List<Option> SI_NO = List.of(o("SI", "Sí"), o("NO", "No"));
     private static final List<Option> ACUERDO_TITULADOS = List.of(
             o("TOTALMENTE_DESACUERDO", "Totalmente en desacuerdo"),
@@ -25,6 +23,10 @@ public class SurveyCatalog {
             o("PARCIALMENTE_ACUERDO", "Parcialmente de acuerdo"),
             o("TOTALMENTE_DESACUERDO", "Totalmente desacuerdo"),
             o("NO_SABE", "No sabe"));
+    private static final List<Option> ADECUACION_COMPETENCIAS = List.of(
+            o("ADECUACION_1", "Nada adecuada"), o("ADECUACION_2", "Poco adecuada"),
+            o("ADECUACION_3", "Moderadamente adecuada"), o("ADECUACION_4", "Adecuada"),
+            o("ADECUACION_5", "Muy adecuada"), o("NO_PUEDE_VALORAR", "No puedo valorar"));
     private static final List<Option> INSTITUCIONES = List.of(
             o("EUPG", "Escuela Universitaria de Posgrado (EUPG)"),
             o("POSGRADO_FCYT", "Dirección de Posgrado FCyT"),
@@ -64,8 +66,13 @@ public class SurveyCatalog {
     private static SurveyDefinition titulados() {
         var q = new ArrayList<Question>();
         String datos = "Datos generales y formación complementaria";
+        q.add(number("edad", datos, "¿Cuál es su edad actual?", false,
+                0, 120, "Opcional. Ingrese su edad en años completos."));
+        q.add(choice("genero", datos, "¿Cuál es su género?", "select", false,
+                List.of(o("HOMBRE", "Hombre"), o("MUJER", "Mujer"), o("OTRO", "Otro"),
+                        o("PREFIERO_NO_RESPONDER", "Prefiero no responder")), "Opcional."));
         q.add(number("anio_egreso", datos, "¿En qué año egresó de Ingeniería en Sistemas?", true,
-                1960, Year.now(ZoneId.of("America/La_Paz")).getValue(), "Escriba el año completo, por ejemplo: 2022."));
+                1960, 2026, "Escriba el año completo, por ejemplo: 2022. Año de referencia del borrador: 2026."));
         q.add(choice("formacion_complementaria", datos,
                 "Posterior a sus estudios de pregrado en Ingeniería en Sistemas, ¿ha realizado o se encuentra realizando algún programa de formación complementaria?",
                 "radio", true, SI_NO, "Incluye posgrado, diplomados, doble titulación por diplomado y especializaciones."));
@@ -109,9 +116,12 @@ public class SurveyCatalog {
                 "radio", true, ACUERDO_TITULADOS, null));
 
         String empleo = "Trayectoria y situación laboral";
-        q.add(number("anios_vida_profesional", empleo,
-                "¿Cuántos son los años de vida profesional que lleva hasta la fecha?", false,
-                0, 80, "Ingrese años completos. Puede dejarlo vacío si necesita expresar fracciones de año."));
+        q.add(number("meses_vida_profesional", empleo,
+                "¿Cuántos meses de vida profesional lleva hasta la fecha?", false,
+                0, 960, "Opcional. Indique el total en meses completos."));
+        q.add(number("meses_desempleado", empleo,
+                "Dentro de ese tiempo de vida profesional, ¿cuántos meses en total estuvo desempleado?", false,
+                0, 960, "Opcional. Ingrese meses completos; el total no puede superar los meses de vida profesional."));
         q.add(choice("estado_laboral", empleo, "¿Cuál de las siguientes afirmaciones describe su situación laboral actual?",
                 "radio", true, List.of(o("EMPLEADO", "Actualmente me encuentro trabajando en una organización"),
                         o("DESEMPLEADO", "Actualmente NO trabajo"),
@@ -120,19 +130,24 @@ public class SurveyCatalog {
         sectoresTitulados.add(o("NO_APLICA", "No desempeño una actividad laboral actualmente"));
         q.add(choice("sector", empleo, "¿Cuál es el sector de su desempeño laboral actual?", "select", true,
                 sectoresTitulados, "Si actualmente no trabaja, seleccione la opción que lo indica."));
+        q.add(choice("experiencia_laboral", empleo, "¿Cuál de las siguientes opciones describe su experiencia laboral?",
+                "select", true, List.of(
+                        o("RELACIONADA", "He trabajado o trabajo en un área relacionada con Sistemas"),
+                        o("OTRAS_AREAS", "He trabajado solo en otras áreas"),
+                        o("SIN_EXPERIENCIA", "Nunca he trabajado")), null));
         q.add(conditional("primer_empleo_actual", empleo, "¿El trabajo que ejerce actualmente es su primer empleo?",
                 "radio", true, SI_NO, "estado_laboral", "EMPLEADO", null));
-        q.add(choice("tiempo_primer_empleo", empleo,
+        q.add(conditional("tiempo_primer_empleo", empleo,
                 "Luego de titularse, ¿cuánto tiempo se demoró en conseguir su primer trabajo relacionado con su formación como Ingeniero en Sistemas?",
                 "select", false, List.of(o("ANTES_TITULACION", "Ya trabajaba antes de titularse"),
                         o("MENOS_1_MES", "Menos de 1 mes"), o("ENTRE_1_4_MESES", "Entre 1 - 4 meses"),
                         o("ENTRE_4_8_MESES", "Entre 4 - 8 meses"), o("ENTRE_8_12_MESES", "Entre 8 - 12 meses"),
                         o("MAS_12_MESES", "Más de 12 meses")),
-                "Si todavía no obtuvo un empleo relacionado con su formación, deje esta pregunta vacía."));
-        q.add(choice("cantidad_empleos", empleo,
+                "experiencia_laboral", "RELACIONADA", "Opcional. Considere su primer trabajo relacionado con Sistemas."));
+        q.add(conditional("cantidad_empleos", empleo,
                 "Desde que se tituló, ¿en cuántos empleos usted se ha desempeñado? (Incluyendo su actual empleo si corresponde)",
                 "select", false, List.of(o("UNO", "1"), o("DOS", "2"), o("TRES", "3"), o("MAS_TRES", "Más de 3")),
-                "Si aún no tuvo un empleo, deje esta pregunta vacía."));
+                "experiencia_laboral", "RELACIONADA|OTRAS_AREAS", "Opcional. Si no tuvo empleos desde su titulación, deje esta pregunta vacía."));
 
         String negocio = "Emprendimiento propio";
         q.add(conditional("origen_emprendimiento", negocio, "¿Cuál es el origen del desarrollo de su propio emprendimiento?",
@@ -159,9 +174,10 @@ public class SurveyCatalog {
         q.add(choice("satisfaccion_formacion", formacion,
                 "De manera global, ¿cuál es el grado de satisfacción que ha desarrollado con la formación profesional recibida en la Carrera de Ingeniería de Sistemas?",
                 "radio", true, ACUERDO_TITULADOS, "Se conserva la escala de acuerdo del instrumento original."));
-        q.add(choice("concordancia_formacion", formacion,
-                "Considera que existe concordancia entre la formación profesional recibida en la Carrera de Ingeniería de Sistemas y los requerimientos",
-                "radio", true, ACUERDO_TITULADOS, "El enunciado termina así en el documento original; su redacción está pendiente de revisión."));
+        q.add(conditional("concordancia_formacion", formacion,
+                "¿Considera que existe concordancia entre la formación profesional recibida en la Carrera de Ingeniería de Sistemas y los requerimientos de su trabajo actual o anterior relacionado con Sistemas?",
+                "radio", true, ACUERDO_TITULADOS, "experiencia_laboral", "RELACIONADA",
+                "Considere su trabajo actual o el más reciente relacionado con Sistemas."));
         q.add(multiple("aspectos_utiles", formacion, "¿Qué aspectos de la Carrera les resultaron de bastante utilidad?",
                 false, List.of(
                         o("APLICACION_PRACTICA", "La aplicación práctica de conceptos teóricos en proyectos reales."),
@@ -188,7 +204,28 @@ public class SurveyCatalog {
                         o("PLANIFICACION_GESTION", "Planificación de Proyectos y Gestión"),
                         o("REDES_AVANZADAS", "Tecnología Redes Avanzadas")),
                 5, 5, "Si responde esta pregunta, seleccione 5 opciones."));
-        q.add(text("otra_asignatura_ventaja", formacion, "Otra asignatura que le brindó una ventaja competitiva", "text", false, null));
+        q.add(text("otra_asignatura_ventaja", formacion, "Otra asignatura que le brindó una ventaja competitiva", "text", false,
+                "Opcional. Este texto complementa la respuesta y no cuenta entre las cinco selecciones."));
+        q.add(multiple("asignaturas_poca_utilidad", formacion,
+                "¿Qué asignaturas cursadas considera que le resultaron de poca utilidad profesional?",
+                false, List.of(o("BASICAS", "Básicas (Física, Cálculo, Álgebras)"),
+                        o("APLICACIONES_TV_DIGITAL", "Aplic. Interactivas para Televisión Digital"),
+                        o("TELEFONIA_IP", "Telefonía IP"), o("WEB_SEMANTICAS", "Web Semánticas"),
+                        o("GRAFICACION_COMPUTADORA", "Graficación por Computadora"), o("ROBOTICA", "Robótica"),
+                        o("TALLER_PROGRAMACION_BAJO_NIVEL", "Taller de Programación en Bajo Nivel"),
+                        o("TEORIA_AUTOMATAS_LENGUAJES_FORMALES", "Teoría de Autómatas y Leng. Formales"),
+                        o("PROGRAMACION_FUNCIONAL", "Programación Funcional"),
+                        o("TEORIA_GRAFOS", "Teoría de Grafos"), o("CONTABILIDAD_BASICA", "Contabilidad Básica")),
+                0, 2, "Opcional. Puede seleccionar hasta 2 opciones."));
+        q.add(text("otra_asignatura_poca_utilidad", formacion, "Otra asignatura de poca utilidad profesional", "text", false,
+                "Opcional. Este texto complementa la respuesta y no cuenta entre las dos selecciones."));
+
+        addCompetencies(q, "competencia_tecnica", "Adecuación de competencias técnicas",
+                List.of("desarrollo de software", "bases de datos", "redes", "seguridad informática",
+                        "análisis de datos", "gestión de proyectos"));
+        addCompetencies(q, "competencia_transversal", "Adecuación de competencias transversales",
+                List.of("comunicación", "resolución de problemas", "pensamiento crítico", "aprendizaje continuo",
+                        "trabajo en equipo", "ética profesional"));
 
         String contacto = "Red de contactos";
         q.add(choice("interes_red_contactos", contacto,
@@ -259,8 +296,8 @@ public class SurveyCatalog {
                         o("JEFATURA", "Jefatura o Gerencial (gestión de proyectos, dirección de TI, transformación digital)"),
                         o("CONSULTOR", "Consultor tecnológico"), o("OTRO", "Otro")), 1, 8,
                 "Puede seleccionar más de una opción."));
-        q.add(text("otro_cargo", empleo, "Otro cargo desempeñado", "text", false,
-                "Puede especificarlo si seleccionó Otro."));
+        q.add(conditional("otro_cargo", empleo, "Otro cargo desempeñado", "text", false,
+                List.of(), "cargos_desempenados", "OTRO", "Opcional. Puede especificar el cargo indicado como Otro."));
         q.add(text("areas_emergentes", empleo,
                 "Desde su experiencia en el sector laboral, ¿qué nuevas áreas de conocimiento, tecnologías o tendencias emergentes considera importantes para la formación del profesional de Ingeniería de Sistemas?",
                 "textarea", true, null));
@@ -298,6 +335,16 @@ public class SurveyCatalog {
 
     private static Option o(String value, String label) {
         return new Option(value, label);
+    }
+
+    private static void addCompetencies(List<Question> questions, String prefix, String section, List<String> items) {
+        for (int i = 0; i < items.size(); i++) {
+            questions.add(conditional("%s_%02d".formatted(prefix, i + 1), section,
+                    "¿Qué tan adecuada fue su formación en %s para las demandas de su trabajo actual o anterior relacionado con Sistemas?"
+                            .formatted(items.get(i)),
+                    "radio", true, ADECUACION_COMPETENCIAS, "experiencia_laboral", "RELACIONADA",
+                    "Considere la formación recibida en la carrera. Si no puede valorar este aspecto, seleccione No puedo valorar."));
+        }
     }
 
     private static Question choice(String id, String section, String label, String type, boolean required,

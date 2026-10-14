@@ -16,6 +16,7 @@ public class SurveyValidator {
     public ValidationResult validate(SurveyDefinition survey, MultiValueMap<String, String> submitted) {
         var answers = new LinkedHashMap<String, List<String>>();
         var errors = new LinkedHashMap<String, String>();
+        var states = new LinkedHashMap<String, AnswerState>();
         Set<String> known = new HashSet<>(CONTROL_FIELDS);
         survey.questions().forEach(q -> known.add(q.id()));
         if (submitted.keySet().stream().anyMatch(key -> !known.contains(key))) {
@@ -26,9 +27,11 @@ public class SurveyValidator {
         }
 
         for (Question q : survey.questions()) {
-            if (q.dependsOn() != null && !List.of(q.dependsValue()).equals(answers.get(q.dependsOn()))) {
+            if (!q.applicable(answers)) {
+                states.put(q.id(), AnswerState.NO_APLICA);
                 continue;
             }
+            states.put(q.id(), AnswerState.SIN_RESPUESTA);
             List<String> values = submitted.getOrDefault(q.id(), List.of()).stream()
                     .filter(v -> v != null && !v.isBlank()).toList();
             if (values.isEmpty()) {
@@ -70,7 +73,10 @@ public class SurveyValidator {
                 default -> null;
             };
             if (error != null) errors.put(q.id(), error);
-            else answers.put(q.id(), List.copyOf(values));
+            else {
+                answers.put(q.id(), List.copyOf(values));
+                states.put(q.id(), AnswerState.CON_VALOR);
+            }
         }
         if (survey.slug().equals("titulados") && answers.containsKey("estado_laboral") && answers.containsKey("sector")) {
             boolean unemployed = answers.get("estado_laboral").getFirst().equals("DESEMPLEADO");
@@ -81,7 +87,22 @@ public class SurveyValidator {
                         : "Seleccione el sector de su actividad laboral actual.");
             }
         }
-        return new ValidationResult(answers, errors);
+        if (survey.slug().equals("titulados")) {
+            if (answers.containsKey("meses_desempleado")) {
+                if (!answers.containsKey("meses_vida_profesional")) {
+                    errors.put("meses_vida_profesional", "Indique los meses de vida profesional para comprobar el tiempo desempleado.");
+                } else if (Integer.parseInt(answers.get("meses_desempleado").getFirst())
+                        > Integer.parseInt(answers.get("meses_vida_profesional").getFirst())) {
+                    errors.put("meses_desempleado", "El tiempo desempleado no puede superar los meses de vida profesional.");
+                }
+            }
+            if (List.of("SIN_EXPERIENCIA").equals(answers.get("experiencia_laboral"))
+                    && answers.containsKey("estado_laboral")
+                    && !List.of("DESEMPLEADO").equals(answers.get("estado_laboral"))) {
+                errors.put("experiencia_laboral", "Si actualmente trabaja o emprende, indique el tipo de experiencia laboral que tiene.");
+            }
+        }
+        return new ValidationResult(answers, errors, states);
     }
 
     private String validateNumber(Question q, String value) {

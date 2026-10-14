@@ -1,0 +1,27 @@
+# Allow only the build inputs. Documents, exports, local data and secrets stay out.
+**
+!Dockerfile
+!pom.xml
+!mvnw
+!.mvn/
+!.mvn/wrapper/
+!.mvn/wrapper/maven-wrapper.properties
+!src/
+!src/main/
+!src/main/**
+
+# Local configuration and private files are excluded even under source folders.
+**/.env
+**/.env.*
+**/application-local.properties
+**/application-local.yml
+**/application-local.yaml
+**/private/**
+**/raw/**
+**/processed/**
+**/exports/**
+**/*.log
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx

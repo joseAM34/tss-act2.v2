@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Crear cuenta de administración')}"></head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+<main class="container login-main" id="contenido">
+  <div class="login-context">
+    <p class="eyebrow">Primer inicio</p>
+    <h1>Prepara el acceso a tu estudio.</h1>
+    <p>Tu cuenta te permitirá consultar las respuestas y exportar los datos desde el panel de gestión.</p>
+    <div class="context-rule"></div>
+    <p class="small-copy">Las personas que responden las encuestas no necesitan iniciar sesión.</p>
+    <a class="text-link" th:href="@{/}">Ir a las encuestas públicas <span aria-hidden="true">→</span></a>
+  </div>
+  <section class="login-card" aria-labelledby="setup-title">
+    <span class="badge">Configuración inicial</span>
+    <h2 id="setup-title">Crear cuenta de administración</h2>
+    <p>Configura tu cuenta una sola vez. Después podrás iniciar sesión con estas credenciales.</p>
+    <div class="alert alert-error" role="alert" th:if="${not #maps.isEmpty(errors)}">
+      <strong>Revisa los campos indicados.</strong>
+      <p th:if="${errors['_form'] != null}" th:text="${errors['_form']}"></p>
+    </div>
+    <form th:action="@{/configuracion-inicial}" method="post">
+      <div class="form-control">
+        <label for="username">Usuario</label>
+        <input id="username" name="username" type="text" autocomplete="username" required autofocus minlength="3" maxlength="50" pattern="[A-Za-z0-9._\-]{3,50}" th:value="${username}" th:attr="aria-invalid=${errors['username'] != null},aria-describedby=${errors['username'] != null ? 'username-hint username-error' : 'username-hint'}">
+        <p id="username-hint" class="field-hint">Entre 3 y 50 caracteres: letras sin acentos, números, punto, guion o guion bajo.</p>
+        <p id="username-error" class="field-error" th:if="${errors['username'] != null}" th:text="${errors['username']}"></p>
+      </div>
+      <div class="form-control">
+        <label for="password">Contraseña</label>
+        <div class="password-field">
+          <input id="password" name="password" type="password" autocomplete="new-password" required minlength="12" th:attr="aria-invalid=${errors['password'] != null},aria-describedby=${errors['password'] != null ? 'password-hint password-error' : 'password-hint'}">
+          <button type="button" class="password-toggle" data-password-toggle aria-controls="password" aria-pressed="false" hidden>Mostrar</button>
+        </div>
+        <p id="password-hint" class="field-hint">Usa al menos 12 caracteres.</p>
+        <p id="password-error" class="field-error" th:if="${errors['password'] != null}" th:text="${errors['password']}"></p>
+      </div>
+      <div class="form-control">
+        <label for="confirmation">Repetir contraseña</label>
+        <input id="confirmation" name="confirmation" type="password" autocomplete="new-password" required minlength="12" th:attr="aria-invalid=${errors['confirmation'] != null},aria-describedby=${errors['confirmation'] != null ? 'confirmation-hint confirmation-error' : 'confirmation-hint'}">
+        <p id="confirmation-hint" class="field-hint">Escribe la misma contraseña.</p>
+        <p id="confirmation-error" class="field-error" th:if="${errors['confirmation'] != null}" th:text="${errors['confirmation']}"></p>
+      </div>
+      <button class="button button-primary button-full" type="submit">Crear cuenta <span aria-hidden="true">→</span></button>
+    </form>
+    <p class="login-note">Conserva estas credenciales para acceder al panel en los próximos inicios.</p>
+  </section>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>

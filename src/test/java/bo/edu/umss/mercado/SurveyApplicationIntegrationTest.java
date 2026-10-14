@@ -1,6 +1,7 @@
 package bo.edu.umss.mercado;
 
 import bo.edu.umss.mercado.survey.Question;
+import bo.edu.umss.mercado.security.AdministratorService;
 import bo.edu.umss.mercado.survey.SurveyCatalog;
 import bo.edu.umss.mercado.survey.SurveyDefinition;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,6 +21,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -41,8 +43,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "spring.datasource.url=${TEST_DATABASE_URL:jdbc:h2:mem:survey-integration;MODE=PostgreSQL;DB_CLOSE_DELAY=-1}",
         "spring.datasource.username=${TEST_DATABASE_USERNAME:sa}",
         "spring.datasource.password=${TEST_DATABASE_PASSWORD:}",
-        "app.admin.username=test-admin",
-        "app.admin.password=test-secret-no-real"
+        "app.setup.local-enabled=true"
 })
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
@@ -50,11 +51,15 @@ class SurveyApplicationIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired SurveyCatalog catalog;
+    @Autowired AdministratorService administrators;
 
     @BeforeEach
     void clearCollectedData() {
+        jdbc.update("DELETE FROM survey_question_state");
         jdbc.update("DELETE FROM survey_answer");
         jdbc.update("DELETE FROM survey_response");
+        jdbc.update("DELETE FROM administrator");
+        administrators.register("test-admin", "test-secret-no-real");
     }
 
     @ParameterizedTest
@@ -97,7 +102,7 @@ class SurveyApplicationIntegrationTest {
     }
 
     @Test
-    void configuredCredentialsAllowAdminAccessAndWrongPasswordDoesNot() throws Exception {
+    void persistedCredentialsAllowAdminAccessAndWrongPasswordDoesNot() throws Exception {
         MvcResult login = mvc.perform(formLogin("/login").user("test-admin").password("test-secret-no-real"))
                 .andExpect(authenticated().withUsername("test-admin"))
                 .andExpect(status().is3xxRedirection()).andReturn();
@@ -324,6 +329,7 @@ class SurveyApplicationIntegrationTest {
         form.values().set("nombre_organizacion", "Árbol, \"Ñandú\"\nsegunda línea");
         form.values().set("herramientas_tecnologicas", "=2+2");
         form.values().set("areas_emergentes", "-2+2");
+        form.values().add("cargos_desempenados", "OTRO");
         form.values().set("otro_cargo", "+2+2");
         form.values().set("competencias_requeridas", "@SUM(1)");
         submit(form);
@@ -355,7 +361,8 @@ class SurveyApplicationIntegrationTest {
     private MultiValueMap<String, String> validAnswers(SurveyDefinition survey) {
         MultiValueMap<String, String> values = new LinkedMultiValueMap<>();
         for (Question question : survey.questions()) {
-            if (question.dependsOn() != null && !question.dependsValue().equals(values.getFirst(question.dependsOn()))) {
+            if (question.dependsOn() != null && Arrays.stream(question.dependsValue().split("\\|"))
+                    .noneMatch(value -> values.getOrDefault(question.dependsOn(), List.of()).contains(value))) {
                 continue;
             }
             if (!question.options().isEmpty()) {
@@ -363,7 +370,13 @@ class SurveyApplicationIntegrationTest {
                 question.options().stream().limit(selections).forEach(option -> values.add(question.id(), option.value()));
             } else {
                 String value = switch (question.type()) {
-                    case "number" -> question.id().equals("anio_egreso") ? "2020" : "1";
+                    case "number" -> switch (question.id()) {
+                        case "anio_egreso" -> "2020";
+                        case "edad" -> "30";
+                        case "meses_vida_profesional" -> "120";
+                        case "meses_desempleado" -> "24";
+                        default -> "1";
+                    };
                     case "email" -> "test@example.test";
                     case "url" -> "https://example.test/profile";
                     case "tel" -> "+59170000000";

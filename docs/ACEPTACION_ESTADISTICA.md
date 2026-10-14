@@ -1,0 +1,48 @@
+# Aceptación de estadística de fase 4
+
+Fecha: 2026-10-13. Estado: incremento estadístico ejecutable verificado con 239 pruebas correctas en H2 y en la ejecución con PostgreSQL 18.6. La evidencia incluye 80 casos nuevos y los 159 anteriores; no constituye aprobación metodológica o institucional.
+
+La [referencia recibida](04_ESTADISTICA_UNIVARIADA_BIVARIADA_CHI_CUADRADO.md) contiene CEA01–CEA22 y vectores sintéticos, sin datos de campo. [ESTADISTICA.md](ESTADISTICA.md) describe el contrato efectivo de `PROTOCOLO_ESTADISTICO_V1` en estado `BORRADOR`. La autorización para continuar desarrolla este incremento; no implica aprobación metodológica o institucional.
+
+## Matriz CEA01–CEA22
+
+Los métodos numéricos pertenecen a `StatisticalMathTest` y los del flujo a `PhaseFourStatisticsIntegrationTest`. Los estados siguientes describen la evidencia técnica ejecutada y distinguen sus límites, las decisiones institucionales y los productos de fases posteriores.
+
+| ID | Criterio verificable | Implementación / evidencia ejecutada | Estado |
+| --- | --- | --- | --- |
+| CEA01 | Frecuencias suman N válido; base y cobertura identificadas. | `frequencyPercentagesUseValidAnswersWhileCoverageKeepsUnansweredApplicableParticipants` y `aConditionalFrequencySeparatesItsEligibleParticipantsFromThoseOutsideTheBranch`; bases antiguas no registradas permanecen `null`. | Verificado técnicamente. |
+| CEA02 | Base cero produce `SIN_DATOS`, porcentajes/medidas `null`, sin NaN/Infinity. | `StatisticalMathTest.anEmptyNumericSampleHasNullMeasuresInsteadOfZeroOrNaN` y `allZeroCountsHaveNoInferenceAndContainNoUndefinedFloatingPointValues`. | Verificado técnicamente. |
+| CEA03 | Ocupación observada 6/8=75 % en el ejemplo; no 6/10. | occupationUsesEmployedAndEntrepreneurshipAmongEightValidDeclarations verifica 6/8=75 %; la cobertura general conserva por separado los faltantes y las exclusiones. | Verificado técnicamente. |
+| CEA04 | `NO_SABE` es categoría; puntajes la excluyen; ambos denominadores de acuerdo se distinguen. | `noSabeAndCannotRateRemainExplicitCategoriesOutsideSubstantiveAgreementCounts` comprueba categoría propia, n sustantivo y los dos denominadores de acuerdo. | Verificado técnicamente. |
+| CEA05 | Múltiples 3/2/2 sobre cuatro envíos producen 75/50/50 %; menciones usan otra base. | `multipleSelectionPercentagesDistinguishParticipantsFromMentionsAndOmissions` verifica las dos bases, omisiones y porcentajes de participantes que suman más de 100 % con una fixture distinta. | Tratamiento verificado; vector exacto de referencia sin fixture propia. |
+| CEA06 | Vector 2,4,4,4,5,5,7,9 reproduce media 5, mediana 4,5, SD muestral 2,138089935299395, Q1=4/Q3=5,5. | `StatisticalMathTest.numericSummaryUsesSampleDispersionAndInterpolatedQuartiles`. | Verificado técnicamente. |
+| CEA07 | n=1 dispersión `null`; constante n≥2 dispersión cero. | `aSingleNumericObservationHasALocationButNoSampleStandardDeviation` y `aConstantSampleHasZeroDispersionWithoutLosingTheObservedZero`. | Verificado técnicamente. |
+| CEA08 | Nominales/textos no se promedian; `MAS_TRES` no se convierte en cuatro. | anOpenEndedJobCountStaysAnOrdinalCategoryInsteadOfBecomingExactlyFourJobs y pruebas de privacidad verifican el tratamiento por diccionario congelado. | Verificado técnicamente. |
+| CEA09 | Ordinal conserva etiquetas, mapa/n puntuado explícitos; desconocimiento sin puntaje. | `noSabeAndCannotRateRemainExplicitCategoriesOutsideSubstantiveAgreementCounts` y escalas específicas por variable/versión, sin índice global. Un código futuro sin regla conserva su frecuencia y n no ordenado; no se inventa categoría central o puntaje. | Verificado técnicamente. |
+| CEA10 | Suma de contingencia=N pares; porcentajes de fila/columna/total con bases propias. | `pearsonTwoByTwoMatchesTheReferenceStatisticPValueAndCramersV` verifica conteos, esperadas y tres porcentajes; intersección de envíos por motor. | Verificado técnicamente. |
+| CEA11 | B01 futuro T38/T37 y B02 pasado T06/T04 permanecen separados. | futureAndPastFinancingCrossesUseTheirOwnPairsWithoutCountingInactiveBranches verifica IDs y pares propios de B01/B02. | Verificado técnicamente. |
+| CEA12 | Pearson 2×2, gl=1, p/V de referencia; sin Yates no declarado. | `pearsonTwoByTwoMatchesTheReferenceStatisticPValueAndCramersV`. | Verificado técnicamente. |
+| CEA13 | Pearson 2×3, gl=2, sin aplanar a bondad de ajuste. | `pearsonTwoByThreeMatchesAnIndependentReference`. | Verificado técnicamente. |
+| CEA14 | Márgenes cero se retiran solo para inferencia; una dimensión activa da `SIN_VARIACION`. | `zeroMarginsAreRemovedForInferenceButTheFullObservedTableIsPreserved` y `aTableWithOnlyOneActiveLevelHasNoDegreesOfFreedomForInference`. | Verificado técnicamente. |
+| CEA15 | Esperada activa <5 impide p/decisión; conserva diagnóstico. | `expectedFrequenciesBelowFiveSuppressTheAsymptoticTest`. | Verificado técnicamente. |
+| CEA16 | Sin unidad/evidencia documentadas no hay p; un ID no prueba independencia. | `anUndocumentedIndependenceAssumptionCannotProduceAPValue`; plan por defecto sin evidencia. | Verificado técnicamente; independencia metodológica pendiente. |
+| CEA17 | Conteos enteros compatibles; rechazar pesos/porcentajes/entradas incompatibles y no tratar menciones como personas. | `invalidCountTablesAreRejectedInsteadOfBeingRoundedOrFilled`; entrada limitada a matrices verificadas, sin importador externo. | Verificado para el contrato actual; importaciones externas fuera de alcance. |
+| CEA18 | Familia/M previos; Holm reproduce .03/.06/.06 y no elimina no ejecutables. | `holmUsesThePlannedFamilyAndKeepsResultsInTheOriginalOrder`, `holmDoesNotDropUnexecutedPlannedComparisonsFromItsMultiplicityFactor`; B06 completo M=10. | Verificado técnicamente. |
+| CEA19 | Decisión p cercana a alpha usa precisión completa. | `StatisticalMathTest.decisionsUseFullPrecisionInsteadOfTheRoundedPValueDisplayedToTheReader` verifica p=0,0496 y decisión sin redondeo. | Verificado técnicamente. |
+| CEA20 | Mismo conjunto/plan/protocolo produce mismos resultados lógicos; lecturas verifican integridad congelada. | `theSamePreparedDataAndPlanHaveAStableLogicalHashAcrossNewAnalysisIdentifiers`, `subsequentCorrectionsAndNewSourceDataCannotChangeAPublishedAnalysis`, `tamperedAnalysisJsonCannotBeReadOrDownloadedAsAVerifiedResult`. | Verificado técnicamente. |
+| CEA21 | Salidas de gráfico/reporte coinciden con backend y preservan trazabilidad/denominadores/estados. | Contrato JSON/CSV del backend preparado; aún no hay gráficos computacionales ni reportes automatizados. | Parcial; fases de visualización y reportes pendientes. |
+| CEA22 | Interpretación no atribuye causalidad, representatividad ni prueba de independencia a p. | Limitaciones explícitas del protocolo/manifiesto y consulta; interpretación institucional del informe futuro. | Contrato y texto verificados; informe final pendiente. |
+
+## Casos adicionales del contrato
+
+La suite debe cubrir: aislamiento ADMIN y CSRF; validación del plan y alpha; selección completa de B06; cobertura anterior a calidad en conjuntos nuevos; denominadores desconocidos de conjuntos antiguos; revisiones temáticas de cero temas; privacidad de contactos/textos; estratos independientes por estudio/versión/tipo; conservación del análisis frente a revisiones posteriores; integridad y reproducibilidad de JSON/CSV; B07 pendiente y B08 sin prueba inventada; rollback sin publicación parcial; no resultados no finitos.
+
+Pasaron los casos `analysisRecordsTheSourceHashesProtocolPlanAndAdministrator`, `distinctInstrumentVersionsKeepTheirOwnDescriptiveStrataInsteadOfBeingPooled`, `statisticalPagesAndEveryDownloadRequireAuthentication`, `anAuthenticatedNonAdministratorCannotReadStatisticalOutputs`, `startingAnAnalysisRequiresCsrfEvenForAnAdministrator`, `anAnonymousRequestCannotStartAnAnalysisEvenWithAValidCsrfToken`, `theProtectedPanelCreatesAndDeliversAFrozenAnalysisWithoutPrivateSourceText`, `theBackendRejectsPlansOutsideTheRegisteredProtocol`, `anInvalidSourceHashStopsPreparationBeforeAnAnalysisIsPublished` y `aPersistenceFailureCannotPublishAnAnalysisOrReplaceAnExistingOne`. También pasaron la compatibilidad con bundles anteriores, cobertura histórica desconocida, textos con revisiones vacías, páginas de ambos tipos de encuesta y el caso de una categoría ordinal nueva sin orden ni puntaje inventados.
+
+Las comparaciones numéricas de referencia usan tolerancia absoluta o relativa hasta 1e−10, tomando el mayor margen. Conteos, estados, gl, categorías y decisiones se comparan exactamente. Los valores esperados son sintéticos: ejecutar estas pruebas no equivale a recolectar o validar estadísticamente datos UMSS.
+
+## Registro de verificación y límites
+
+El 2026-10-13 se ejecutó Maven verify completo con 239 pruebas correctas en H2 y 239 correctas en la ejecución con PostgreSQL 18.6: cero fallos, errores u omisiones. Son 46 casos de PhaseFourStatisticsIntegrationTest, 34 de StatisticalMathTest y los 159 anteriores. Las pruebas de reinicio y migración histórica que usan H2 aislado conservan ese alcance aunque el resto de la ejecución apunte a PostgreSQL. Evidencia local excluida del historial: .codex-tmp/verify-phase4-h2-final.log y .codex-tmp/verify-phase4-postgres.log. La instancia temporal y su puerto 55436 quedaron cerrados al terminar.
+
+Permanecen pendientes: D13/D16 elegibilidad y unidad; D18 codebook aprobado; D19 comparabilidad; D21 diseño muestral/alcance; D22 cohortes/antigüedad; D23 plan institucional; gráficos, radar/mapas de calor, reportes y Excel, simulación e informe final. Ningún resultado de la suite técnica aprueba automáticamente esas decisiones.

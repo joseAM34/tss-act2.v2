@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Preparar análisis')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido">
+  <a class="back-link" th:href="@{/admin/datos/{id}(id=${run.summary.id})}">← Volver al conjunto</a>
+  <p class="eyebrow">Fase 4 · Estadística</p><h1>Preparar análisis</h1>
+  <p class="page-intro">Se calcularán frecuencias, resúmenes numéricos y cruces por instrumento, versión y estudio. Cada porcentaje mostrará su base. La ejecución conserva el conjunto y el plan utilizados.</p>
+  <div class="response-meta"><span>Origen <strong th:text="${run.summary.origin}"></strong></span><span>Envíos <strong th:text="${run.summary.includedCount}"></strong></span><span>Uso del análisis <strong>Borrador exploratorio</strong></span></div>
+  <section class="review-card"><h2>Plan de análisis</h2>
+    <p>El protocolo incluye los cruces previstos para formación, empleo y demanda. Los diez criterios de empleadores forman una familia de pruebas con ajuste de Holm. La antigüedad permanece pendiente de definición; los meses de vida profesional y desempleo se exploran como pares numéricos.</p>
+    <p th:if="${error}" class="field-error" role="alert" th:text="${error}"></p>
+    <form class="data-form" method="post" th:action="@{/admin/datos/{id}/analisis(id=${run.summary.id})}">
+      <div class="field-group"><label for="alpha">Nivel alfa</label><input id="alpha" name="alpha" type="number" min="0.0001" max="0.9999" step="any" th:value="${alpha ?: 0.05}" required></div>
+      <h3>Documentación de independencia</h3><p class="field-hint">Estos campos son opcionales para los descriptivos. Para contrastar se requiere justificar que cada unidad aporta una observación independiente. Un identificador de envío o una marca de selección no demuestra esa condición. La documentación no concede aprobación institucional.</p>
+      <div class="field-group"><label for="independenceUnit">Unidad de análisis</label><input id="independenceUnit" name="independenceUnit" maxlength="200" th:value="${independenceUnit}"></div>
+      <div class="field-group"><label for="independenceEvidence">Diseño de recolección y comprobación de independencia</label><textarea id="independenceEvidence" name="independenceEvidence" maxlength="2000" rows="5" th:text="${independenceEvidence}"></textarea></div>
+      <label class="choice"><input type="checkbox" name="structuralZeros" value="true"><span>El diseño tiene combinaciones estructuralmente imposibles. Conservar las tablas y suspender el contraste de independencia.</span></label>
+      <p class="field-hint">Chi-cuadrado también se suspende cuando no hay variación o alguna frecuencia esperada es menor que 5.</p>
+      <button class="button button-primary" type="submit">Calcular y guardar análisis</button>
+    </form>
+  </section>
+  <section class="data-panel"><div class="panel-heading"><h2>Análisis guardados de este conjunto</h2></div><p class="empty-state" th:if="${#lists.isEmpty(analyses)}">Todavía no se ha calculado un análisis.</p><div class="table-scroll" th:unless="${#lists.isEmpty(analyses)}"><table><thead><tr><th>Fecha UTC</th><th>Protocolo</th><th>Resultado</th></tr></thead><tbody><tr th:each="item : ${analyses}"><td th:text="${item.createdAt}"></td><td th:text="${item.protocolVersion}"></td><td><a class="text-link" th:href="@{/admin/estadisticas/{id}(id=${item.id})}">Ver análisis</a></td></tr></tbody></table></div></section>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

@@ -3,7 +3,17 @@
 <head th:replace="~{fragments/layout :: head('Gracias por participar')}"></head>
 <body>
 <header th:replace="~{fragments/layout :: header('home')}"></header>
-<main class="container message-main" id="contenido"><div class="message-card"><span class="success-mark" aria-hidden="true">✓</span><p class="eyebrow">Encuesta enviada</p><h1>Gracias por compartir tu experiencia.</h1><p>Tus respuestas se guardaron correctamente. Tu participación aporta información al estudio de mercado de Ingeniería de Sistemas.</p><a class="button button-primary" th:href="@{/}">Volver al inicio <span aria-hidden="true">→</span></a></div></main>
+<main class="container message-main" id="contenido">
+  <div class="message-card">
+    <span class="success-mark" aria-hidden="true" th:if="${responseReference != null}">✓</span>
+    <p class="eyebrow" th:text="${responseReference != null ? 'Encuesta enviada' : 'Estudio de mercado'}"></p>
+    <h1 th:text="${responseReference != null ? 'Gracias por compartir tu experiencia.' : 'Gracias por tu interés en el estudio.'}"></h1>
+    <p th:if="${responseReference != null}">Tus respuestas se guardaron correctamente. Tu participación aporta información al estudio de mercado de Ingeniería de Sistemas.</p>
+    <p th:unless="${responseReference != null}">Puedes elegir una de las encuestas desde la página principal para participar.</p>
+    <p th:if="${responseReference != null}">Referencia de tu envío: <strong th:text="${responseReference}"></strong></p>
+    <a class="button button-primary" th:href="@{/}">Volver al inicio <span aria-hidden="true">→</span></a>
+  </div>
+</main>
 <footer th:replace="~{fragments/layout :: footer}"></footer>
 </body>
 </html>

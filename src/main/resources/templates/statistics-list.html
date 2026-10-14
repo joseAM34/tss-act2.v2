@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Análisis guardados')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido"><a class="back-link" th:href="@{/admin}">← Volver al panel</a><p class="eyebrow">Estadística</p><h1>Análisis guardados</h1><p class="page-intro">Para crear un análisis, abre un conjunto preparado y selecciona «Analizar este conjunto».</p><div class="download-links"><a class="button button-primary" th:href="@{/admin/datos}">Abrir conjuntos</a></div>
+<section class="data-panel"><p class="empty-state" th:if="${#lists.isEmpty(analyses)}">Todavía no hay análisis guardados.</p><div class="table-scroll" th:unless="${#lists.isEmpty(analyses)}"><table><thead><tr><th>Fecha UTC</th><th>Protocolo</th><th>Resultado</th><th>Gráficos</th><th>Conjunto</th></tr></thead><tbody><tr th:each="item : ${analyses}"><td th:text="${item.createdAt}"></td><td th:text="${item.protocolVersion}"></td><td><a class="text-link" th:href="@{/admin/estadisticas/{id}(id=${item.id})}">Ver análisis</a></td><td><a class="text-link" th:href="@{/admin/estadisticas/{id}/visualizacion(id=${item.id})}">Ver gráficos</a></td><td><a class="text-link" th:href="@{/admin/datos/{id}(id=${item.sourceRunId})}">Ver conjunto</a></td></tr></tbody></table></div></section>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

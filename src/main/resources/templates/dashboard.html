@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#17324d">
+  <title>Dashboard del estudio · Estudio de mercado UMSS</title>
+  <link rel="stylesheet" th:href="@{/css/app.css}">
+  <link rel="stylesheet" th:href="@{/css/dashboard.css}">
+  <script defer th:src="@{/js/app.js}"></script>
+  <script defer th:src="@{/vendor/echarts-6.0.0.min.js}"></script>
+  <script defer th:src="@{/js/dashboard.js}"></script>
+</head>
+<body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header>
+<div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main dashboard-main" id="contenido" th:attr="data-endpoint=@{/admin/estadisticas/{id}/visualizacion.json(id=${analysisId})}">
+  <a class="back-link" th:href="@{/admin/estadisticas/{id}(id=${analysisId})}">← Volver a las tablas estadísticas</a>
+  <div class="dashboard-heading">
+    <div><p class="eyebrow">Visualización computacional</p><h1>Dashboard del estudio</h1>
+      <p class="page-intro">Estudio de mercado de Ingeniería en Sistemas UMSS. Explora los envíos del conjunto preparado, sus bases y sus resultados.</p></div>
+    <span class="badge badge-neutral dashboard-draft">Borrador exploratorio</span>
+  </div>
+  <noscript><section class="review-card"><h2>Activa JavaScript para ver los gráficos</h2><p>Las tablas estadísticas y las descargas siguen disponibles en el enlace anterior.</p></section></noscript>
+  <div id="dashboard-origin" class="dashboard-origin" hidden></div>
+  <section class="dashboard-context" aria-labelledby="context-title">
+    <h2 id="context-title">Selección aplicada</h2>
+    <p id="dashboard-selection">Cargando el contexto del conjunto…</p>
+    <div id="dashboard-context-facts" class="dashboard-context-facts"></div>
+    <details id="dashboard-trace" hidden><summary>Detalle del cálculo y trazabilidad</summary><dl id="dashboard-trace-list" class="manifest-list"></dl></details>
+  </section>
+  <details class="dashboard-filters" id="dashboard-filters">
+    <summary>Filtros y comparación de grupos <span id="dashboard-dirty" class="badge badge-neutral" hidden>Cambios sin aplicar</span></summary>
+    <p class="field-hint">Los filtros preparan una selección. Aplica los cambios para actualizar conjuntamente gráficos y tablas. Las versiones se muestran por separado.</p>
+    <form id="dashboard-filter-form" class="dashboard-filter-form">
+      <div id="dashboard-filter-fields" class="dashboard-filter-fields"></div>
+      <div class="dashboard-filter-actions">
+        <button class="button button-primary" type="submit">Aplicar filtros</button>
+        <button class="button button-outline" type="button" id="dashboard-reset">Restablecer selección base</button>
+      </div>
+      <p class="field-hint" id="dashboard-comparison-hint">La comparación conserva las bases de cada grupo. Selecciona una variable y dos categorías distintas.</p>
+    </form>
+  </details>
+  <div class="dashboard-request" id="dashboard-request" role="status" aria-live="polite" aria-atomic="true">Cargando resultados…</div>
+  <div class="dashboard-query-error" id="dashboard-query-error" role="alert" hidden><p id="dashboard-error-message"></p><button type="button" class="button button-outline" id="dashboard-retry">Reintentar</button><a class="text-link" th:href="@{/login}">Iniciar sesión</a></div>
+  <div class="dashboard-body" id="dashboard-body" hidden>
+    <nav class="dashboard-nav" aria-label="Vistas del estudio"><div id="dashboard-tabs" role="tablist" aria-label="Secciones del dashboard" aria-orientation="horizontal"></div></nav>
+    <div class="dashboard-panels" id="dashboard-panels"></div>
+  </div>
+  <p class="dashboard-scope">La unidad de cada fila es un envío. Estos resultados describen la selección disponible; no acreditan representatividad ni que cada envío corresponda a una persona o empresa independiente.</p>
+</main>
+<footer th:replace="~{fragments/layout :: footer}"></footer>
+</body>
+</html>
