@@ -3,6 +3,7 @@
 
   const form = document.querySelector('[data-survey-form]');
   if (form) {
+    if (form.dataset.previewReadonly === 'true') form.addEventListener('submit', event => event.preventDefault());
     const questions = Array.from(form.querySelectorAll('[data-question-id]'));
     const questionById = new Map(questions.map(question => [question.dataset.questionId, question]));
     const sections = [];

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Editar pregunta')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main draft-editor" id="contenido">
+  <a class="back-link" th:href="@{/admin/encuestas/{id}(id=${draft.id})}">← Volver al borrador</a><h1 th:text="${adding ? 'Añadir pregunta' : 'Editar pregunta'}"></h1>
+  <div class="alert alert-error" role="alert" th:if="${error != null}" th:text="${error}"></div><p th:if="${#lists.isEmpty(draft.sections)}">Primero añade una sección al borrador.</p>
+  <form th:unless="${#lists.isEmpty(draft.sections)}" class="review-card data-form" th:action="${adding} ? @{/admin/encuestas/{id}/preguntas(id=${draft.id})} : @{/admin/encuestas/{id}/preguntas/{qid}(id=${draft.id},qid=${fields['questionId']})}" method="post">
+    <input type="hidden" name="revision" th:value="${draft.revision}"><input type="hidden" name="questionId" th:value="${fields['questionId']}">
+    <div class="form-control"><label for="label">Enunciado</label><textarea id="label" name="label" rows="2" required maxlength="2000" th:text="${fields['label']}"></textarea></div>
+    <div class="form-control"><label for="section">Sección</label><select id="section" name="sectionId" required><option th:each="s : ${draft.sections}" th:value="${s.id}" th:text="${s.title}" th:selected="${s.id == fields['sectionId']}"></option></select></div>
+    <div class="form-control"><label for="type">Tipo de pregunta</label><select id="type" name="type"><option th:each="choice : ${typeChoices}" th:value="${choice.value}" th:text="${choice.label}" th:selected="${choice.value == fields['type']}"></option></select></div>
+    <div class="form-control"><label class="draft-checkbox"><input type="checkbox" name="required" value="true" th:checked="${fields['required'] == 'true'}"> Respuesta obligatoria cuando la pregunta aplique</label></div>
+    <div class="form-control"><label for="hint">Ayuda para responder (opcional)</label><textarea id="hint" name="hint" rows="2" maxlength="2000" th:text="${fields['hint']}"></textarea></div>
+    <div class="form-control"><label for="options">Opciones para selección única, múltiple o desplegable</label><p class="field-hint" id="options-help">Una opción por línea: código | texto. Ejemplo: SI | Sí. El código identifica la opción; utiliza letras, números o guion bajo. Deja vacío para otros tipos.</p><textarea id="options" name="options" rows="5" maxlength="100000" aria-describedby="options-help" th:text="${fields['options']}"></textarea></div>
+    <div class="draft-grid"><div class="form-control"><label for="min-selections">Mínimo de selecciones si responde</label><input id="min-selections" type="number" name="minSelections" min="0" max="100" th:value="${fields['minSelections']}"></div><div class="form-control"><label for="max-selections">Máximo de selecciones</label><input id="max-selections" type="number" name="maxSelections" min="1" max="100" th:value="${fields['maxSelections']}"></div></div>
+    <p class="field-hint">Para tipos distintos de selección múltiple, deja mínimo 0 y máximo 1.</p>
+    <div class="draft-grid"><div class="form-control"><label for="min">Valor mínimo (solo número entero)</label><input id="min" type="number" name="min" min="0" max="999999999" th:value="${fields['min']}"></div><div class="form-control"><label for="max">Valor máximo (solo número entero)</label><input id="max" type="number" name="max" min="0" max="999999999" th:value="${fields['max']}"></div></div>
+    <details><summary>Condición de aparición</summary><p class="field-hint">Opcional. La pregunta de control debe aparecer antes. Para quitar la condición deja vacíos ambos campos.</p>
+      <div class="form-control"><label for="depends-on">Mostrar según esta pregunta</label><select id="depends-on" name="dependsOn"><option value="">Sin condición</option><option th:each="item : ${draft.items}" th:if="${item.question.id != fields['questionId'] and (item.question.type == 'radio' or item.question.type == 'checkbox' or item.question.type == 'select')}" th:value="${item.question.id}" th:text="${item.question.label + ' (' + item.question.id + ')'}" th:selected="${item.question.id == fields['dependsOn']}"></option></select></div>
+      <div class="form-control"><label for="depends-value">Códigos de las opciones que activan esta pregunta</label><input id="depends-value" name="dependsValue" maxlength="10100" th:value="${fields['dependsValue']}"><p class="field-hint">Por ejemplo SI. Si hay varios: SI|OTRO. Deben existir en la pregunta de control.</p></div>
+    </details>
+    <div class="draft-actions"><button class="button button-primary" type="submit">Guardar pregunta</button><a class="text-link" th:href="@{/admin/encuestas/{id}(id=${draft.id})}">Cancelar</a></div>
+  </form>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

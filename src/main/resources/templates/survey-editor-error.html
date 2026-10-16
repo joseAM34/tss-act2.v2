@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Revisar cambio del borrador')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><th:block th:if="${publicError != true}"><div th:replace="~{fragments/layout :: adminBar}"></div></th:block>
+<main class="container page-main draft-editor" id="contenido"><h1 th:text="${publicError == true ? 'Formulario no disponible' : 'La operación no se completó'}"></h1><div class="alert alert-error" role="alert" th:text="${message}"></div><p th:if="${publicError != true}">La versión guardada se conserva. Abre su estado actual para continuar.</p><a class="button button-primary" th:href="${back}" th:text="${publicError == true ? 'Volver al inicio' : 'Volver al editor'}"></a></main>
+<footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

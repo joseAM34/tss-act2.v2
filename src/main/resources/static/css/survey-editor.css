@@ -1,0 +1,18 @@
+.draft-editor h1 { overflow-wrap: anywhere; }
+.draft-editor .review-card p, .draft-editor .review-card h2, .draft-editor .review-card h3,
+.survey-heading h1, .survey-heading .page-intro { overflow-wrap: anywhere; }
+.draft-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-block: 18px; }
+.draft-actions form { display: flex; flex-wrap: wrap; gap: 8px; }
+.draft-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.draft-question { border-top: 1px solid var(--line); padding-block: 22px; overflow-wrap: anywhere; }
+.draft-question h3 { margin-bottom: 10px; }
+.draft-question ul { padding-left: 24px; font-size: .9rem; }
+.draft-editor .data-form .draft-checkbox { display: flex; align-items: center; gap: 10px; }
+.draft-editor .data-form .draft-checkbox input { width: auto; }
+.draft-editor details { margin-block: 20px; }
+.draft-editor details .form-control { margin-top: 18px; }
+.draft-editor button:disabled { opacity: .5; cursor: not-allowed; }
+@media (max-width: 600px) { .draft-grid { grid-template-columns: 1fr; gap: 0; } }
+.general-chart { height: 320px; min-width: 0; }
+.report-prose { white-space: pre-wrap; overflow-wrap: anywhere; }
+.draft-editor li, .draft-editor .draft-checkbox span { overflow-wrap: anywhere; }

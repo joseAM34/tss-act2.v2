@@ -5,13 +5,15 @@
 <header th:replace="~{fragments/layout :: header('admin')}"></header>
 <div th:replace="~{fragments/layout :: adminBar}"></div>
 <main class="container page-main response-main" id="contenido">
-  <a class="back-link" th:href="@{/admin}"><span aria-hidden="true">←</span> Volver al panel</a>
+  <a class="back-link" th:href="${workspace != null ? workspace.link('respuestas') : '/admin'}"><span aria-hidden="true">←</span> Volver al panel</a>
   <p class="eyebrow">Respuesta registrada</p>
   <h1 th:text="${response.summary.surveyTitle}">Detalle de respuesta</h1>
+  <section class="review-card" th:if="${importReference != null and !#maps.isEmpty(importReference)}"><h2>Procedencia CSV</h2><p th:text="${'Registro de origen: ' + importReference.row_number + ' · Plataforma declarada: ' + importReference.platform_declared}"></p><p th:text="${'Fecha externa: ' + importReference.external_date + ' · Precisión: ' + importReference.date_precision}"></p><a class="text-link" th:href="@{/admin/importaciones/{id}(id=${importReference.batch_id})}">Consultar lote y original</a></section>
   <div class="response-meta">
     <span>Referencia <strong th:text="${response.summary.id}"></strong></span>
     <span>Enviada el <strong th:text="${response.summary.submittedAt}"></strong></span>
     <span>Versión <strong th:text="${response.summary.version}"></strong></span>
+    <span>Origen <strong th:text="${origin == 'NO_DECLARADO' ? 'Origen sin verificar' : origin}"></strong></span>
   </div>
   <div class="confidential-note"><span class="note-icon" aria-hidden="true">i</span><p>Esta vista contiene información del estudio. Los datos de contacto están limitados a personas con acceso al panel de gestión.</p></div>
   <p class="small-copy" th:unless="${response.hasQuestionStates}">Esta versión anterior conserva sus respuestas originales; no registraba por separado las preguntas sin respuesta y las que no aplicaban.</p>

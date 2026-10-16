@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="controls" class="workspace-notice report-export-controls" aria-label="Exportar reporte">
+  <strong>Exportar este reporte</strong>
+  <p>Las descargas conservan este corte, aunque lleguen respuestas nuevas. Cada gráfico tiene sus botones PNG y SVG debajo.</p>
+  <div class="draft-actions">
+    <button type="button" class="button button-primary" data-report-print disabled>Guardar como PDF / imprimir</button>
+    <a class="button button-outline" th:href="@{/admin/reportes/{id}/resultados.xlsx(id=${report.id})}">Excel de resultados</a>
+    <a class="button button-outline" th:href="@{/admin/reportes/{id}/resultados.csv(id=${report.id})}">CSV de resultados</a>
+    <a class="text-link" th:href="@{/admin/reportes/{id}/contenido.json(id=${report.id})}" download>JSON y referencias</a>
+  </div>
+  <p data-export-status role="status">Preparando gráficos para exportar…</p>
+  <noscript><p>Para PDF usa Imprimir → Guardar como PDF del navegador. Sin JavaScript se conservan tablas y resúmenes; los gráficos necesitan JavaScript.</p></noscript>
+</section>
+</body></html>

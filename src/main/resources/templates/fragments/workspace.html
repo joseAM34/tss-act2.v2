@@ -1,0 +1,14 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="navigation" th:if="${workspace != null}" class="workspace-navigation" aria-label="Espacio de la encuesta">
+  <div class="container">
+    <nav class="workspace-breadcrumbs" aria-label="Ubicación"><a th:href="@{/admin/espacio}">← Mis encuestas</a><span th:text="${workspace.title}"></span></nav>
+    <div class="workspace-context"><span th:text="${workspace.legacy ? 'Cuestionario UMSS' : 'Encuesta seleccionada'}"></span>
+      <form th:action="${workspace.path() + '/' + workspaceSection}" method="get"><label for="workspace-version">Versión</label><select id="workspace-version" name="version"><option th:each="v : ${workspace.versions}" th:value="${v.code}" th:selected="${v.code == workspace.selected.code}" th:text="${(v.draft ? 'Próxima versión' : v.code) + ' · ' + v.label() + (v.active ? ' · Activa' : '')}"></option></select><button class="button button-outline" type="submit">Abrir</button></form>
+      <span class="badge badge-neutral" th:text="${workspace.selected.label()}"></span>
+    </div>
+    <nav class="workspace-tabs" aria-label="Secciones de la encuesta">
+      <a th:each="item : ${ {'resumen','versiones','respuestas','resultados','importar','reportes'} }" th:href="${workspace.link(item)}" th:attr="aria-current=${workspaceSection == item ? 'page' : null}" th:text="${item == 'reportes' ? 'Reportes y plantillas' : #strings.capitalize(item)}"></a>
+    </nav>
+  </div>
+</section>
+</body></html>

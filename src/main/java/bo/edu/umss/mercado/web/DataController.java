@@ -119,6 +119,7 @@ public class DataController {
     String review(@PathVariable String id, Model model) {
         var input = captures.input(id);
         model.addAttribute("input", input);
+        model.addAttribute("analyticSupported", List.of("titulados", "empleadores").contains(input.slug()));
         model.addAttribute("origin", wrangling.origin(id));
         model.addAttribute("history", wrangling.reviewHistory(id));
         return "data-review";

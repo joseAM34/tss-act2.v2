@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Editar borrador')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main draft-editor" id="contenido">
+  <a class="back-link" th:href="${workspace != null ? workspace.link('versiones') : '/admin/encuestas'}">← Encuestas y borradores</a>
+  <div class="draft-actions"><h1 th:text="${draft.title}"></h1><span class="badge badge-neutral">Borrador · sin publicar</span></div>
+  <p class="page-intro">Organiza las secciones y preguntas. Guardar aquí no cambia las versiones publicadas.</p>
+  <div class="draft-actions"><a class="button button-outline" th:href="@{/admin/encuestas/{id}/vista-previa(id=${draft.id})}">Vista previa</a><a class="button button-primary" th:href="@{/admin/encuestas/{id}/publicar(id=${draft.id})}">Revisar publicación</a></div>
+  <p class="field-hint" th:text="${'Revisión guardada: ' + draft.revision}"></p>
+  <div class="alert alert-error" role="alert" th:if="${error != null}" th:text="${error}"></div>
+  <section class="review-card"><h2>Título e instrucciones</h2>
+    <form class="data-form" th:action="@{/admin/encuestas/{id}/titulo(id=${draft.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}">
+      <div class="form-control"><label for="title">Título</label><input id="title" name="title" required maxlength="200" th:value="${editedTitle != null ? editedTitle : draft.title}"></div>
+      <div class="form-control"><label for="description">Descripción e instrucciones</label><textarea id="description" name="description" rows="3" maxlength="5000" th:text="${editedDescription != null ? editedDescription : draft.description}"></textarea></div>
+      <button class="button button-primary" type="submit">Guardar título e instrucciones</button>
+    </form>
+    <form class="draft-actions" th:action="@{/admin/encuestas/{id}/duplicar(id=${draft.id})}" method="post"><button class="button button-outline" type="submit">Duplicar este borrador</button></form>
+  </section>
+  <section class="review-card"><h2>Añadir sección</h2>
+    <form class="data-form" th:action="@{/admin/encuestas/{id}/secciones(id=${draft.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}">
+      <div class="form-control"><label for="new-section">Nombre de la sección</label><input id="new-section" name="title" required maxlength="200"></div><button class="button button-outline" type="submit">Añadir sección</button>
+    </form>
+    <p th:if="${#lists.isEmpty(draft.sections)}">Añade una sección para empezar a crear preguntas.</p>
+    <a class="button button-primary" th:unless="${#lists.isEmpty(draft.sections)}" th:href="@{/admin/encuestas/{id}/preguntas/nueva(id=${draft.id})}">Añadir pregunta</a>
+  </section>
+  <section class="review-card" th:each="s, sectionStatus : ${draft.sections}"><h2 th:text="${s.title}"></h2>
+    <form class="data-form" th:action="@{/admin/encuestas/{id}/secciones(id=${draft.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><input type="hidden" name="sectionId" th:value="${s.id}">
+      <div class="form-control"><label th:for="${'section-' + s.id}">Nombre de esta sección</label><input th:id="${'section-' + s.id}" name="title" required maxlength="200" th:value="${s.title}"></div><button class="button button-outline" type="submit">Renombrar sección</button>
+    </form>
+    <div class="draft-actions">
+      <form th:action="@{/admin/encuestas/{id}/secciones/{sid}/mover(id=${draft.id},sid=${s.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><button class="button button-outline" name="direction" value="-1" th:disabled="${sectionStatus.first}" type="submit">Subir sección</button><button class="button button-outline" name="direction" value="1" th:disabled="${sectionStatus.last}" type="submit">Bajar sección</button></form>
+      <form th:if="${#lists.isEmpty(draft.itemsInSection(s.id))}" th:action="@{/admin/encuestas/{id}/secciones/{sid}/eliminar(id=${draft.id},sid=${s.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><button class="button button-outline" type="submit">Eliminar sección vacía</button></form>
+    </div>
+    <p class="field-hint" th:if="${#lists.isEmpty(draft.itemsInSection(s.id))}">Esta sección todavía no tiene preguntas.</p>
+    <article class="draft-question" th:each="item, questionStatus : ${draft.itemsInSection(s.id)}"><h3 th:text="${item.question.label}"></h3><p class="field-hint" th:text="${item.question.required ? 'Obligatoria' : 'Opcional'}"></p><p th:if="${not #strings.isEmpty(item.question.hint)}" th:text="${item.question.hint}"></p>
+      <ul th:unless="${#lists.isEmpty(item.question.options)}"><li th:each="option : ${item.question.options}" th:text="${option.label}"></li></ul>
+      <p class="field-hint" th:if="${item.question.dependsOn != null}" th:text="${'Condición: ' + item.question.dependsOn + ' = ' + item.question.dependsValue}"></p>
+      <div class="draft-actions"><a class="button button-outline" th:href="@{/admin/encuestas/{id}/preguntas/{qid}(id=${draft.id},qid=${item.question.id})}">Editar pregunta</a>
+        <form th:action="@{/admin/encuestas/{id}/preguntas/{qid}/mover(id=${draft.id},qid=${item.question.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><button class="button button-outline" name="direction" value="-1" th:disabled="${questionStatus.first}" type="submit">Subir</button><button class="button button-outline" name="direction" value="1" th:disabled="${questionStatus.last}" type="submit">Bajar</button></form>
+        <form th:action="@{/admin/encuestas/{id}/preguntas/{qid}/eliminar(id=${draft.id},qid=${item.question.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><button class="button button-outline" type="submit">Eliminar del borrador</button></form>
+      </div>
+    </article>
+  </section>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

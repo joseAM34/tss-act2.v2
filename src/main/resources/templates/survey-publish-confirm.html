@@ -1,0 +1,8 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Revisar publicación')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main draft-editor" id="contenido"><a class="back-link" th:href="@{/admin/encuestas/{id}(id=${draft.id})}">← Volver al borrador</a><h1>Revisar publicación</h1>
+<section class="review-card"><h2 th:text="${draft.title}"></h2><p th:text="${draft.description}"></p><p th:text="${draft.sections.size() + ' secciones · ' + draft.items.size() + ' preguntas'}"></p>
+<p>Publicar conservará esta estructura como una versión fija. Para cambiarla después crearás otro borrador de la misma encuesta.</p><p>Su enlace propio podrá recibir respuestas. Después elegirás si esta versión debe abrir el enlace principal. Publicar no concede aprobación institucional.</p>
+<div class="draft-actions"><a class="button button-outline" th:href="@{/admin/encuestas/{id}/vista-previa(id=${draft.id})}">Ver vista previa</a><form th:action="@{/admin/encuestas/{id}/publicar(id=${draft.id})}" method="post"><input type="hidden" name="revision" th:value="${draft.revision}"><button class="button button-primary" type="submit">Publicar esta versión</button></form></div>
+</section></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

@@ -6,6 +6,34 @@ Los entregables finales son la herramienta de recolección de datos y el documen
 
 ## Estado actual
 
+El **paso 7 del rediseño** verifica el recorrido del editor desde crear/publicar hasta recibir/importar, guardar un corte y exportar. Se conserva la versión elegida al activar otra. Pasaron **522 pruebas Java en H2 y 522 en la ejecución con PostgreSQL temporal**, **11 JavaScript** y **51 vistas en Chrome**. La [aceptación técnica del rediseño](docs/ACEPTACION_REDISENO.md) detalla cobertura, reproducción y límites.
+
+El **paso 6 del rediseño** permite exportar los reportes generales a **PDF mediante el diálogo del navegador**, gráficos PNG/SVG y datos CSV/Excel/JSON. Las salidas conservan versión, origen, período, corte y referencias del reporte guardado. Abre el reporte y usa **Exportar este reporte**. La [guía de exportaciones](docs/EXPORTACIONES_REPORTES.md) detalla formatos, seguridad, recorrido y límites. El **paso 5** añadió [ayudas para entender resultados](docs/AYUDAS_RESULTADOS.md), bases y aplicabilidad de chi-cuadrado.
+
+El **paso 4 del rediseño** incorpora **resultados actualizados cada 30 segundos**, filtros por origen/recepción, gráficos, cruces descriptivos y guardado del corte mostrado para versiones publicadas desde el editor. Las consultas no crean conjuntos; el guardado explícito conserva fuentes y reutiliza un corte ya guardado. Abre **Mis encuestas → encuesta → versión → Resultados**. La [guía de resultados actualizados](docs/RESULTADOS_ACTUALIZADOS.md) explica configuración inicial, avisos, integridad y el alcance separado de los cuestionarios originales UMSS.
+
+El **paso 3 del rediseño** simplifica la importación: detección automática de separador y columnas, reconocimiento inequívoco de opciones y dos casillas de revisión con trazabilidad. Las discrepancias muestran fila, pregunta y valor original. Abre **Mis encuestas → encuesta → versión → Importar**. La [guía del asistente](docs/ASISTENTE_IMPORTACION.md) explica automatizaciones, consentimiento, referencias opcionales y conservación de lotes anteriores.
+
+El **paso 2 del rediseño** incorpora **Mis encuestas** como inicio administrativo. Abre una encuesta, elige versión y navega por Resumen, Versiones, Respuestas, Resultados, Importar y Reportes y plantillas. El contexto se conserva al entrar en las herramientas existentes; las variantes empiezan sin respuestas. La [guía del espacio de encuestas](docs/ESPACIO_ENCUESTAS.md) explica el recorrido y sus límites. CSV y Excel `.xlsx` están disponibles mediante sus importadores actuales. Automatización del asistente, resultados en vivo y nuevas exportaciones corresponden a los siguientes pasos.
+
+Los párrafos siguientes registran los incrementos anteriores y su alcance en el momento de su entrega.
+
+El séptimo incremento local añade **importación CSV con correspondencias revisadas, vista previa y confirmación completa**. Abre **Panel → Importar respuestas CSV**. El original se conserva en base de datos, el consentimiento no se inventa y los reintentos no duplican filas. La [guía de importación](docs/IMPORTACION_CSV.md) explica V14, límites, privacidad y requisitos. XLSX y reconciliación de lotes confirmados siguen pendientes. No se realizó push ni despliegue.
+
+El sexto incremento local incorpora **plantillas con revisiones y reportes HTML protegidos**. Abre **Panel → Reportes y plantillas** para configurar título, introducción, secciones/orden y gráficos; elige un análisis y sus cruces para generar el documento con comentarios. Las cifras y fuentes se congelan y las revisiones anteriores se conservan. La [guía de reportes](docs/REPORTES_HTML.md) explica V13, uso y límites. PDF/Excel y exportación autónoma siguen pendientes; no se realizó push ni despliegue.
+
+El incremento local de **cruces generales y chi-cuadrado condicionado** permite elegir dos preguntas nominales de selección única desde un conjunto. Incluye tabla con bases y porcentajes, mapa de calor, aplicabilidad y V de Cramér cuando corresponde. La [guía de cruces](docs/CRUCES_GENERALES.md) documenta V12 y los requisitos; por defecto no se asume independencia. Las plantillas de reportes siguen pendientes.
+
+El quinto incremento local añade **descriptivos, tablas y gráficos generales** desde conjuntos congelados. Abre un conjunto y pulsa **Guardar análisis descriptivo**. Incluye frecuencias, bases de participantes/menciones y resúmenes numéricos; la [guía de análisis general](docs/ANALISIS_GENERAL.md) explica V11, cálculos y límites. Cruces y reportes generales siguen pendientes. No se realizó push ni despliegue.
+
+El cuarto incremento local incorpora **selección y preparación de datos por encuesta/versión**. Abre **Panel → Preparar datos de encuestas nuevas**, revisa privacidad y tratamiento de cada pregunta, guarda la configuración y prepara un conjunto por origen y período. La [guía de preparación general](docs/PREPARACION_GENERAL.md) explica V10, los estados, las bases y las descargas JSON/CSV. Descriptivos, gráficos y reportes configurables siguen pendientes. Los cambios permanecen locales.
+
+El tercer incremento local incorpora **recepción pública por versión, elección de versión activa y consulta administrativa por encuesta/versión**. Publicar habilita el enlace propio; **Usar esta versión en el enlace principal** elige qué formulario abre el enlace principal. Los formularios ya abiertos conservan su versión. La [guía de recepción](docs/RECEPCION_ENCUESTAS.md) explica cómo probarlo con H2 (`dev`) y la migración V9. Los análisis configurables de encuestas nuevas siguen pendientes. No se realizó commit, push ni despliegue de estos incrementos.
+
+El segundo incremento incorporó **vista previa, publicación de versiones fijas, borradores sucesores y cierre**. La [guía de publicación](docs/PUBLICACION_ENCUESTAS.md) conserva su evidencia y la migración V8; sus límites de recepción se superan con el paso 3.
+
+El primer incremento local añadió un **editor administrativo de borradores**: crear/copiar encuestas, editar secciones y preguntas, configurar opciones/condiciones y ordenar. Se abre desde **Panel → Abrir editor de borradores**. Para probar con H2 sin usar Neon: `mvn "-Dspring-boot.run.profiles=dev" spring-boot:run`. La [guía del editor](docs/EDITOR_BORRADORES.md) conserva la evidencia de V7; importación y reportes configurables siguen para las siguientes etapas del [plan](docs/ENCUESTAS_DINAMICAS_PLAN.md).
+
 Cuestionarios, preparación, estadística y visualización implementados y verificados técnicamente para revisar el instrumento y los datos. Incluye:
 
 - Dos encuestas públicas con opciones controladas, respuestas múltiples, saltos condicionales y validación en el servidor.

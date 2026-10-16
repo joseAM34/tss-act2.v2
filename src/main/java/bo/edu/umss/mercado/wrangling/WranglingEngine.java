@@ -14,7 +14,7 @@ import java.util.TreeSet;
 
 /** Preparación determinista con la definición de cada captura, sin consultar el catálogo vigente. */
 final class WranglingEngine {
-    static final String RULE_VERSION = "2026-10-wrangling-3";
+    static final String RULE_VERSION = "2026-10-wrangling-4";
     private static final Set<String> CAPTURE_STATES = Set.of("CON_VALOR", "SIN_RESPUESTA", "NO_APLICA");
     private static final List<String> T_IDS = List.of("edad", "genero", "formacion_complementaria", "nivel_cursado",
             "institucion_cursada", "financiamiento_cursado", "programa_cursado", "interes_posgrado", "area_interes",

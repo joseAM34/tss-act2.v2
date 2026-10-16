@@ -1,0 +1,3 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${version.title})}"></head>
+<body><header th:replace="~{fragments/layout :: header('home')}"></header><main class="container page-main draft-editor" id="contenido"><h1 th:text="${version.title}"></h1><p class="badge badge-neutral" th:text="${'Versión ' + version.code}"></p><section class="review-card"><h2>Esta versión está cerrada</h2><p th:text="${version.content.definition.description}"></p><p th:if="${version.status == 'CERRADA'}">Esta versión no admite participaciones.</p><a class="text-link" th:href="@{/}">Volver al inicio</a></section></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

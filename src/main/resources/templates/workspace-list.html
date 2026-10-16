@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Mis encuestas')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido">
+  <div class="workspace-heading"><div><p class="eyebrow">Tu espacio de trabajo</p><h1>Mis encuestas</h1><p class="page-intro">Elige una encuesta para gestionar sus versiones, respuestas y resultados.</p></div><a class="button button-primary" href="#crear-encuesta">＋ Crear encuesta</a></div>
+  <div class="alert alert-error" role="alert" th:if="${error != null}" th:text="${error}"></div>
+  <div class="workspace-cards">
+    <article class="workspace-card" th:each="s : ${surveyCards}">
+      <div class="workspace-card-top"><span class="workspace-symbol" aria-hidden="true">▤</span><span class="badge badge-neutral" th:text="${s.legacy ? 'Cuestionario UMSS' : 'Encuesta editable'}"></span></div>
+      <h2 th:text="${s.title}"></h2><p th:text="${s.description}"></p>
+      <div class="workspace-meta"><span th:text="${s.versions + ' versiones'}"></span><span th:if="${s.draft}">Borrador disponible</span><span th:text="${s.responses + ' envíos'}"></span></div>
+      <a class="button button-primary" th:href="@{/admin/espacio/{slug}(slug=${s.slug})}">Abrir encuesta →</a>
+    </article>
+  </div>
+  <section class="review-card" id="crear-encuesta"><h2>Crear una encuesta</h2><p>Empieza con un borrador. También puedes abrir una encuesta y crear una variante desde sus versiones.</p>
+    <form class="data-form" th:action="@{/admin/espacio}" method="post">
+      <div class="form-control"><label for="title">Nombre de la encuesta</label><input id="title" name="title" required maxlength="200" th:value="${createTitle}"></div>
+      <div class="form-control"><label for="description">Descripción (opcional)</label><textarea id="description" name="description" maxlength="5000" rows="3" th:text="${createDescription}"></textarea></div>
+      <button class="button button-primary" type="submit">Crear y abrir borrador</button>
+    </form>
+  </section>
+  <details class="workspace-library"><summary>Herramientas del estudio y bibliotecas</summary><p>Accesos de alcance general: conjuntos del protocolo UMSS, análisis y plantillas compartidas.</p><div class="download-links"><a class="button button-outline" th:href="@{/admin/herramientas}">Panel del estudio</a><a class="text-link" th:href="@{/admin/encuestas}">Biblioteca de borradores</a><a class="text-link" th:href="@{/admin/reportes}">Biblioteca de reportes y plantillas</a></div></details>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

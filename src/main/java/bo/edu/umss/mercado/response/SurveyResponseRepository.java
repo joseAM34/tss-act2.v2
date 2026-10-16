@@ -7,6 +7,7 @@ import bo.edu.umss.mercado.survey.Question;
 import bo.edu.umss.mercado.survey.ValidationResult;
 import bo.edu.umss.mercado.survey.SurveyValidator;
 import bo.edu.umss.mercado.data.CaptureStore;
+import bo.edu.umss.mercado.survey.SurveyPublicationService;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.io.Writer;
@@ -36,11 +37,13 @@ public class SurveyResponseRepository {
     private final JdbcTemplate jdbc;
     private final SurveyCatalog catalog;
     private final CaptureStore captures;
+    private final SurveyPublicationService publications;
 
-    public SurveyResponseRepository(JdbcTemplate jdbc, SurveyCatalog catalog, CaptureStore captures) {
+    public SurveyResponseRepository(JdbcTemplate jdbc, SurveyCatalog catalog, CaptureStore captures, SurveyPublicationService publications) {
         this.jdbc = jdbc;
         this.catalog = catalog;
         this.captures = captures;
+        this.publications = publications;
     }
 
     public boolean submitted(String token) {
@@ -54,6 +57,20 @@ public class SurveyResponseRepository {
 
     @Transactional
     public String save(SurveyDefinition survey, String token, ValidationResult validation) {
+        return store(survey, token, validation, null);
+    }
+
+    @Transactional
+    public String savePublished(String versionId, String token, ValidationResult validation) {
+        if (!validation.valid()) throw new IllegalArgumentException("No se puede guardar un formulario con errores.");
+        var version = publications.lockForCapture(versionId);
+        var existing = responseIdForToken(token);
+        if (existing.isPresent()) return captures.verifyRetry(existing.get(), version.content().definition(), validation);
+        if (!"PUBLICADA".equals(version.status())) throw new ResponseStatusException(HttpStatus.GONE, "Esta versión está cerrada y no admite nuevos envíos.");
+        return store(version.content().definition(), token, validation, version);
+    }
+
+    private String store(SurveyDefinition survey, String token, ValidationResult validation, SurveyPublicationService.Version publication) {
         if (!validation.valid()) throw new IllegalArgumentException("No se puede guardar un formulario con errores.");
         Map<String, List<String>> answers = validation.answers();
         var questionIds = survey.questions().stream().map(Question::id).collect(Collectors.toSet());
@@ -82,9 +99,11 @@ public class SurveyResponseRepository {
         String id = UUID.randomUUID().toString();
         OffsetDateTime submittedAt = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         jdbc.update("""
-                INSERT INTO survey_response (id, submission_token, survey_slug, instrument_version, submitted_at, consent)
-                VALUES (?, ?, ?, ?, ?, TRUE)
-                """, id, token, survey.slug(), survey.version(), submittedAt);
+                INSERT INTO survey_response (id, submission_token, survey_slug, instrument_version, submitted_at, consent,
+                    publication_version_id, dynamic_survey_id, publication_hash)
+                VALUES (?, ?, ?, ?, ?, TRUE, ?, ?, ?)
+                """, id, token, survey.slug(), survey.version(), submittedAt,
+                publication == null ? null : publication.id(), publication == null ? null : publication.surveyId(), publication == null ? null : publication.hash());
         List<Object[]> batch = new ArrayList<>();
         List<Object[]> stateBatch = new ArrayList<>();
         for (int questionIndex = 0; questionIndex < survey.questions().size(); questionIndex++) {
@@ -116,6 +135,11 @@ public class SurveyResponseRepository {
 
     public long count() {
         return jdbc.queryForObject("SELECT COUNT(*) FROM survey_response", Long.class);
+    }
+    public Map<String,Object> importReference(String id) {
+        var capture=captures.input(id);
+        String versionId=jdbc.queryForObject("SELECT publication_version_id FROM survey_response WHERE id = ?",String.class,id);
+        return bo.edu.umss.mercado.importing.CsvImportEvidence.verify(jdbc,id,versionId,capture.captureHash());
     }
 
     public long count(String slug) {
@@ -152,7 +176,32 @@ public class SurveyResponseRepository {
         String slug = rs.getString("survey_slug");
         String submittedAt = rs.getObject("submitted_at", OffsetDateTime.class)
                 .atZoneSameInstant(ZoneId.of("America/La_Paz")).format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
-        return new ResponseSummary(rs.getString("id"), slug, catalog.get(slug).title(), rs.getString("instrument_version"), submittedAt);
+        String title;
+        if (catalog.all().stream().anyMatch(s -> s.slug().equals(slug))) title = catalog.get(slug).title();
+        else title = captures.input(rs.getString("id")).definition().title();
+        return new ResponseSummary(rs.getString("id"), slug, title, rs.getString("instrument_version"), submittedAt);
+    }
+
+    public record SurveyOption(String slug, String title) {}
+    public List<SurveyOption> surveyOptions() {
+        var options = new ArrayList<SurveyOption>();
+        catalog.all().forEach(s -> options.add(new SurveyOption(s.slug(), s.title())));
+        options.addAll(jdbc.query("""
+                SELECT s.slug, v.title FROM survey s JOIN survey_version v ON v.survey_id = s.id
+                WHERE v.publication_number = (SELECT MAX(x.publication_number) FROM survey_version x WHERE x.survey_id = s.id)
+                ORDER BY s.created_at, s.id
+                """, (rs, n) -> new SurveyOption(rs.getString(1), rs.getString(2))));
+        return options;
+    }
+    public List<String> versions(String slug) {
+        return jdbc.queryForList("SELECT instrument_version FROM survey_response WHERE survey_slug = ? UNION SELECT instrument_version FROM instrument_snapshot WHERE survey_slug = ? ORDER BY instrument_version", String.class, slug, slug);
+    }
+    public List<ResponseSummary> selected(String slug, String version) {
+        return jdbc.query("SELECT * FROM survey_response WHERE (? = '' OR survey_slug = ?) AND (? = '' OR instrument_version = ?) ORDER BY submitted_at DESC, id DESC LIMIT 100",
+                (rs, n) -> summary(rs), slug, slug, version, version);
+    }
+    public long selectedCount(String slug, String version) {
+        return jdbc.queryForObject("SELECT COUNT(*) FROM survey_response WHERE (? = '' OR survey_slug = ?) AND (? = '' OR instrument_version = ?)", Long.class, slug, slug, version, version);
     }
 
     /** Exportación larga: una fila por valor, sin aplanar selecciones múltiples. */

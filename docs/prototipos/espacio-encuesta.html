@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mis encuestas · Propuesta de navegación UMSS</title>
+  <link rel="stylesheet" href="espacio-encuesta.css">
+  <script src="espacio-encuesta.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#contenido">Saltar al contenido</a>
+  <div class="prototype"><strong>PROPUESTA VISUAL · PASO 1</strong><span>Datos ficticios. Las acciones solo simulan el recorrido.</span><a href="../REDISENO_EXPERIENCIA.md">Leer la propuesta</a></div>
+  <header class="topbar"><a class="brand" href="#encuestas"><span class="mark">IS</span><span>Estudio de mercado<small>Ingeniería de Sistemas · UMSS</small></span></a><span class="admin">Espacio de administración</span></header>
+  <div class="shell">
+    <aside aria-label="Menú del espacio de trabajo">
+      <a class="all-surveys" href="#encuestas">← Mis encuestas</a>
+      <div class="context"><small>ENCUESTA SELECCIONADA</small><strong id="side-title">Trayectoria de titulados</strong><span>Estudio de mercado · 2026</span></div>
+      <nav id="workspace-nav" aria-label="Secciones de la encuesta">
+        <a href="#resumen"><span>◫</span> Resumen</a>
+        <a href="#versiones"><span>▤</span> Versiones</a>
+        <a href="#respuestas"><span>▦</span> Respuestas</a>
+        <a href="#resultados"><span>▥</span> Resultados</a>
+        <a href="#importar"><span>↥</span> Importar</a>
+        <a href="#reportes"><span>▧</span> Reportes y plantillas</a>
+      </nav>
+      <div class="aside-help"><strong>Todo en su lugar</strong><p>La encuesta y la versión te acompañan al cambiar de sección.</p><button class="text-button" data-action="guide">Ver recorrido de ejemplo →</button></div>
+    </aside>
+    <main id="contenido" tabindex="-1">
+      <nav class="breadcrumbs" aria-label="Ubicación"><a href="#encuestas">Mis encuestas</a><span id="crumb-survey"></span><span id="crumb-page"></span></nav>
+      <div id="workspace-context" class="workspace-context"><span id="selected-survey"></span><label>Versión <select id="version"><option value="v2">v2 · En recepción</option><option value="v1">v1 · Cerrada</option></select></label><span class="pill good" id="version-status">En recepción</span></div>
+      <section id="view" aria-labelledby="page-title"></section>
+      <footer>Prototipo local · Datos de demostración · No conectado a respuestas ni cuentas reales.</footer>
+    </main>
+  </div>
+  <dialog id="action-dialog" aria-labelledby="dialog-title"><button class="close" aria-label="Cerrar ventana">×</button><p class="eyebrow">VISTA PREVIA DE LA EXPERIENCIA</p><h2 id="dialog-title"></h2><div id="dialog-content"></div><button class="primary close-dialog">Entendido</button></dialog>
+  <div id="status" class="toast" role="status" aria-live="polite"></div>
+  <noscript>Activa JavaScript para recorrer esta maqueta. La especificación completa está en REDISENO_EXPERIENCIA.md.</noscript>
+</body>
+</html>

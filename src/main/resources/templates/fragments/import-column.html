@@ -1,0 +1,3 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<div th:fragment="column(q,selected,headers)" class="import-column"><label th:for="${'column-' + q.id}"><span th:text="${q.label}"></span><small th:text="${q.id}"></small></label><select th:id="${'column-' + q.id}" th:name="${'column.' + q.id}"><option value="-1" th:selected="${selected == -1}">Elige una columna</option><option th:each="h,c : ${headers}" th:value="${c.index}" th:attr="data-csv-header=${h}" th:text="${(c.index + 1) + ': ' + h}" th:selected="${selected == c.index}"></option></select></div>
+</body></html>

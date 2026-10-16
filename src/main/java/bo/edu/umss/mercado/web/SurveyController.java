@@ -6,6 +6,7 @@ import bo.edu.umss.mercado.security.AdministratorSetupAccess;
 import bo.edu.umss.mercado.survey.SurveyCatalog;
 import bo.edu.umss.mercado.survey.SurveyDefinition;
 import bo.edu.umss.mercado.survey.SurveyValidator;
+import bo.edu.umss.mercado.survey.SurveyPublicationService;
 import jakarta.servlet.http.HttpSession;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -31,24 +32,30 @@ public class SurveyController {
     private final SurveyResponseRepository repository;
     private final AdministratorService administrators;
     private final AdministratorSetupAccess setupAccess;
+    private final SurveyPublicationService publications;
 
     public SurveyController(SurveyCatalog catalog, SurveyValidator validator, SurveyResponseRepository repository,
-                            AdministratorService administrators, AdministratorSetupAccess setupAccess) {
+                            AdministratorService administrators, AdministratorSetupAccess setupAccess, SurveyPublicationService publications) {
         this.catalog = catalog;
         this.validator = validator;
         this.repository = repository;
         this.administrators = administrators;
         this.setupAccess = setupAccess;
+        this.publications = publications;
     }
 
     @GetMapping("/")
     String home(Model model) {
-        model.addAttribute("surveys", catalog.all());
+        var available = new java.util.ArrayList<>(catalog.all()); available.addAll(publications.activeDefinitions());
+        model.addAttribute("surveys", available);
         return "home";
     }
 
     @GetMapping("/encuestas/{slug}")
     String survey(@PathVariable String slug, Model model, HttpSession session) {
+        if (catalog.all().stream().noneMatch(s -> s.slug().equals(slug))) {
+            var active = publications.activeVersion(slug); return "redirect:" + active.publicPath();
+        }
         SurveyDefinition definition = catalog.get(slug);
         Map<String, String> tokens = tokens(session);
         String token = tokens.get(slug);

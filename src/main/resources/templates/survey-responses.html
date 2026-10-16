@@ -1,0 +1,12 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Respuestas por encuesta y versión')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main draft-editor" id="contenido"><a class="back-link" th:href="@{/admin}">← Panel de gestión</a><h1>Respuestas por encuesta y versión</h1>
+<p class="page-intro">Cada envío conserva el formulario que respondió. Las versiones se consultan por separado.</p><div class="alert alert-error" th:if="${error != null}" role="alert" th:text="${error}"></div>
+<section class="review-card"><form class="data-form" th:action="@{/admin/respuestas}" method="get">
+<div class="form-control"><label for="survey-filter">Encuesta</label><select id="survey-filter" name="survey"><option value="">Todas las encuestas</option><option th:each="s : ${surveyOptions}" th:value="${s.slug}" th:text="${s.title}" th:selected="${s.slug == selectedSurvey}"></option></select></div>
+<div class="form-control"><label for="version-filter">Versión</label><select id="version-filter" name="version"><option value="">Todas las versiones de la selección</option><option th:each="v : ${versions}" th:value="${v}" th:text="${v}" th:selected="${v == selectedVersion}"></option></select><p class="field-hint">Para ver las versiones de otra encuesta, elígela, deja «Todas las versiones» y aplica el filtro.</p></div>
+<button class="button button-primary" type="submit">Aplicar filtros</button></form></section>
+<section class="review-card"><h2 th:text="${total + ' envíos en la selección'}"></h2><p>Se muestran los 100 envíos más recientes de esta selección.</p><p th:if="${#lists.isEmpty(responses)}">No hay respuestas en esta selección.</p>
+<div class="table-scroll" th:unless="${#lists.isEmpty(responses)}"><table><caption class="sr-only">Envíos seleccionados</caption><thead><tr><th>Encuesta respondida</th><th>Versión</th><th>Fecha</th><th>Detalle</th></tr></thead><tbody><tr th:each="r : ${responses}"><td th:text="${r.surveyTitle}"></td><td th:text="${r.version}"></td><td th:text="${r.submittedAt}"></td><td><a class="text-link" th:href="@{/admin/respuestas/{id}(id=${r.id})}">Ver respuesta y origen</a></td></tr></tbody></table></div></section>
+<p>Para analizar estos envíos, prepara un conjunto de su versión desde el panel.</p></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

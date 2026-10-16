@@ -1,0 +1,39 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<aside th:fragment="variable(v)" class="stat-help" aria-label="Cómo leer esta pregunta">
+  <strong>Cómo leer este resultado</strong>
+  <p th:if="${v.answered == 0}">No hay valores para resumir en esta selección. Revisa el origen, las fechas y los estados de respuesta. «Sin datos» no equivale a cero.</p>
+  <div th:if="${v.numeric != null}">
+    <p>El gráfico compara mínimo, mediana y máximo en la unidad indicada; no representa una evolución temporal ni un pronóstico.</p>
+    <details><summary>¿Qué significa cada medida?</summary><dl>
+      <dt>Media</dt><dd>Promedio de los valores observados. Los valores extremos pueden moverlo.</dd>
+      <dt>Mediana</dt><dd>Valor central al ordenar los datos; con una cantidad par se promedian los dos centrales.</dd>
+      <dt>Mínimo y máximo</dt><dd>Menor y mayor valor observados, no límites esperados para futuros envíos.</dd>
+      <dt>Desviación estándar muestral</dt><dd>Resume la dispersión alrededor de la media, en la misma unidad. Requiere al menos dos valores; cero indica valores iguales.</dd>
+    </dl></details>
+  </div>
+  <div th:if="${v.numeric == null}">
+    <p>Una barra más larga indica más envíos con esa opción. Compara el porcentaje junto con su base; grupos de distinto tamaño pueden tener conteos distintos aunque sus porcentajes sean parecidos.</p>
+    <p th:if="${v.type == 'checkbox'}">Una misma respuesta puede aportar a varias barras. El porcentaje de envíos divide cada conteo entre los envíos que respondieron; el de menciones divide entre todas las opciones seleccionadas.</p>
+    <p th:unless="${v.type == 'checkbox'}">El porcentaje de cada opción usa los envíos con valor en esta pregunta. No incluye las omisiones ni los casos donde la pregunta no aplica.</p>
+  </div>
+  <details><summary>Bases y estados, sin confusiones</summary><p>«Con valor» identifica respuestas registradas; «Sin respuesta», preguntas aplicables sin valor; «No aplica», preguntas fuera de la condición correspondiente. La base aplicable reúne con valor y sin respuesta. «No sabe» y «No puede valorar», cuando existen, son categorías propias.</p><p>La unidad es un envío: no se garantiza que cada envío corresponda a una persona o empresa independiente. Estas cifras describen la selección; no prueban causalidad ni representan automáticamente a toda la población.</p></details>
+</aside>
+<aside th:fragment="cross(t)" class="stat-help" aria-label="Cómo interpretar este cruce">
+  <strong>¿Qué muestra este cruce?</strong>
+  <p>Cada celda cuenta envíos con ambas respuestas. El mapa de calor representa esos conteos: más intensidad significa más envíos, no mayor asociación estadística. Consulta la tabla para conocer los valores exactos.</p>
+  <details><summary>Cómo comparar porcentajes y frecuencias esperadas</summary><p>El porcentaje de fila divide entre el total de esa fila; sirve para comparar la distribución de columnas entre filas. El de columna usa el total de esa columna. El del total usa todos los pares con valor. Una base vacía se muestra como «Sin base».</p><p>La frecuencia esperada es el conteo de referencia bajo independencia, calculado a partir de los totales de fila y columna. Es un diagnóstico de la prueba, no una respuesta observada ni una predicción.</p></details>
+  <strong>¿Se puede ejecutar chi-cuadrado?</strong>
+  <ul class="stat-checks">
+    <li th:text="${t.n > 0 ? 'Datos: hay pares con valor.' : 'Pendiente: no hay pares con valor; revisa la selección y las respuestas.'}"></li>
+    <li th:text="${t.active_rows.size() >= 2 and t.active_columns.size() >= 2 ? 'Variación: hay al menos dos categorías activas por eje.' : 'No cumple variación: se necesitan al menos dos categorías con observaciones por eje.'}"></li>
+    <li th:text="${t.independence_documented ? 'Independencia: evidencia registrada; consulta su unidad y alcance.' : 'Pendiente: documentar la unidad y la evidencia de independencia en el cruce guardado. Un identificador distinto no basta.'}"></li>
+    <li th:text="${t.structural_zeros ? 'Requiere revisión: hay combinaciones declaradas imposibles (ceros estructurales); este modelo no es aplicable.' : 'Estructura: no se han declarado combinaciones imposibles; esto no certifica el diseño.'}"></li>
+    <li th:text="${t.min_expected == null ? 'Frecuencias esperadas: sin base suficiente para evaluarlas.' : (t.below_five_count > 0 ? 'No cumple frecuencias: hay celdas activas con esperada menor de 5. Revisa el diseño y la suficiencia de datos; no fuerces la prueba.' : 'Frecuencias: todas las esperadas activas son al menos 5.')}"></li>
+  </ul>
+  <p th:if="${t.p == null}">La prueba no se ejecutó. No hay una conclusión sobre asociación. Conserva la descripción y revisa el diagnóstico; no agrupes categorías solo para conseguir significación.</p>
+  <p th:if="${t.p != null and t.reject_h0}">Al umbral registrado se rechaza la hipótesis de independencia. Hay evidencia estadística de asociación bajo los supuestos registrados; esto no demuestra causalidad.</p>
+  <p th:if="${t.p != null and !t.reject_h0}">Al umbral registrado no se rechaza la hipótesis de independencia. La evidencia no alcanza ese umbral; esto no demuestra que las variables sean independientes.</p>
+  <p th:if="${t.status == 'ERROR_CALCULO'}">Ocurrió un problema numérico. Conserva el diagnóstico y solicita una revisión técnica antes de interpretar la prueba.</p>
+  <details><summary>p, alpha y V de Cramér en palabras sencillas</summary><p>La hipótesis de partida (H0) es independencia. p mide qué tan incompatibles son los conteos con esa hipótesis, bajo el modelo; no es la probabilidad de que H0 sea verdadera. Alpha es el umbral registrado para decidir.</p><p>Chi-cuadrado resume las diferencias entre conteos observados y esperados. Los grados de libertad dependen de las categorías activas. V de Cramér resume la intensidad de asociación entre 0 y 1; no indica dirección ni causalidad. No se asignan etiquetas universales de «débil» o «fuerte».</p><p>Explorar muchos cruces aumenta el riesgo de hallazgos por azar. Revisa el alcance y la política de comparaciones múltiples del resultado.</p></details>
+</aside>
+</body></html>

@@ -2,6 +2,7 @@ package bo.edu.umss.mercado.data;
 
 import bo.edu.umss.mercado.survey.SurveyDefinition;
 import bo.edu.umss.mercado.survey.ValidationResult;
+import bo.edu.umss.mercado.survey.PublishedSurvey;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -92,8 +93,18 @@ public class CaptureStore {
                     || !slug.equals(form.surveySlug()) || !version.equals(form.instrumentVersion())
                     || !slug.equals(definition.slug()) || !version.equals(definition.version())
                     || !submittedAt.equals(payload.submittedAt()) || !form.consent()) throw corrupt();
+            if (row.get("publication_version_id") != null) {
+                var published = jdbc.queryForList("SELECT definition_json, definition_hash FROM survey_version WHERE id = ?", row.get("publication_version_id"));
+                if (published.size() != 1) throw corrupt();
+                PublishedSurvey frozen = CanonicalJson.read((String) published.getFirst().get("definition_json"), PublishedSurvey.class);
+                if (!row.get("publication_hash").equals(published.getFirst().get("definition_hash"))
+                        || !row.get("publication_hash").equals(CanonicalJson.hash(frozen))
+                        || !row.get("dynamic_survey_id").equals(frozen.surveyId()) || !definition.equals(frozen.definition())
+                        || !capture.get("study_id").equals(frozen.studyId())) throw corrupt();
+            }
+            var imported=bo.edu.umss.mercado.importing.CsvImportEvidence.verify(jdbc,id,(String)row.get("publication_version_id"),hash);
             return new Input(id, slug, version, submittedAt, (String) capture.get("study_id"),
-                    "NO_DECLARADO", hash, "CAPTURA_LOGICA", definition, form.answers(), form.states(), true);
+                    "NO_DECLARADO", hash, imported.isEmpty()?"CAPTURA_LOGICA":"XLSX".equals(imported.get("source_format"))?"IMPORTACION_XLSX":"IMPORTACION_CSV", definition, form.answers(), form.states(), true);
         }
         var answers = new TreeMap<String, List<String>>();
         jdbc.query("""

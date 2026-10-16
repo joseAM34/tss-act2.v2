@@ -68,8 +68,9 @@ public class WranglingService {
             RevisionSet revisions = revisions(input.responseId(), started);
             String actualOrigin = revisions.origin() == null ? input.origin() : revisions.origin().value();
             if (actualOrigin == null || !ORIGINS.contains(actualOrigin)) actualOrigin = "NO_DECLARADO";
-            boolean included = actualOrigin.equals(origin);
-            String exclusion = included ? "" : "ORIGEN_DISTINTO";
+            boolean supported = Set.of("titulados", "empleadores").contains(input.slug());
+            boolean included = supported && actualOrigin.equals(origin);
+            String exclusion = !supported ? "ANALISIS_DINAMICO_PENDIENTE" : included ? "" : "ORIGEN_DISTINTO";
             if (included && mode.equals("OFICIAL") && !captures.approved(input)) {
                 throw new IllegalArgumentException("No puede publicarse como oficial: el estudio y los instrumentos deben estar aprobados.");
             }
@@ -200,6 +201,7 @@ public class WranglingService {
     @Transactional
     public void correct(String responseId, String questionId, List<String> values, String reason, String actor) {
         Input input = captures.input(responseId);
+        requireSupported(input);
         Question q = question(input, questionId);
         reason = text(reason, 1000, "Se requiere el motivo de la corrección.");
         actor = text(actor, 100, "Se requiere identificar al administrador.");
@@ -235,6 +237,7 @@ public class WranglingService {
     @Transactional
     public void codeText(String responseId, String questionId, List<String> themes, String codebookVersion, String reason, String actor) {
         Input input = captures.input(responseId);
+        requireSupported(input);
         Question q = question(input, questionId);
         if (!WranglingEngine.privacy(input.slug(), q).equals("TEXTO_LIBRE")) throw new IllegalArgumentException("Solo se codifican preguntas de texto abierto.");
         var effective = corrected(input, revisions(responseId, Instant.now()));
@@ -259,6 +262,11 @@ public class WranglingService {
         Input input = captures.input(responseId);
         Revision revision = revisions(responseId, Instant.now()).origin();
         return revision == null ? (input.origin() == null ? "NO_DECLARADO" : input.origin()) : revision.value();
+    }
+
+    private void requireSupported(Input input) {
+        if (!Set.of("titulados", "empleadores").contains(input.slug()))
+            throw new IllegalArgumentException("La preparación y las revisiones analíticas de esta encuesta se implementarán en el siguiente incremento.");
     }
 
     /** Historial privado para revisión administrativa, excluido del conjunto analítico. */

@@ -1,5 +1,41 @@
 # Decisiones del proyecto
 
+## Rediseño: verificación del recorrido, paso 7
+
+Fecha: 2026-10-16. Autorizado por el usuario con «luz verde» y «sigue con el paso 7». Se incorpora una prueba HTTP encadenada de creación, edición, publicación, recepción pública, importación revisada, guardado y exportación, con reintentos y conservación de v1 tras activar v2. La [aceptación técnica](ACEPTACION_REDISENO.md) registra 522 pruebas Java en H2 y 522 en la ejecución con PostgreSQL temporal, 11 JavaScript y 51 vistas de Chrome. No se cambia el protocolo ni se otorgan aprobaciones institucionales. La verificación con fixtures no sustituye una prueba con usuarios o un despliegue. Sin cambios de esquema, commit, push o despliegue.
+
+## Rediseño: exportaciones, paso 6
+
+Fecha: 2026-10-15. Autorizado por el usuario con «luz verde». Se implementan [exportaciones del reporte general](EXPORTACIONES_REPORTES.md): PDF mediante el diálogo nativo del navegador, PNG/SVG con contexto del mismo corte y CSV/Excel generados en Java desde el reporte congelado verificado. Se mantienen ADMIN, ausencia de caché, fuentes y huellas; no se recalculan estadísticas en el navegador. Sin dependencias o migraciones nuevas. El paso 7 queda pendiente.
+
+## Rediseño de experiencia: resultados actualizados, paso 4
+
+Fecha: 2026-10-15. El usuario autorizó «luz verde» tras el asistente. Se implementa [RESULTADOS_ACTUALIZADOS.md](RESULTADOS_ACTUALIZADOS.md) para versiones del editor con configuración explícita de variables: lectura consistente y verificada cada 30 segundos, orígenes separados, fechas inclusivas en La Paz, gráficos/tablas del mismo cuadro y cruce descriptivo elegido. No se concede independencia estadística ni aprobación institucional automáticamente.
+
+Los GET no crean conjuntos ni análisis. Guardar este corte conserva la selección y fecha vistas, con revisión de huella y serialización por versión para reutilizar cortes idénticos. Recibir nuevos envíos no modifica reportes guardados ni el corte solicitado. Un cambio de configuración o una fuente no verificable impide sustituir silenciosamente el resultado. Los originales UMSS mantienen el protocolo por conjuntos del estudio y su alcance distinto; no se les atribuye actualización automática no implementada. Sin migraciones, commit, push o despliegue.
+
+## Rediseño de experiencia: asistente de importación, paso 3
+
+Fecha: 2026-10-15. El usuario autorizó «luz verde» después del paso 2. Se implementa [ASISTENTE_IMPORTACION.md](ASISTENTE_IMPORTACION.md): propuestas automáticas revisables, lectura inequívoca y discrepancias por fila/pregunta/valor. La instrucción del usuario sustituye la exigencia rutinaria del importador de redactar dos justificaciones por lote: el formulario nuevo registra dos casillas con declaraciones versionadas, actor, fecha, huella y referencia documental opcional.
+
+No se inventa consentimiento de participantes ni aprobación institucional. La aceptación se comprueba en la columna de la fuente, y una revisión sin marcar queda pendiente. Los formatos, metadatos y opciones ambiguos se informan sin atribuirles equivalencia automáticamente. Las lecturas exactas anteriores y sus revisiones/huellas se conservan; no hay cambios de esquema. Los siguientes pasos mantienen resultados actualizados y nuevas exportaciones. Se conserva el trabajo local sin commit, push o despliegue.
+
+## Rediseño de experiencia: espacio por encuesta, paso 2
+
+Fecha: 2026-10-15. Tras la maqueta del paso 1, el usuario autorizó «paso 2 luz verde». Se implementa el espacio real por encuesta y versión, documentado en [ESPACIO_ENCUESTAS.md](ESPACIO_ENCUESTAS.md). El inicio administrativo pasa a Mis encuestas; el panel anterior conserva acceso como herramienta general del estudio.
+
+El contexto se transporta en enlaces y se obtiene de referencias persistidas al abrir herramientas, sin selección global en sesión. Versiones y orígenes se mantienen separados; borradores y publicaciones cerradas muestran las acciones que corresponden a su estado. Crear una variante copia estructura y referencia de origen a otra encuesta sin copiar respuestas ni conceder aprobaciones. Los originales y los conjuntos del protocolo UMSS no se convierten ni se presentan como resultados exclusivos de una versión nueva.
+
+Este paso no elimina evidencia exigida en importaciones ni implementa actualización automática o nuevas exportaciones. Se reutilizan las operaciones existentes con ADMIN, CSRF, escapes, conservación de capturas y salidas sin caché. No hay migraciones ni cambios de datos por visitar las pantallas. Se mantiene el trabajo local sin commit, push ni despliegue.
+
+## Segundo incremento local: vista previa y publicación
+
+Fecha: 2026-10-14. El usuario autorizó «al paso 2 pasemos» después de probar el editor. Se implementan preview administrativa sin capturas, publicación fija, sucesora de la misma encuesta y cierre, conservando la instrucción de trabajar localmente sin push. La [guía](PUBLICACION_ENCUESTAS.md) registra migración V8, separación de aprobación institucional, enlaces informativos sin recepción todavía y verificación. La recepción dinámica, análisis configurables e informes mantienen su alcance posterior; no se modifican respuestas/capturas/huellas históricas ni la configuración privada.
+
+## Incremento local de encuestas dinámicas
+
+Fecha: 2026-10-14. Después de revisar el diagnóstico, el usuario autorizó cambios **primero en local, con push posterior y por pasos**. El alcance inicial es el editor de borradores: crear, copiar, editar y ordenar secciones/preguntas con los tipos existentes; no incluye publicación, nuevas respuestas, análisis genérico, importación o reportes. El [plan](ENCUESTAS_DINAMICAS_PLAN.md) y la [guía del incremento](EDITOR_BORRADORES.md) registran arquitectura, archivos, migración V7, validación y siguientes etapas. No se modifican definiciones, respuestas ni huellas históricas. Las comprobaciones usan H2 y PostgreSQL temporales, sin conectar a Neon ni hacer push/despliegue.
+
 Estado: cuestionarios, preparación de datos, motor estadístico y visualización de fase 5 implementados y verificados técnicamente. El instrumento institucional definitivo, reportes y simulación siguen pendientes. La evidencia y los límites se registran en `docs/ACEPTACION_DATOS.md`, `docs/ACEPTACION_ESTADISTICA.md` y `docs/ACEPTACION_VISUALIZACION.md`.
 
 ## Encuesta de empleadores: criterios únicos
@@ -151,3 +187,74 @@ Fecha: 2026-10-14. El usuario pidió desplegar lo desarrollado y eligió Render 
 El contenedor conserva Java 21, la aplicación monolítica y el inicio local manual con Maven. `prod` exige PostgreSQL y credenciales de conexión, cookies seguras y configuración inicial deshabilitada; impide combinar perfiles de desarrollo o setup antes de crear la conexión. Los perfiles locales ignoran cabeceras de proxy para la configuración inicial. El administrador se crea una vez desde el equipo del usuario contra la base remota, usando el formulario existente; su contraseña no se configura mediante variables de entorno.
 
 Las actualizaciones conservan la misma base y las migraciones Flyway nuevas. El despliegue no importa H2, modifica históricos, clasifica orígenes ni aprueba instrumento o protocolo. No se contratan recursos de pago ni se activan despliegues automáticos. La preparación técnica pasó 316 pruebas en H2 y la imagen Docker se construyó; publicar requiere que el usuario cree y conecte las cuentas elegidas.
+
+## Encuestas dinámicas: recepción por versión, paso 3 local
+
+Fecha: 2026-10-14. El usuario autorizó continuar con «luz verde», manteniendo el trabajo local antes de hacer push. La guía vigente es [RECEPCION_ENCUESTAS.md](RECEPCION_ENCUESTAS.md).
+
+Publicar permite responder el enlace específico de versión. La selección administrativa de versión activa controla el enlace principal y la tarjeta del inicio; publicar una sucesora no la activa automáticamente. Los formularios abiertos envían a su versión fija. Cerrar impide nuevos envíos y retira esa versión del enlace principal si estaba activa; los reintentos idénticos de envíos ya aceptados conservan su referencia.
+
+V9 añade referencias verificadas por claves foráneas de encuesta, versión y huella a los nuevos envíos dinámicos. No modifica las migraciones aplicadas V7/V8 ni rellena referencias históricas. Se conservan estados por pregunta, captura original y origen inicial NO_DECLARADO. La revisión administrativa de origen mantiene motivo y trazabilidad. Activar/cerrar no cambia la definición congelada ni representa aprobación institucional.
+
+La consulta protegida permite seleccionar encuesta y versión. Los análisis/reportes configurables de instrumentos nuevos siguen pendientes. Las reglas 2026-10-wrangling-4 registran su exclusión explícita ANALISIS_DINAMICO_PENDIENTE en el inventario, evitando atribuirles el protocolo de empleadores. Los bundles históricos conservan contenido y huellas; las fechas registradas desde wrangling-3 también se conservan en la nueva regla.
+
+Verificación: 387 pruebas Java pasaron en H2 y 387 en la ejecución con PostgreSQL 18 local, incluidos 24 casos nuevos de recepción dinámica. Chrome comprobó cinco pantallas en tres anchos, condiciones y envío público, sin desbordamientos ni excepciones JavaScript. Las verificaciones usaron datos ficticios y una base temporal; no se conectó a Neon ni se realizó commit, push o despliegue.
+## Encuestas dinámicas: preparación general, paso 4 local
+
+Fecha: 2026-10-14. El usuario autorizó «paso 4». El alcance implementado corresponde a selección y preparación por encuesta/versión, después del circuito de editor, publicación y recepción. Se conserva la instrucción de trabajar en local antes de commit/push. La guía vigente es [PREPARACION_GENERAL.md](PREPARACION_GENERAL.md).
+
+Cada versión publicada o cerrada tiene revisiones inmutables de configuración de preparación. Todas las preguntas comienzan excluidas; incluir opciones controladas como categorías nominales o enteros como magnitudes requiere revisión administrativa de ausencia de identificadores y unidad explícita para números. Contactos y texto libre permanecen excluidos. No se asigna puntaje a NO_SABE ni se infiere ordinalidad, índice o escala por presentación.
+
+PREPARACION_GENERAL_V1 conserva una versión exacta, estudio/estado de aprobación observado, definición, configuración, origen revisado, período inclusivo en America/La_Paz, corte, miembros y revisiones exactas de origen. Conserva CON_VALOR/SIN_RESPUESTA/NO_APLICA, cero como valor y null con estado para ausencias. La fila principal sigue siendo un envío; selecciones múltiples mantienen una tabla de menciones separada. La cobertura registra total, con valor, sin respuesta, no aplica y base aplicable. No se deduplica por datos coincidentes.
+
+V10 añade survey_preparation_config y survey_preparation_run. No modifica migraciones aplicadas ni respuestas, snapshots o bundles anteriores. Las descargas verifican huellas y utilizan el contenido congelado; requieren ADMIN y no se almacenan en caché. Guardar una nueva revisión, cambiar origen, activar otra versión o recibir otros envíos no cambia un conjunto guardado. Oficial exige datos reales, estudio/instrumento aprobados y al menos un envío incluido; no se aprueba desde esta pantalla.
+
+El adaptador UMSS original permanece separado y excluye encuestas dinámicas; el servicio general prepara estas mediante su propio contrato. Correcciones/codificación temática generales y descriptivos, cruces, gráficos, reportes, importación y Excel continúan pendientes; la preparación no los declara implementados.
+## Encuestas dinámicas: descriptivos y gráficos generales, paso 5 local
+
+Fecha: 2026-10-14. El usuario autorizó «luz verde» después de explicar el siguiente paso. Se implementa el primer incremento del análisis general: descriptivos y gráficos desde conjuntos congelados, sin commit, push ni despliegue. La guía es [ANALISIS_GENERAL.md](ANALISIS_GENERAL.md).
+
+DESCRIPTIVOS_GENERALES_V1 conserva frecuencias nominales, bases por pregunta y bases distintas de participantes/menciones en selección múltiple. No asigna puntajes a NO_SABE ni ordinalidad a las opciones. Las magnitudes declaradas usan las funciones existentes: media, mediana, cuartiles tipo 7 y dispersión muestral n−1. Sin base se conserva null; cero observado es valor. Una sola observación no tiene dispersión muestral.
+
+V11 añade survey_general_analysis con referencia al conjunto exacto, actor, fecha y huellas de fuente/resultado. Se verifica el bundle congelado y la correspondencia de cálculo al abrir el análisis. Cambios posteriores en origen, recepción o versión activa no cambian resultados anteriores. ADMIN, CSRF, escapes y respuestas sin caché permanecen obligatorios. ECharts local dibuja conteos y medidas calculados por Java con tablas/resúmenes equivalentes; no recalcula el protocolo ni representa tres medidas numéricas como observaciones.
+
+Cruces y chi-cuadrado general con supuestos, filtros/comparaciones adicionales y reportes/Excel/PDF continúan pendientes. El protocolo original UMSS y su dashboard se conservan.
+## Encuestas dinámicas: cruces y chi-cuadrado generales
+
+Fecha: 2026-10-14. El usuario autorizó «ok luz verde» después de explicar el incremento. La guía vigente es [CRUCES_GENERALES.md](CRUCES_GENERALES.md). Trabajo local, sin commit/push ni conexión a Neon.
+
+CRUCE_GENERAL_V1 usa dos preguntas nominales distintas de selección única incluidas en un mismo conjunto congelado. Conserva todas las categorías, observadas, porcentajes con bases explícitas, esperadas como diagnóstico y pares excluidos por combinación de estados. NO_SABE es categoría, no faltante. Selección múltiple, números, preguntas ajenas/excluidas y cruces de más de 2500 celdas se rechazan.
+
+La independencia no se asume por cantidad de envíos. Su declaración exige unidad y evidencia registradas, sin conceder aprobación o demostrar elegibilidad. La prueba existente de Pearson exige variación activa, ausencia de ceros estructurales declarados y todas las esperadas activas >=5. Retira categorías cero solamente para la prueba y conserva sus índices. Sin aplicabilidad, p, decisión y V de Cramér permanecen null; no se interpreta como ausencia de asociación. Alpha y declaraciones quedan congelados; no se afirma ajuste global de multiplicidad entre cruces exploratorios.
+
+V12 añade survey_general_cross. Fuente, especificación, resultado, actor y huellas quedan persistidos y verificados al abrir. Tablas y mapa de calor usan resultados calculados en Java; ECharts local no recalcula. ADMIN/CSRF, escapes y ausencia de caché se conservan. Las versiones y protocolos anteriores no se reescriben. Reportes editables y salidas estadísticas adicionales continúan pendientes.
+## Reportes: plantillas con revisiones y HTML protegido, paso 6 local
+
+Fecha: 2026-10-14. El usuario autorizó «luz verde» después de revisar el alcance. La guía vigente es [REPORTES_HTML.md](REPORTES_HTML.md). Se conserva el trabajo local antes de commit/push y no se conecta a Neon.
+
+Las plantillas generales configuran título, introducción, secciones/orden y representación gráfica mediante una lista cerrada; no admiten código ejecutable. Cada edición agrega una revisión inmutable con actor y huella, y el control de revisión/bloqueo rechaza ediciones simultáneas u obsoletas. Los comentarios se guardan por reporte, separados de cifras calculadas.
+
+El reporte exige un análisis general guardado. Puede incluir hasta diez cruces distintos del mismo conjunto exacto; no mezcla encuestas/versiones o conjuntos aunque tengan huellas lógicas equivalentes. Las incompatibilidades entre secciones y contenido seleccionado producen diagnóstico antes de guardar. Las cifras, bases, pruebas y decisiones no se editan manualmente.
+
+REPORTE_HTML_V1 congela revisión/definición/huella de plantilla, análisis, cruces y especificaciones, comentarios, conjunto, filtros/corte, configuración, estudio/estado observado y huellas de origen/resultados. V13 añade report_template, report_template_revision, generated_report y generated_report_cross sin modificar migraciones aplicadas. Generar otro documento produce otra instancia y conserva el anterior; no se afirma jerarquía de revisiones de reportes.
+
+Al abrir se verifica el contenido y las fuentes congeladas. El navegador representa la copia registrada sin recalcular estadísticas. Tablas y resúmenes permanecen disponibles si falla la carga gráfica. ADMIN, CSRF, escapes y salidas sin caché se conservan. El HTML se consulta dentro de la aplicación autenticada; hay JSON de contenido/referencias, pero todavía no exportación HTML autónoma, PDF o Excel. El protocolo legado UMSS y el documento final institucional no se declaran incorporados a esta primera entrega de reportes generales.
+## Importación CSV: paso 7 local
+
+Fecha: 2026-10-14. El usuario autorizó desarrollar después de explicar el paso 7. La guía vigente es [IMPORTACION_CSV.md](IMPORTACION_CSV.md). Se conserva el trabajo local antes de commit/push y no se conecta a Neon.
+
+El recorrido administrativo carga un original UTF-8, declara separador/plataforma y versión publicada, conserva columnas por posición, guarda correspondencias con revisiones, presenta validación y confirma el lote completo. El original se conserva como bytes base64 en la base con SHA-256; no depende del disco efímero de Render. V14 añade csv_import_batch, csv_import_mapping, csv_import_confirmation y csv_import_row sin modificar migraciones aplicadas.
+
+La importación no inventa consentimiento académico ni equivalencia institucional. Confirmar requiere columna/aceptación y evidencia del consentimiento de fuente, y revisión documentada de preguntas, opciones, unidades, obligatoriedad y condiciones. Todas las preguntas requieren columna para incorporar; campos no recolectados no reciben estados históricos inferidos. Valores en campos no aplicables, opciones/etiquetas ambiguas, identificadores externos repetidos en el lote y fechas asignadas inválidas exigen resolución; no se descartan silenciosamente.
+
+Repetir los mismos bytes y versión reutiliza lote; reconfirmar la revisión devuelve referencias existentes. Confirmaciones concurrentes se serializan y una escritura fallida revierte todo el intento. Nuevas correspondencias de lotes confirmados se conservan para revisión, pero otra incorporación requiere reconciliación pendiente. No se deduplica por correo/nombre. Candidatos por archivo/fila exactos se presentan con lote y motivo; la revisión explícita y los candidatos se conservan en evidencia. Cambiar candidatos invalida la vista previa de una importación nueva.
+
+Las respuestas incorporadas mantienen origen NO_DECLARADO. La captura lógica anterior conserva su formato, y la procedencia verificada se identifica como IMPORTACION_CSV mediante referencias al original, correspondencias, fila y hashes. Fecha externa/precisión e identificador proporcionado se distinguen de recepción y de campos sin columna declarada; no se inventan IDs externos. Conjuntos nuevos conservan referencia y procedencia sin exponer contactos o identificador externo; bundles anteriores mantienen sus huellas y metadata limitada.
+
+Se mantienen ADMIN, CSRF, escapes y ausencia de caché. El original se descarga como texto conservando bytes; no se evalúan fórmulas o HTML del CSV. Máximos: 1 MiB, 500 registros de datos, 200 columnas y 8000 caracteres por celda, sujetos también al instrumento. XLSX, reconciliación, fechas adicionales y mapeos específicos por proveedor continúan pendientes.
+
+## Paso 8: Excel con selecci?n de hoja
+
+Fecha: 2026-10-15. El usuario autoriz? implementar el siguiente incremento local. La gu?a es [IMPORTACION_EXCEL.md](IMPORTACION_EXCEL.md). V15 conserva originales XLSX en la base y separa lotes por versi?n, huella del libro e ?ndice de hoja. CSV conserva su lectura y usa hoja 0. Seleccionar una hoja permite reutilizar correspondencias, vista previa, confirmaci?n, preparaci?n, an?lisis y reportes existentes. No se inventan consentimiento, origen real, equivalencia institucional o fecha/zona a partir de un n?mero Excel. F?rmulas, macros, celdas combinadas y archivos fuera de l?mites se rechazan. Los nuevos conjuntos conservan procedencia IMPORTACION_XLSX y referencia verificable al libro/hoja; los anteriores no se completan retrospectivamente.
+
+Verificaci?n: 466 pruebas completas en H2 y 466 en ejecuci?n con PostgreSQL 18 temporal, sin fallos u omisiones; navegador en cuatro pantallas y tres anchos. Se conserva el alcance local: sin Neon, commit, push ni despliegue. Exportaciones PDF/Excel y reconciliaci?n de lotes confirmados permanecen pendientes.
