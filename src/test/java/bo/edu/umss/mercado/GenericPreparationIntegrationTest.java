@@ -30,6 +30,7 @@ class GenericPreparationIntegrationTest {
     @Autowired bo.edu.umss.mercado.statistics.GenericAnalysisService analyses;
     @Autowired bo.edu.umss.mercado.statistics.GenericCrossService crosses;
     @Autowired bo.edu.umss.mercado.reporting.ReportService reports;
+    @Autowired bo.edu.umss.mercado.reporting.ReportCrossComposer reportCrosses;
     @Autowired bo.edu.umss.mercado.importing.CsvImportService csv;
     @Autowired bo.edu.umss.mercado.importing.XlsxImportService excel;
     @Autowired DraftSurveyService drafts;
@@ -55,7 +56,7 @@ class GenericPreparationIntegrationTest {
     }
     @AfterEach void clear() {
         for(String table:List.of("xlsx_import_workbook","csv_import_row","csv_import_confirmation","csv_import_mapping","csv_import_batch")) jdbc.update("DELETE FROM "+table);
-        for (String table : List.of("generated_report_cross","generated_report","report_template_revision","report_template")) jdbc.update("DELETE FROM " + table);
+        for (String table : List.of("report_presentation_template","generated_report_cross","generated_report","report_template_revision","report_template")) jdbc.update("DELETE FROM " + table);
         jdbc.update("DELETE FROM survey_general_cross");
         jdbc.update("DELETE FROM survey_general_analysis");
         jdbc.update("DELETE FROM survey_preparation_run"); jdbc.update("DELETE FROM survey_preparation_config");
@@ -290,6 +291,303 @@ class GenericPreparationIntegrationTest {
     bo.edu.umss.mercado.reporting.ReportService.Template template(String title) { return new bo.edu.umss.mercado.reporting.ReportService.Template(title,"Introducción ficticia",List.of("CONTEXTO","DESCRIPTIVOS","CRUCES","COMENTARIOS"),true); }
     String templateRevision() { String root=reports.createTemplate(template("Reporte <script>unsafe()</script>"),"admin"); return reports.latest(root).id(); }
     @SuppressWarnings("unchecked") Map<String,Object> reportContent(String id) { return (Map<String,Object>) reports.get(id).get("content"); }
+    @Test void advancedReportFreezesBackendHistogramsBoxesTimeScatterAndEmployerRadar() throws Exception {
+        String next=publications.successor(version,"admin"),section=drafts.get(next).sections().getFirst().id();
+        drafts.question(next,0,section,new Question("anios","Datos","Años de experiencia","number",false,List.of(),null,null,0,1,"",0,100),true,"admin");
+        var options=List.of("TOTALMENTE_ACUERDO","PARCIALMENTE_ACUERDO","TOTALMENTE_DESACUERDO","NO_SABE").stream().map(value->new Question.Option(value,value)).toList();
+        for(int i=1;i<=5;i++)drafts.question(next,i,section,new Question("criterio_%02d".formatted(i),"Datos","Criterio "+i,"radio",false,options,null,null,0,1,"",null,null),true,"admin");
+        publications.publish(next,6,"admin");version=next;
+        var fields=new ArrayList<>(fields());fields.add(new GenericPreparationService.Field("anios","MAGNITUD_ENTERA","años"));for(int i=1;i<=5;i++)fields.add(new GenericPreparationService.Field("criterio_%02d".formatted(i),"NOMINAL",""));
+        String cfg=service.configure(version,0,fields,"admin");
+        for(int n=0;n<4;n++){var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("control","SI");values.set("opciones","A");values.set("meses",String.valueOf(n*3));values.set("anios",String.valueOf(n));for(int i=1;i<=5;i++)values.set("criterio_%02d".formatted(i),n==3?"NO_SABE":n==2?"TOTALMENTE_DESACUERDO":"PARCIALMENTE_ACUERDO");var validation=validator.validate(publications.get(version).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(version,UUID.randomUUID().toString(),validation);}
+        String source=run(cfg,"NO_DECLARADO"),analysis=analyses.create(source,"admin");var base=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of());
+        var questions=base.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),true,q.title(),q.comment(),q.id().equals("meses")?List.of("table","histogram","box","line","area"):q.id().equals("anios")?List.of("table","columns"):List.of("table"))).toList();
+        var advanced=List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Advanced("scatter",List.of("meses","anios"),"Meses y años","Pares del mismo envío",true),new bo.edu.umss.mercado.reporting.ReportCustomization.Advanced("radar",java.util.stream.IntStream.rangeClosed(1,5).mapToObj(i->"criterio_%02d".formatted(i)).toList(),"Acuerdo de empleadores","No es un índice",true));
+        var config=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,base.title(),"",true,true,true,"",questions,List.of(),List.of(),advanced);
+        var preview=reports.preview(config,"admin");assertThat(preview.get("format")).isEqualTo("REPORTE_HTML_V6");
+        String report=reports.generateCustomized(config,CanonicalJson.hash(preview),"admin");assertThat(CanonicalJson.json(reportContent(report))).isEqualTo(CanonicalJson.json(preview));
+        String html=mvc.perform(get("/admin/reportes/"+report)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("data-representation=\"box\"","data-representation=\"histogram\"","data-report-advanced=\"0\"","data-report-advanced=\"1\"","Base sustantiva");
+        String csv=new String(bo.edu.umss.mercado.reporting.ReportExport.csv(bo.edu.umss.mercado.reporting.ReportExport.rows(reports.get(report))),java.nio.charset.StandardCharsets.UTF_8);assertThat(csv).contains("graficos_avanzados","histogram","No sabe").doesNotContain("response_id","submitted_at");
+        Path dir=Path.of(".codex-tmp/report-step6-browser");Files.createDirectories(dir);
+        Files.writeString(dir.resolve("generator.html"),mvc.perform(get("/admin/reportes/"+report+"/nuevo")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());Files.writeString(dir.resolve("report.html"),html);
+        Files.writeString(dir.resolve("report.json"),mvc.perform(get("/admin/reportes/"+report+"/contenido.json")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        Files.writeString(dir.resolve("preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(config))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var changed=new LinkedHashMap<>(reportContent(report));changed.put("advanced_charts",List.of());jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(changed),CanonicalJson.hash(changed),report);assertThatThrownBy(()->reports.get(report)).isInstanceOf(IllegalStateException.class);
+    }
+    bo.edu.umss.mercado.reporting.ReportCustomization.Configuration multipleRepresentations(String analysis,String cross) {
+        var base=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of(cross));
+        var questions=base.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),true,q.title(),q.comment(),
+                q.id().equals("control")?List.of("table","columns","bars","pie","donut"):q.id().equals("grupo")?List.of("table","columns"):List.of("table","columns","bars"))).toList();
+        return new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,base.title(),"",true,true,true,"",questions,List.of(cross),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(cross,"Cruce múltiple","Comentario",List.of("table","heat","grouped","stacked"))));
+    }
+    @Test void severalCompatibleRepresentationsFreezeAndRenderWithoutChangingFigures() throws Exception {
+        String source=crossSource();response("SI","0","A");String analysis=analyses.create(source,"admin");
+        // Numeric values must belong to the same frozen source, not later receipts.
+        source=run(service.configuration(version).id(),"NO_DECLARADO");analysis=analyses.create(source,"admin");
+        String cross=crosses.create(source,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");
+        var config=multipleRepresentations(analysis,cross);var preview=reports.preview(config,"admin");
+        assertThat(preview.get("format")).isEqualTo("REPORTE_HTML_V5");
+        assertThat(rows((Map<String,Object>)preview.get("display_result"),"variables").getFirst().get("report_graphs")).isEqualTo(List.of("columns","bars","pie","donut"));
+        String id=reports.generateCustomized(config,CanonicalJson.hash(preview),"admin");assertThat(CanonicalJson.json(reportContent(id))).isEqualTo(CanonicalJson.json(preview));
+        String html=mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("data-representation=\"pie\"","data-representation=\"donut\"","data-representation=\"grouped\"","data-representation=\"stacked\"","Barras apiladas");
+        String again=mvc.perform(get("/admin/reportes/"+id+"/nuevo")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();assertThat(again).contains("representations");
+        Path dir=Path.of(".codex-tmp/report-step5-browser");Files.createDirectories(dir);
+        Files.writeString(dir.resolve("generator.html"),again);Files.writeString(dir.resolve("report.html"),html);
+        Files.writeString(dir.resolve("report.json"),mvc.perform(get("/admin/reportes/"+id+"/contenido.json")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        Files.writeString(dir.resolve("preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").param("focusCross",cross).with(csrf()).contentType("application/json").content(CanonicalJson.json(config))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var tableOnly=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(config.analysisId(),config.title(),"",true,true,true,"",config.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),true,q.title(),q.comment(),List.of("table"))).toList(),config.crossIds(),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(cross,"Cruce múltiple","Comentario",List.of("table"))));
+        Files.writeString(dir.resolve("table-preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").param("focusCross",cross).with(csrf()).contentType("application/json").content(CanonicalJson.json(tableOnly))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+    @Test void serverRejectsIncompatibleAndRepeatedRepresentationsAndHiddenIncludedItems() {
+        String analysis=analyses.create(crossSource(),"admin");var base=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of());
+        for(var entry:List.of(Map.entry("meses",List.of("pie")),Map.entry("opciones",List.of("donut")),Map.entry("control",List.of("radar")),Map.entry("control",List.of("columns","columns")),Map.entry("control",List.<String>of()))){
+            var questions=base.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),true,q.title(),q.comment(),q.id().equals(entry.getKey())?entry.getValue():List.of("table"))).toList();
+            var invalid=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,base.title(),"",true,true,true,"",questions,List.of());
+            assertThatThrownBy(()->reports.preview(invalid,"admin")).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+    }
+    @Test void comparisonRepresentationsAreReviewedAndKeepOneStatisticalSource() {
+        String analysis=analyses.create(crossSource(),"admin");
+        var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo",List.of("table","heat","grouped","stacked"));
+        var preview=reportCrosses.preview(pair);assertThat(preview.get("report_graphs")).isEqualTo(List.of("heat","grouped","stacked"));
+        var saved=reportCrosses.save(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(pair,CanonicalJson.hash(preview)),"admin");
+        var table=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo",List.of("table"));
+        assertThatThrownBy(()->reportCrosses.save(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(table,CanonicalJson.hash(preview)),"admin")).isInstanceOf(ResponseStatusException.class);
+        var tablePreview=reportCrosses.preview(table);assertThat(reportCrosses.save(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(table,CanonicalJson.hash(tablePreview)),"admin").get("id")).isEqualTo(saved.get("id"));
+        assertThatThrownBy(()->reportCrosses.preview(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo",List.of("pie")))).isInstanceOf(IllegalArgumentException.class);
+        var config=multipleRepresentations(analysis,(String)saved.get("id"));var content=reports.preview(config,"admin");String report=reports.generateCustomized(config,CanonicalJson.hash(content),"admin");
+        var altered=new LinkedHashMap<>(reportContent(report));altered.put("display_crosses",List.of());
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(altered),CanonicalJson.hash(altered),report);
+        assertThatThrownBy(()->reports.get(report)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void excludedItemsMayHaveNoRepresentationsButIncludedCrossMustHaveOne() throws Exception {
+        String source=crossSource(),analysis=analyses.create(source,"admin");String cross=crosses.create(source,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");
+        var base=multipleRepresentations(analysis,cross);
+        var emptyCross=new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(cross,"Cruce","",List.of());
+        var invalid=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,base.title(),"",true,true,true,"",base.questions(),List.of(cross),List.of(emptyCross));
+        assertThatThrownBy(()->reports.preview(invalid,"admin")).isInstanceOf(IllegalArgumentException.class);
+        var questions=base.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),!q.id().equals("control"),q.title(),"",q.id().equals("control")?List.of():List.of("table"))).toList();
+        var valid=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,base.title(),"",true,true,true,"",questions,List.of(),List.of(emptyCross));
+        mvc.perform(post("/admin/reportes/personalizar/vista-previa").param("focusCross",cross).with(csrf()).contentType("application/json").content(CanonicalJson.json(valid))).andExpect(status().isOk());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+    }
+    @Test void reportCrossPreviewUsesFrozenGroupsAndRejectsIncompatibleQuestionsWithoutWrites() {
+        String analysis=analyses.create(crossSource(),"admin");
+        var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo");
+        var preview=reportCrosses.preview(pair);var result=(Map<?,?>)preview.get("result");
+        assertThat(((Map<?,?>)result.get("table")).get("p")).isNull();
+        assertThat(reportCrosses.choices(analysis)).allMatch(q->q.get("group").equals("Datos"));
+        assertThat(reportCrosses.choices(analysis)).anyMatch(q->q.get("id").equals("meses")&&q.get("eligible").equals(false));
+        for(String other:List.of("control","meses","opciones","correo","forged")){
+            assertThatThrownBy(()->reportCrosses.preview(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control",other))).isInstanceOf(IllegalArgumentException.class);
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_general_cross",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+    }
+    @Test void reportCrossSaveRequiresReviewedHashAndConcurrentRequestsReuseOneCross() throws Exception {
+        String analysis=analyses.create(crossSource(),"admin");
+        var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo");
+        var preview=reportCrosses.preview(pair);
+        assertThatThrownBy(()->reportCrosses.save(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(pair,"wrong"),"admin")).isInstanceOf(ResponseStatusException.class);
+        var request=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(pair,CanonicalJson.hash(preview));
+        try(var executor=java.util.concurrent.Executors.newFixedThreadPool(2)){
+            var first=executor.submit(()->reportCrosses.save(request,"admin"));var second=executor.submit(()->reportCrosses.save(request,"admin"));
+            assertThat(first.get().get("id")).isEqualTo(second.get().get("id"));
+        }
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_general_cross",Integer.class)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+        assertThat(reportCrosses.preview(pair).get("result_hash")).isEqualTo(preview.get("result_hash"));
+    }
+    @Test void namedReportCrossKeepsSourceIntactAndFreezesItsComment() throws Exception {
+        String analysis=analyses.create(crossSource(),"admin");var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo");
+        var pairPreview=reportCrosses.preview(pair);var saved=reportCrosses.save(new bo.edu.umss.mercado.reporting.ReportCrossComposer.Save(pair,CanonicalJson.hash(pairPreview)),"admin");String id=(String)saved.get("id");
+        var initial=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of(id));
+        var configuration=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,initial.title(),"",true,true,true,"",initial.questions(),initial.crossIds(),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(id,"Nombre <script>bad()</script>","Nota <img src=x>")));
+        var preview=reports.preview(configuration,"admin");String report=reports.generateCustomized(configuration,CanonicalJson.hash(preview),"admin");
+        assertThat(reportContent(report).get("format")).isEqualTo("REPORTE_HTML_V4");
+        assertThat(crosses.get(id)).isEqualTo(saved);
+        String html=mvc.perform(get("/admin/reportes/"+report)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Nombre &lt;script&gt;","Nota &lt;img").doesNotContain("<script>bad()");
+        mvc.perform(get("/admin/reportes/"+report+"/nuevo")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("crossSettings")));
+        String csv=new String(bo.edu.umss.mercado.reporting.ReportExport.csv(bo.edu.umss.mercado.reporting.ReportExport.rows(reports.get(report))),java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(csv).contains("Nombre <script>bad()</script>","Nota <img src=x>");
+        var modified=new LinkedHashMap<>(reportContent(report));modified.put("display_crosses",List.of());
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(modified),CanonicalJson.hash(modified),report);
+        assertThatThrownBy(()->reports.get(report)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void reportCrossHttpChecksAdminCsrfPreviewAndNamedCatalog() throws Exception {
+        String analysis=analyses.create(crossSource(),"admin");var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo");String body=CanonicalJson.json(pair);
+        for(String path:List.of("/admin/reportes/personalizar/cruces/vista-previa","/admin/reportes/personalizar/cruces")){
+            mvc.perform(post(path).contentType("application/json").content(body)).andExpect(status().isForbidden());
+            mvc.perform(post(path).with(csrf()).with(user("viewer").roles("USER")).contentType("application/json").content(body)).andExpect(status().isForbidden());
+        }
+        String json=mvc.perform(post("/admin/reportes/personalizar/cruces/vista-previa").with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
+        var preview=CanonicalJson.read(json,Map.class);assertThat(preview.get("html").toString()).contains("Pares con valor");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_general_cross",Integer.class)).isZero();
+        String savedJson=mvc.perform(post("/admin/reportes/personalizar/cruces").with(csrf()).contentType("application/json").content(CanonicalJson.json(Map.of("pair",pair,"expectedHash",preview.get("hash")))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var saved=CanonicalJson.read(savedJson,Map.class);String id=(String)saved.get("id");
+        var initial=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of(id));
+        var config=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,initial.title(),"",true,true,true,"",initial.questions(),initial.crossIds(),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(id,"Mi comparación","Mi comentario")));
+        var customized=mvc.perform(post("/admin/reportes/personalizar/vista-previa").param("focusCross",id).with(csrf()).contentType("application/json").content(CanonicalJson.json(config))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(customized).contains("Mi comparación","Mi comentario");
+        Path dir=Path.of(".codex-tmp/report-step4-browser");Files.createDirectories(dir);
+        Files.writeString(dir.resolve("pair-preview.json"),json);Files.writeString(dir.resolve("saved-cross.json"),savedJson);Files.writeString(dir.resolve("preview.json"),customized);
+        Files.writeString(dir.resolve("generator.html"),mvc.perform(get("/admin/reportes/nuevo").param("analysisId",analysis)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var defaults=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of());
+        Files.writeString(dir.resolve("default-preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(defaults))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        var edited=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,initial.title(),"",true,true,true,"",initial.questions(),initial.crossIds(),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(id,"Comparación editada","Comentario editado")));
+        Files.writeString(dir.resolve("edited-preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").param("focusCross",id).with(csrf()).contentType("application/json").content(CanonicalJson.json(edited))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+    bo.edu.umss.mercado.reporting.ReportCustomization.Configuration customization(String analysis) {
+        var initial=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of());
+        var qs=new ArrayList<>(initial.questions());
+        qs.set(0,new bo.edu.umss.mercado.reporting.ReportCustomization.Question(qs.getFirst().id(),true,"Título <script>custom()</script>","Comentario <img src=x>"));
+        qs.set(1,new bo.edu.umss.mercado.reporting.ReportCustomization.Question(qs.get(1).id(),false,qs.get(1).title(),""));
+        return new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,"Reporte personalizado","Introducción <b>segura</b>",false,false,true,"Comentario general",qs,List.of());
+    }
+    @Test void customizationPreviewAndGenerationShareFrozenContentWithoutChangingOriginalFigures() throws Exception {
+        String cfg=config();response("SI","0","A");String analysis=analyses.create(run(cfg,"NO_DECLARADO"),"admin");
+        var custom=customization(analysis);String original=CanonicalJson.json(analyses.get(analysis));
+        var preview=reports.preview(custom,"admin");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+        var shown=rows((Map<String,Object>)preview.get("display_result"),"variables");
+        assertThat(shown).hasSize(2);assertThat(shown.getFirst()).containsEntry("label","Título <script>custom()</script>").containsEntry("report_tables",false);
+        var source=rows((Map<String,Object>)analyses.get(analysis).get("result"),"variables");
+        assertThat(shown.getFirst().get("distribution")).isEqualTo(source.getFirst().get("distribution"));
+        String id=reports.generateCustomized(custom,CanonicalJson.hash(preview),"admin");
+        assertThat(CanonicalJson.json(reportContent(id))).isEqualTo(CanonicalJson.json(preview));
+        response("NO","3");assertThat(CanonicalJson.json(analyses.get(analysis))).isEqualTo(original);
+        assertThat(CanonicalJson.json(reportContent(id))).isEqualTo(CanonicalJson.json(preview));
+        String html=mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Título &lt;script&gt;","Comentario &lt;img","Introducción &lt;b&gt;","Consultar tabla o resumen equivalente").doesNotContain("<script>custom()");
+        var csv=new String(mvc.perform(get("/admin/reportes/"+id+"/resultados.csv")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray(),java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(csv).contains("Título <script>custom()</script>").doesNotContain("\"opciones\"");
+        mvc.perform(get("/admin/reportes/"+id+"/nuevo")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("report-customizer.js")));
+        Path dir=Path.of(".codex-tmp/custom-report-browser");Files.createDirectories(dir);
+        Files.writeString(dir.resolve("generator.html"),mvc.perform(get("/admin/reportes/"+id+"/nuevo")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        Files.writeString(dir.resolve("report.html"),html);
+        Files.writeString(dir.resolve("report.json"),mvc.perform(get("/admin/reportes/"+id+"/contenido.json")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        Files.writeString(dir.resolve("preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(custom))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+    }
+    @Test void customizationRequiresMatchingPreviewAndRejectsUnknownQuestionsAndEmptyContent() {
+        String cfg=config();response("SI","0","A");String analysis=analyses.create(run(cfg,"NO_DECLARADO"),"admin");var custom=customization(analysis);
+        assertThatThrownBy(()->reports.generateCustomized(custom,"not-reviewed","admin")).isInstanceOf(ResponseStatusException.class);
+        var qs=new ArrayList<>(custom.questions());qs.set(0,new bo.edu.umss.mercado.reporting.ReportCustomization.Question("forged",true,"Título",""));
+        var bad=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,custom.title(),"",true,true,true,"",qs,List.of());
+        assertThatThrownBy(()->reports.preview(bad,"admin")).isInstanceOf(IllegalArgumentException.class);
+        var none=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,custom.title(),"",true,true,true,"",custom.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),false,q.title(),q.comment())).toList(),List.of());
+        assertThatThrownBy(()->reports.preview(none,"admin")).isInstanceOf(IllegalArgumentException.class);
+        var hidden=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,custom.title(),"",true,false,false,"",custom.questions(),List.of());
+        assertThatThrownBy(()->reports.preview(hidden,"admin")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+    }
+    @Test void customizationIntegrityRejectsForgedDisplayAndIncompatibleCrosses() {
+        String source=crossSource(),analysis=analyses.create(source,"admin");var custom=customization(analysis);
+        String other=run(service.configuration(version).id(),"NO_DECLARADO");
+        String cross=crosses.create(other,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");
+        var mixed=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,custom.title(),"",true,true,true,"",custom.questions(),List.of(cross));
+        assertThatThrownBy(()->reports.preview(mixed,"admin")).isInstanceOf(IllegalArgumentException.class);
+        var preview=reports.preview(custom,"admin");String id=reports.generateCustomized(custom,CanonicalJson.hash(preview),"admin");
+        var altered=new LinkedHashMap<>(reportContent(id));altered.put("display_result",Map.of("variables",List.of()));
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(altered),CanonicalJson.hash(altered),id);
+        assertThatThrownBy(()->reports.get(id)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void customizationHttpChecksCsrfAdminReadOnlyPreviewAndNoStore() throws Exception {
+        String cfg=config();response("SI","0","A");String analysis=analyses.create(run(cfg,"NO_DECLARADO"),"admin");var custom=customization(analysis);String json=CanonicalJson.json(custom);
+        for(String path:List.of("/admin/reportes/personalizar/vista-previa","/admin/reportes/personalizar/generar")){
+            mvc.perform(post(path).contentType("application/json").content(json)).andExpect(status().isForbidden());
+            mvc.perform(post(path).with(csrf()).with(user("viewer").roles("USER")).contentType("application/json").content(json)).andExpect(status().isForbidden());
+        }
+        String result=mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(json))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
+        var preview=CanonicalJson.read(result,Map.class);
+        assertThat(preview.get("html").toString()).contains("Título &lt;script&gt;","Comentario &lt;img");
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+        mvc.perform(post("/admin/reportes/personalizar/generar").with(csrf()).contentType("application/json").content(CanonicalJson.json(Map.of("configuration",custom,"expectedHash",preview.get("hash")))))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.url").exists());
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isEqualTo(1);
+    }
+    @Autowired bo.edu.umss.mercado.reporting.ReportPresentationTemplates presentationTemplates;
+    @Test void optionalPresentationTemplateRebindsCrossesAndNeverCopiesComments() throws Exception {
+        String source=crossSource(),analysis=analyses.create(source,"admin");
+        String cross=crosses.create(source,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");
+        var defaults=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(analysis),List.of(cross));
+        var config=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(analysis,defaults.title(),"Introducción",true,true,true,"Comentario privado",defaults.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),q.included(),q.title(),"Nota privada",List.of("table","columns"))).toList(),List.of(cross),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(cross,"Mi cruce","Nota privada",List.of("table","heat"))));
+        String hash=CanonicalJson.hash(reports.preview(config,"admin"));
+        presentationTemplates.generate(config,hash,false,"","admin");
+        assertThat(presentationTemplates.recent()).isEmpty();
+        assertThatThrownBy(()->presentationTemplates.generate(config,"changed",true,"Plantilla","admin")).isInstanceOf(ResponseStatusException.class);
+        assertThat(presentationTemplates.recent()).isEmpty();
+        presentationTemplates.generate(config,hash,true,"","admin");
+        var saved=presentationTemplates.recent().getFirst();assertThat(saved.name()).isEqualTo(config.title());
+        String json=jdbc.queryForObject("SELECT definition_json FROM report_presentation_template WHERE id=?",String.class,saved.id());
+        assertThat(json).doesNotContain("Nota privada","Comentario privado",analysis,cross,source,"submission_count");
+        String next=run(service.configuration(version).id(),"NO_DECLARADO"),nextAnalysis=analyses.create(next,"admin");
+        var applied=presentationTemplates.apply(saved.id(),nextAnalysis,"admin");
+        assertThat(applied.analysisId()).isEqualTo(nextAnalysis);assertThat(applied.comment()).isEmpty();
+        assertThat(applied.crossIds()).hasSize(1).doesNotContain(cross);
+        assertThat(crosses.get(applied.crossIds().getFirst()).get("preparation_id")).isEqualTo(next);
+        assertThat(presentationTemplates.apply(saved.id(),nextAnalysis,"admin").crossIds()).isEqualTo(applied.crossIds());
+        mvc.perform(post("/admin/reportes/personalizar/plantillas/aplicar").contentType("application/json").content(CanonicalJson.json(Map.of("templateId",saved.id(),"analysisId",nextAnalysis)))).andExpect(status().isForbidden());
+        mvc.perform(post("/admin/reportes/personalizar/plantillas/aplicar").with(csrf()).contentType("application/json").content(CanonicalJson.json(Map.of("templateId",saved.id(),"analysisId",nextAnalysis)))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+        mvc.perform(get("/admin/reportes/nuevo").param("analysisId",nextAnalysis)).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Aplicar y revisar")));
+        var fixture=Path.of(".codex-tmp/report-step7-browser");Files.createDirectories(fixture);
+        Files.writeString(fixture.resolve("generator.html"),mvc.perform(get("/admin/reportes/nuevo").param("analysisId",nextAnalysis)).andReturn().getResponse().getContentAsString());
+        Files.writeString(fixture.resolve("apply.json"),CanonicalJson.json(Map.of("configuration",applied,"crosses",applied.crossIds().stream().map(crosses::get).toList())));
+        Files.writeString(fixture.resolve("preview.json"),mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(applied))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThatThrownBy(()->presentationTemplates.generate(config,hash,true,"x".repeat(201),"admin")).isInstanceOf(IllegalArgumentException.class);
+        jdbc.update("UPDATE report_presentation_template SET definition_hash='alterado' WHERE id=?",saved.id());
+        assertThatThrownBy(()->presentationTemplates.apply(saved.id(),nextAnalysis,"admin")).isInstanceOf(IllegalArgumentException.class);
+    }
+    @Test void directReportFreezesPresentationSourcesAndExportsWithoutCreatingTemplates() throws Exception {
+        String source=crossSource(),analysis=analyses.create(source,"admin");
+        String cross=crosses.create(source,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");
+        String id=reports.generateDirect(analysis,"Directo <script>unsafe()</script>",List.of(cross),"Comentario <img src=x>","admin");
+        var content=reportContent(id);
+        assertThat(content).containsEntry("format","REPORTE_HTML_V2").containsEntry("template_revision_id",null);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_template",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_template_revision",Integer.class)).isZero();
+        assertThat(((Map<?,?>)content.get("context")).get("cutoff_utc")).isEqualTo(service.bundle(source).get("cutoff_utc"));
+        String frozen=CanonicalJson.json(reports.get(id));response("NO","7");
+        assertThat(CanonicalJson.json(reports.get(id))).isEqualTo(frozen);
+        var html=mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Directo &lt;script&gt;","Comentario &lt;img", "sin plantilla").doesNotContain("<script>unsafe()");
+        Path browser=Path.of(".codex-tmp/direct-report-browser");Files.createDirectories(browser);
+        Files.writeString(browser.resolve("report.html"),html);
+        Files.writeString(browser.resolve("report.json"),mvc.perform(get("/admin/reportes/"+id+"/contenido.json")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        Files.writeString(browser.resolve("generator.html"),mvc.perform(get("/admin/reportes/nuevo").param("analysisId",analysis).param("crossId",cross)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        mvc.perform(get("/admin/reportes/"+id+"/nuevo")).andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Directo &lt;script&gt;")));
+        for(String format:List.of("csv","xlsx"))mvc.perform(get("/admin/reportes/"+id+"/resultados."+format)).andExpect(status().isOk());
+        String again=reports.generateDirect(analysis,"Directo <script>unsafe()</script>",List.of(cross),"Comentario <img src=x>","other-admin");
+        assertThat(reports.get(again).get("logical_hash")).isEqualTo(reports.get(id).get("logical_hash"));
+    }
+    @Test void directReportValidatesBeforeWritingAndDetectsAlteredPresentation() {
+        String cfg=config();response("SI","0","A");String analysis=analyses.create(run(cfg,"NO_DECLARADO"),"admin");
+        assertThatThrownBy(()->reports.generateDirect(analysis,"x".repeat(201),List.of(),"","admin")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(()->reports.generateDirect(analysis,"Reporte",List.of(),"x".repeat(8001),"admin")).isInstanceOf(IllegalArgumentException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+        String id=reports.generateDirect(analysis,"",List.of(),"","admin");
+        var altered=new LinkedHashMap<>(reportContent(id));altered.put("template_hash","alterado");
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(altered),CanonicalJson.hash(altered),id);
+        assertThatThrownBy(()->reports.get(id)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void directReportHttpRequiresAdminAndCsrfAndPreservesValidationFields() throws Exception {
+        String cfg=config();response("SI","0","A");String analysis=analyses.create(run(cfg,"NO_DECLARADO"),"admin");
+        mvc.perform(post("/admin/reportes").param("analysisId",analysis)).andExpect(status().isForbidden());
+        mvc.perform(post("/admin/reportes").with(csrf()).with(user("viewer").roles("USER")).param("analysisId",analysis)).andExpect(status().isForbidden());
+        mvc.perform(post("/admin/reportes").with(csrf()).param("analysisId",analysis).param("title","x".repeat(201)).param("comment","Conservar comentario"))
+                .andExpect(status().isBadRequest()).andExpect(content().string(org.hamcrest.Matchers.containsString("Conservar comentario")));
+        var made=mvc.perform(post("/admin/reportes").with(csrf()).param("analysisId",analysis)).andExpect(status().is3xxRedirection()).andReturn();
+        String location=made.getResponse().getRedirectedUrl();
+        mvc.perform(get(location).with(anonymous())).andExpect(status().is3xxRedirection());
+        mvc.perform(get(location+"/contenido.json").with(user("viewer").roles("USER"))).andExpect(status().isForbidden());
+        mvc.perform(get(location)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_template",Integer.class)).isZero();
+    }
     @Test void reportFreezesSourcesCommentAndExactTemplateRevision() {
         String source=crossSource(), analysis=analyses.create(source,"admin"), revision=templateRevision();
         String cross=crosses.create(source,new bo.edu.umss.mercado.statistics.GenericCrossService.Spec("control","grupo",.05,false,"","",false),"admin");

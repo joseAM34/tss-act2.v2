@@ -27,7 +27,11 @@ window.ReportDownloads = (() => {
           let exported, host;
           try {
             const option = chart.getOption();
-            const x = option.xAxis[0].data, y = option.yAxis[0].data;
+            const circular = option.series.some(series => series.type === 'pie');
+            const radial = option.series.some(series => series.type === 'radar');
+            const x = Array.isArray(option.xAxis?.[0]?.data) ? option.xAxis[0].data : [];
+            const y = Array.isArray(option.yAxis?.[0]?.data) ? option.yAxis[0].data : null;
+            const names = circular ? option.series[0].data.map(item => item.name) : (option.legend?.[0]?.data || option.series.filter(series => series.name).map(series => series.name));
             // Full labels in exports, without the interactive chart's truncation.
             const width = Math.max(1200, x.length * 130 + 300);
             const header = wrap(title, Math.floor(width / 10));
@@ -36,16 +40,32 @@ window.ReportDownloads = (() => {
             const bottom = footer.split('\n').length * 19 + 25;
             const labelLines = Math.max(1, ...x.map(v => Math.ceil(Array.from(String(v)).length / 16)));
             const rowHeight = Array.isArray(y) ? Math.max(38, ...y.map(v => Math.ceil(Array.from(String(v)).length / 26) * 16 + 12)) : 38;
-            const plotHeight = Math.max(420, Array.isArray(y) ? y.length * rowHeight : 420);
-            const height = top + plotHeight + labelLines * 16 + 70 + bottom;
+            const legendLines = Math.max(1, ...names.map(name => Math.ceil(Array.from(String(name)).length / (circular ? 38 : 32))));
+            const legendHeight = names.length ? (circular ? names.length : Math.ceil(names.length / 3)) * (legendLines * 18 + 12) : 0;
+            const radarLines = radial ? Math.max(1,...option.radar[0].indicator.map(axis=>Math.ceil(Array.from(String(axis.name)).length/26))) : 1;
+            const plotHeight = Math.max(420,radial?radarLines*48:circular ? legendHeight : Array.isArray(y) ? y.length * rowHeight : 420);
+            const height = top + plotHeight + labelLines * 16 + 70 + bottom + (circular ? 0 : legendHeight);
             if (width > 12000 || height > 12000 || width * height > 6000000) throw new Error('Este gráfico supera el tamaño de imagen admitido. Usa las tablas CSV/Excel del reporte.');
             host = document.createElement('div'); host.className = 'report-export-renderer'; document.body.append(host);
             exported = echarts.init(host, null, {renderer: type === 'svg' ? 'svg' : 'canvas', width, height});
             option.animation = false; option.backgroundColor = '#fff'; option.tooltip = {show: false};
-            option.series.forEach(series => { if (series.type === 'bar') series.label = {show: true, position: 'top'}; });
-            option.grid = [{left: Array.isArray(y) ? 230 : 70, right: 35, top, bottom: bottom + labelLines * 16 + 70, containLabel: true}];
-            option.xAxis[0].axisLabel = {interval: 0, rotate: 0, formatter: value => wrap(value, 16), fontSize: 12};
-            option.yAxis[0].axisLabel = {formatter: value => wrap(value, 26), fontSize: 12};
+            option.series.forEach(series => { if (series.type === 'bar') series.label = {show: true, position: Array.isArray(y) && option.yAxis?.[0]?.type === 'category' ? 'right' : 'top'}; });
+            if (circular) {
+              option.series.forEach(series => {
+                const outer = Math.min(width * .2, plotHeight * .35);
+                series.radius = Array.isArray(series.radius) ? [outer * .55, outer] : outer;
+                series.center = [width * .35, top + plotHeight / 2];
+                series.label = {show: true, formatter: item => wrap(item.name, 16) + ': ' + item.value, fontSize: 12};
+              });
+              option.legend = [{type: 'plain', orient: 'vertical', right: 25, top: top + 10, width: 350, formatter: value => wrap(value, 38), textStyle: {fontSize: 12}}];
+            } else if(radial) {
+              option.radar[0]={...option.radar[0],center:[width/2,top+plotHeight/2],radius:Math.min(width*.26,plotHeight*.33),axisName:{formatter:value=>wrap(value,26),fontSize:12,lineHeight:14}};
+            } else {
+              option.grid = [{left: Array.isArray(y) ? 230 : 70, right: 35, top, bottom: bottom + labelLines * 16 + 70 + legendHeight, containLabel: true}];
+              option.xAxis[0].axisLabel = {interval: 0, rotate: 0, formatter: value => wrap(value, 16), fontSize: 12};
+              option.yAxis[0].axisLabel = {formatter: value => wrap(value, 26), fontSize: 12};
+              if (option.legend?.length) option.legend[0] = {...option.legend[0], type: 'plain', left: 25, right: 25, bottom: bottom + 10, formatter: value => wrap(value, 32)};
+            }
             if (option.visualMap?.length) option.visualMap[0] = {...option.visualMap[0], bottom: bottom + 10};
             option.graphic = [
               {type: 'text', left: 25, top: 15, style: {text: header, fill: '#17324d', font: 'bold 18px sans-serif', lineHeight: 24}},

@@ -61,10 +61,29 @@ public class ReportService {
     public List<Revision> revisions() {
         return jdbc.queryForList("SELECT id FROM report_template_revision ORDER BY created_at DESC, id DESC LIMIT 100",String.class).stream().map(this::revision).toList();
     }
+    public String sourceCutoff(String analysisId) {
+        return (String)preparation.bundle((String)analyses.get(analysisId).get("preparation_id")).get("cutoff_utc");
+    }
     @Transactional
     @SuppressWarnings("unchecked")
     public String generate(String revisionId, String analysisId, List<String> crossIds, String comment, String actor) {
-        var template = revision(revisionId); var analysis = analyses.get(analysisId);
+        return generate(revision(revisionId),analysisId,crossIds,comment,actor);
+    }
+    @Transactional
+    public String generateDirect(String analysisId, String title, List<String> crossIds, String comment, String actor) {
+        var analysis=analyses.get(analysisId);
+        var result=(Map<?,?>)analysis.get("result");
+        var definition=new Template(title==null || title.isBlank()?"Reporte: "+result.get("title"):title,"",SECTIONS,true);
+        validate(definition);
+        return generate(new Revision(null,null,0,actor,"",CanonicalJson.hash(definition),definition),analysisId,crossIds,comment,actor);
+    }
+    @SuppressWarnings("unchecked")
+    private String generate(Revision template, String analysisId, List<String> crossIds, String comment, String actor) {
+        return persist(build(template,analysisId,crossIds,comment,actor),actor);
+    }
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> build(Revision template,String analysisId,List<String> crossIds,String comment,String actor) {
+        String revisionId=template.id(); var analysis = analyses.get(analysisId);
         comment = text(comment,8000,false,"Comentario"); actor = text(actor,100,true,"Administrador");
         if (crossIds == null || crossIds.size() > 10 || new HashSet<>(crossIds).size() != crossIds.size()) throw new IllegalArgumentException("Selecciona hasta diez cruces distintos.");
         if (!crossIds.isEmpty() && !template.definition().sections().contains("CRUCES")) throw new IllegalArgumentException("La plantilla no incluye la sección Cruces. Usa otra revisión o quita los cruces seleccionados.");
@@ -76,12 +95,19 @@ public class ReportService {
             snapshots.add(map("id",crossId,"result_hash",cross.get("result_hash"),"source_hash",cross.get("source_hash"),"spec_hash",cross.get("spec_hash"),"spec",cross.get("spec"),"result",cross.get("result")));
         }
         var prepared = preparation.bundle((String)analysis.get("preparation_id")); var logical = (Map<String,Object>) prepared.get("logical");
-        var content = map("format","REPORTE_HTML_V1","template_revision_id",revisionId,"template_id",template.templateId(),"template_revision",template.revision(),"template_hash",template.hash(),"template",template.definition(),
+        var content = map("format",revisionId==null?"REPORTE_HTML_V2":"REPORTE_HTML_V1","template_revision_id",revisionId,"template_id",template.templateId(),"template_revision",revisionId==null?null:template.revision(),"template_hash",template.hash(),"template",template.definition(),
                 "analysis",map("id",analysisId,"result_hash",analysis.get("result_hash"),"source_hash",analysis.get("source_hash"),"result",analysis.get("result")),
                 "preparation_id",analysis.get("preparation_id"),"crosses",snapshots,"comment",comment,
                 "context",map("study",logical.get("study"),"instrument_status",logical.get("instrument_status"),"definition_hash",logical.get("definition_hash"),
                     "publication_hash",logical.get("publication_hash"),"config_id",logical.get("config_id"),"config_hash",logical.get("config_hash"),"config_revision",logical.get("config_revision"),
                     "from_date",logical.get("from_date"),"until_date",logical.get("until_date"),"cutoff_utc",prepared.get("cutoff_utc"),"timezone",logical.get("timezone"),"unit_of_analysis",logical.get("unit_of_analysis")));
+        return content;
+    }
+    @SuppressWarnings("unchecked")
+    private String persist(Map<String,Object> content,String actor) {
+        String revisionId=(String)content.get("template_revision_id");
+        String analysisId=(String)((Map<?,?>)content.get("analysis")).get("id");
+        var crossIds=((List<Map<String,Object>>)content.get("crosses")).stream().map(c->(String)c.get("id")).toList();
         String id = UUID.randomUUID().toString();
         jdbc.update("INSERT INTO generated_report (id, template_revision_id, analysis_id, actor, created_at, content_json, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 id,revisionId,analysisId,actor,OffsetDateTime.now(ZoneOffset.UTC),CanonicalJson.json(content),CanonicalJson.hash(content));
@@ -89,17 +115,89 @@ public class ReportService {
         return id;
     }
     @SuppressWarnings("unchecked")
+    private Map<String,Object> enrichedAnalysis(Map<String,Object> analysis) {
+        var bundle=preparation.bundle((String)analysis.get("preparation_id"));
+        var enriched=new LinkedHashMap<>(analysis);
+        enriched.put("result",ReportAdvancedProjection.enrich((Map<String,Object>)analysis.get("result"),(Map<String,Object>)bundle.get("logical"),(String)bundle.get("cutoff_utc")));
+        return enriched;
+    }
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> advancedData(String analysisId){
+        var analysis=analyses.get(analysisId);
+        var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
+        return map("result",enrichedAnalysis(analysis).get("result"),"options",ReportAdvancedProjection.options(logical));
+    }
+    @Transactional(readOnly=true)
+    public Map<String,Object> preview(ReportCustomization.Configuration config,String actor) {
+        if(config==null)throw new IllegalArgumentException("Configuración vacía.");
+        var analysis=analyses.get(config.analysisId());if(ReportCustomization.advanced(config))analysis=enrichedAnalysis(analysis);ReportCustomization.validate(config,analysis);
+        if(config.crossSettings()!=null)for(var setting:config.crossSettings()){
+            if(!analysis.get("preparation_id").equals(crosses.get(setting.id()).get("preparation_id")))throw new IllegalArgumentException("La presentación del cruce no pertenece al conjunto del análisis.");
+        }
+        var definition=ReportCustomization.template(config);
+        var content=build(new Revision(null,null,0,actor,"",CanonicalJson.hash(definition),definition),config.analysisId(),config.crossIds(),config.comment(),actor);
+        content.put("format","REPORTE_HTML_V3");content.put("presentation",config);content.put("display_result",ReportCustomization.display(config,analysis));
+        if(config.crossSettings()!=null){
+            content.put("format","REPORTE_HTML_V4");
+            @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
+            content.put("display_crosses",ReportCustomization.displayCrosses(config,originals));
+        }
+        if(ReportCustomization.multiple(config)){
+            content.put("format","REPORTE_HTML_V5");
+            @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
+            content.put("display_crosses",ReportCustomization.displayCrosses(config,originals));
+        }
+        if(ReportCustomization.advanced(config)){
+            @SuppressWarnings("unchecked") var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
+            content.put("format","REPORTE_HTML_V6");content.put("advanced_charts",ReportAdvancedProjection.charts(config,logical));
+            @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
+            content.put("display_crosses",ReportCustomization.displayCrosses(config,originals));
+        }
+        return content;
+    }
+    @Transactional
+    public String generateCustomized(ReportCustomization.Configuration config,String expectedHash,String actor) {
+        var content=preview(config,actor);
+        if(!CanonicalJson.hash(content).equals(expectedHash))throw new ResponseStatusException(HttpStatus.CONFLICT,"La configuración o las fuentes cambiaron. Revisa la vista previa antes de generar.");
+        return persist(content,actor);
+    }
+    @SuppressWarnings("unchecked")
     public Map<String,Object> get(String id) {
         var rows = jdbc.queryForList("SELECT * FROM generated_report WHERE id = ?",id);
         if (rows.isEmpty()) throw missing("Reporte no encontrado."); var row = rows.getFirst();
         Map<String,Object> content = CanonicalJson.read((String)row.get("content_json"),Map.class);
-        if (!CanonicalJson.hash(content).equals(row.get("content_hash")) || !"REPORTE_HTML_V1".equals(content.get("format")) || !row.get("template_revision_id").equals(content.get("template_revision_id"))) throw corrupt();
-        var template = revision((String)row.get("template_revision_id"));
-        if (!template.hash().equals(content.get("template_hash")) || !CanonicalJson.hash(template.definition()).equals(CanonicalJson.hash(content.get("template")))) throw corrupt();
+        if (!CanonicalJson.hash(content).equals(row.get("content_hash")) || !Objects.equals(row.get("template_revision_id"),content.get("template_revision_id"))) throw corrupt();
+        if(row.get("template_revision_id")==null) {
+            if(!Set.of("REPORTE_HTML_V2","REPORTE_HTML_V3","REPORTE_HTML_V4","REPORTE_HTML_V5","REPORTE_HTML_V6").contains(content.get("format")) || content.get("template_id")!=null || content.get("template_revision")!=null)throw corrupt();
+            var definition=CanonicalJson.read(CanonicalJson.json(content.get("template")),Template.class);
+            validate(definition);
+            if(!CanonicalJson.hash(definition).equals(content.get("template_hash")))throw corrupt();
+        } else {
+            if(!"REPORTE_HTML_V1".equals(content.get("format")))throw corrupt();
+            var template = revision((String)row.get("template_revision_id"));
+            if (!template.hash().equals(content.get("template_hash")) || !CanonicalJson.hash(template.definition()).equals(CanonicalJson.hash(content.get("template")))
+                    || !template.templateId().equals(content.get("template_id")) || !Objects.equals(template.revision(),content.get("template_revision"))) throw corrupt();
+        }
         var snapshot = (Map<String,Object>)content.get("analysis"); var analysis = analyses.get((String)row.get("analysis_id"));
         if (!row.get("analysis_id").equals(snapshot.get("id")) || !analysis.get("preparation_id").equals(content.get("preparation_id"))
                 || !analysis.get("result_hash").equals(snapshot.get("result_hash")) || !analysis.get("source_hash").equals(snapshot.get("source_hash"))
                 || !CanonicalJson.hash(snapshot.get("result")).equals(snapshot.get("result_hash"))) throw corrupt();
+        if(Set.of("REPORTE_HTML_V3","REPORTE_HTML_V4","REPORTE_HTML_V5","REPORTE_HTML_V6").contains(content.get("format"))) {
+            var config=CanonicalJson.read(CanonicalJson.json(content.get("presentation")),ReportCustomization.Configuration.class);
+            boolean advanced="REPORTE_HTML_V6".equals(content.get("format"));
+            if(advanced!=ReportCustomization.advanced(config))throw corrupt();
+            if(advanced)analysis=enrichedAnalysis(analysis);
+            ReportCustomization.validate(config,analysis);
+            if(!advanced&&ReportCustomization.multiple(config)!= "REPORTE_HTML_V5".equals(content.get("format")))throw corrupt();
+            if(advanced){var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");if(!CanonicalJson.hash(ReportAdvancedProjection.charts(config,logical)).equals(CanonicalJson.hash(content.get("advanced_charts"))))throw corrupt();}
+            if(!CanonicalJson.hash(ReportCustomization.display(config,analysis)).equals(CanonicalJson.hash(content.get("display_result"))))throw corrupt();
+            if(!CanonicalJson.hash(ReportCustomization.template(config)).equals(CanonicalJson.hash(content.get("template"))) || !config.comment().equals(content.get("comment")))throw corrupt();
+            if(!config.crossIds().equals(((List<Map<String,Object>>)content.get("crosses")).stream().map(c->c.get("id")).toList()))throw corrupt();
+            if(Set.of("REPORTE_HTML_V4","REPORTE_HTML_V5","REPORTE_HTML_V6").contains(content.get("format"))){
+                if((config.crossSettings()==null && "REPORTE_HTML_V4".equals(content.get("format"))) || !CanonicalJson.hash(ReportCustomization.displayCrosses(config,(List<Map<String,Object>>)content.get("crosses"))).equals(CanonicalJson.hash(content.get("display_crosses"))))throw corrupt();
+                if(config.crossSettings()!=null)for(var c:config.crossSettings())if(!analysis.get("preparation_id").equals(crosses.get(c.id()).get("preparation_id")))throw corrupt();
+            }
+        }
         var crossSnapshots = (List<Map<String,Object>>)content.get("crosses");
         var crossIds = jdbc.queryForList("SELECT cross_id FROM generated_report_cross WHERE report_id = ? ORDER BY position",String.class,id);
         if (!crossIds.equals(crossSnapshots.stream().map(s -> s.get("id")).toList())) throw corrupt();

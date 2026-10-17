@@ -16,7 +16,7 @@ public final class ReportExport {
         var rows = new ArrayList<List<Object>>();
         rows.add(List.of("seccion", "variable", "fila", "columna", "medida", "valor", "estado_celda"));
         var content=map(report.get("content")); var analysis=map(content.get("analysis"));
-        var result=map(analysis.get("result")); var template=map(content.get("template"));
+        var result=map(content.getOrDefault("display_result",analysis.get("result"))); var template=map(content.get("template"));
         for (String k:List.of("id","created_at","actor","logical_hash")) add(rows,"referencias","","","",k,report.get(k));
         for (String k:List.of("title","study_id","survey_id","version_id","instrument_version","origin","mode","protocol","scope","submission_count")) add(rows,"referencias","","","",k,result.get(k));
         for (String k:List.of("id","result_hash","source_hash")) add(rows,"analisis","","","",k,analysis.get(k));
@@ -27,13 +27,17 @@ public final class ReportExport {
         for (Object section:(List<?>)template.get("sections")) {
             if (section.equals("DESCRIPTIVOS")) for (var v:list(result.get("variables"))) {
                 String q=v.get("label").toString();
-                for (var e:v.entrySet()) if (!Set.of("numeric","distribution").contains(e.getKey())) add(rows,"descriptivos",q,"","",e.getKey(),e.getValue());
+                for (var e:v.entrySet()) if (!Set.of("numeric","distribution","advanced").contains(e.getKey())) add(rows,"descriptivos",q,"","",e.getKey(),e.getValue());
+                if(v.get("advanced") instanceof Map<?,?> advanced && v.get("report_graphs") instanceof List<?> graphs){
+                    for(String kind:List.of("histogram","box","time"))if(graphs.contains(kind)||kind.equals("time")&&(graphs.contains("line")||graphs.contains("area")))flatten(rows,"descriptivos",q,"","",kind,advanced.get(kind));
+                }
                 if (v.get("numeric")!=null) flatten(rows,"descriptivos",q,"","","numeric",v.get("numeric"));
                 if (v.get("distribution")!=null) for (var option:list(v.get("distribution")))
                     flatten(rows,"descriptivos",q,option.get("label").toString(),"","",option);
             }
-            if (section.equals("CRUCES")) for (var cross:list(content.get("crosses"))) {
-                var c=map(cross.get("result")); String q=c.get("row_label")+" × "+c.get("column_label");
+            if (section.equals("CRUCES")) for (var cross:list(content.getOrDefault("display_crosses",content.get("crosses")))) {
+                var c=map(cross.get("result")); String q=Objects.toString(cross.get("display_title"),c.get("row_label")+" × "+c.get("column_label"));
+                if(cross.get("report_comment")!=null)add(rows,"cruce",q,"","","comentario",cross.get("report_comment"));
                 for (String k:List.of("id","result_hash","source_hash","spec_hash")) add(rows,"cruce",q,"","",k,cross.get(k));
                 flatten(rows,"cruce",q,"","","especificacion",cross.get("spec"));
                 for (String k:List.of("protocol","row_question","column_question","scope","total_submissions","excluded_pairs","multiplicity","pair_states")) flatten(rows,"cruce",q,"","",k,c.get(k));
@@ -52,6 +56,7 @@ public final class ReportExport {
             }
             if (section.equals("COMENTARIOS")) add(rows,"comentarios","","","","texto_administrativo",content.get("comment"));
         }
+        if(content.get("advanced_charts") instanceof List<?> advanced)for(Object item:advanced){var chart=map(item);flatten(rows,"graficos_avanzados",chart.get("title").toString(),"","","",chart);}
         return rows;
     }
     private static void flatten(List<List<Object>> rows,String section,String variable,String row,String column,String key,Object value) {

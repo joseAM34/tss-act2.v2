@@ -9,6 +9,8 @@ if (typeof document !== 'undefined') (() => {
   if (!root) return;
   const content=root.querySelector('[data-live-content]'), status=root.querySelector('[data-live-status]');
   const save=root.querySelector('[data-live-save]'), saveButton=root.querySelector('[data-live-save-button]');
+  const reportButton=root.querySelector('[data-live-report-button]');
+  const setSaveDisabled=value=>{saveButton.disabled=value;if(reportButton)reportButton.disabled=value;};
   const refresh=root.querySelector('[data-live-refresh]'), toggle=root.querySelector('[data-live-toggle]');
   const cutoffField=document.createElement('input');cutoffField.type='hidden';cutoffField.name='expectedCutoff';save.append(cutoffField);
   const coordinator=createLiveCoordinator();let charts=[], timer, controller, lastFrame, saving=false,dirty=false;
@@ -31,7 +33,7 @@ if (typeof document !== 'undefined') (() => {
     dispose();
     // HTML producido por Thymeleaf en el mismo backend, con todos los textos escapados.
     if(html!==undefined)content.innerHTML=html;
-    lastFrame=frame;save.elements.expectedHash.value=frame.hash;save.elements.expectedCutoff.value=frame.cutoff;saveButton.disabled=false;draw(frame);
+    lastFrame=frame;save.elements.expectedHash.value=frame.hash;save.elements.expectedCutoff.value=frame.cutoff;setSaveDisabled(false);draw(frame);
     for(const id of ['live-row','live-column']) {
       const select=root.querySelector('#'+id), selected=select.value;
       select.replaceChildren(new Option('Sin cruce',''));
@@ -51,24 +53,25 @@ if (typeof document !== 'undefined') (() => {
       if(!response.ok){const error=await response.json().catch(()=>({}));throw Error(error.message||'La sesión expiró o no se pudo consultar.');}
       const payload=await response.json();if(!coordinator.current(token))return;
       if(!lastFrame || payload.frame.hash!==lastFrame.hash)accept(payload.frame,payload.html);
-      else {saveButton.disabled=false;}
+      else {setSaveDisabled(false);}
       status.textContent='Verificado: '+new Date(payload.frame.cutoff).toLocaleString('es-BO',{timeZone:'America/La_Paz'})+' (hora de Bolivia). El corte de las tablas permanece indicado arriba.';
       root.dataset.liveStale='false';
-    }catch(error){if(!coordinator.current(token))return;saveButton.disabled=true;root.dataset.liveStale='true';status.textContent=(lastFrame?'Vista desactualizada. Se conserva el último corte. ':'')+(error.name==='AbortError'?'La consulta excedió el tiempo disponible.':error.message)+' Vuelve a intentar.';
+    }catch(error){if(!coordinator.current(token))return;setSaveDisabled(true);root.dataset.liveStale='true';status.textContent=(lastFrame?'Vista desactualizada. Se conserva el último corte. ':'')+(error.name==='AbortError'?'La consulta excedió el tiempo disponible.':error.message)+' Vuelve a intentar.';
     }finally{clearTimeout(timeout);if(coordinator.current(token))refresh.disabled=false;schedule();}
   }
   function schedule(){clearTimeout(timer);if(toggle.checked && !document.hidden && !dirty)timer=setTimeout(update,30000);}
-  root.querySelector('.live-filters').addEventListener('change',()=>{dirty=true;coordinator.invalidate();controller?.abort();clearTimeout(timer);saveButton.disabled=true;refresh.disabled=true;toggle.checked=false;status.textContent='Aplica la selección para consultar esos filtros. Las tablas conservan la selección anterior.';});
+  root.querySelector('.live-filters').addEventListener('change',()=>{dirty=true;coordinator.invalidate();controller?.abort();clearTimeout(timer);setSaveDisabled(true);refresh.disabled=true;toggle.checked=false;status.textContent='Aplica la selección para consultar esos filtros. Las tablas conservan la selección anterior.';});
   refresh.addEventListener('click',update);toggle.addEventListener('change',()=>{if(toggle.checked)update();else clearTimeout(timer);});
   document.addEventListener('visibilitychange',()=>{clearTimeout(timer);if(!document.hidden && toggle.checked)update();else {coordinator.invalidate();controller?.abort();refresh.disabled=false;}});
   save.addEventListener('submit',async event=>{
     event.preventDefault();if(!lastFrame||saveButton.disabled||saving)return;
-    saving=true;clearTimeout(timer);coordinator.invalidate();controller?.abort();saveButton.disabled=true;refresh.disabled=true;
+    saving=true;clearTimeout(timer);coordinator.invalidate();controller?.abort();setSaveDisabled(true);refresh.disabled=true;
     const saveController=new AbortController(), saveTimeout=setTimeout(()=>saveController.abort(),20000);
     const message=root.querySelector('[data-live-saved]');message.textContent='Guardando el corte mostrado…';
     try {
       const response=await fetch(save.action,{method:'POST',credentials:'same-origin',cache:'no-store',signal:saveController.signal,body:new URLSearchParams(new FormData(save)),headers:{Accept:'application/json'}});
       const payload=await response.json();if(!response.ok)throw Error(payload.message||'No se pudo guardar el corte.');
+      if(event.submitter===reportButton){location.assign('/admin/reportes/nuevo?analysisId='+encodeURIComponent(payload.analysisId)+(payload.crossId?'&crossId='+encodeURIComponent(payload.crossId):''));return;}
       message.replaceChildren();const a=document.createElement('a');a.className='text-link';a.href='/admin/analisis-general/'+encodeURIComponent(payload.analysisId);a.textContent='Corte guardado. Abrir análisis y crear reporte →';message.append(a);
       const reportLink=document.createElement('a');reportLink.className='text-link';reportLink.href='/admin/reportes/nuevo?analysisId='+encodeURIComponent(payload.analysisId);reportLink.textContent=' · Crear reporte y exportar →';message.append(reportLink);
       if(payload.crossId){const b=document.createElement('a');b.className='text-link';b.href='/admin/cruces-generales/'+encodeURIComponent(payload.crossId);b.textContent=' · Abrir cruce guardado →';message.append(b);}

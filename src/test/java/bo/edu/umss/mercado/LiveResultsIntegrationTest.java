@@ -51,7 +51,7 @@ class LiveResultsIntegrationTest {
         preparation.configure(version,0,fields(),"live-admin");response=response(version,"SI");
     }
     @AfterEach void clear() {
-        for(String t:List.of("xlsx_import_workbook","csv_import_row","csv_import_confirmation","csv_import_mapping","csv_import_batch","generated_report_cross","generated_report","report_template_revision","report_template","survey_general_cross","survey_general_analysis","survey_preparation_run","survey_preparation_config"))jdbc.update("DELETE FROM "+t);
+        for(String t:List.of("xlsx_import_workbook","csv_import_row","csv_import_confirmation","csv_import_mapping","csv_import_batch","report_presentation_template","generated_report_cross","generated_report","report_template_revision","report_template","survey_general_cross","survey_general_analysis","survey_preparation_run","survey_preparation_config"))jdbc.update("DELETE FROM "+t);
         jdbc.update("DELETE FROM survey_answer WHERE response_id IN (SELECT id FROM survey_response WHERE publication_version_id IS NOT NULL)");
         jdbc.update("DELETE FROM survey_question_state WHERE response_id IN (SELECT id FROM survey_response WHERE publication_version_id IS NOT NULL)");
         jdbc.update("DELETE FROM survey_response WHERE publication_version_id IS NOT NULL");
@@ -63,6 +63,74 @@ class LiveResultsIntegrationTest {
     LiveResultsService.Selection selection() {return new LiveResultsService.Selection("NO_DECLARADO",null,null,"","");}
     LiveResultsService.Frame current() {return live.current(version,selection(),"live-admin");}
     String url() {return "/admin/espacio/"+slug+"/resultados";}
+    @Test void shownCutCanBecomeDirectReportWithItsCrossWithoutTemplates() throws Exception {
+        var selection=new LiveResultsService.Selection("NO_DECLARADO",null,null,"filtro","grupo");
+        var frame=live.current(version,selection,"live-admin");response(version,"NO_SABE");
+        var savedResponse=mvc.perform(post(url()+"/guardar").with(csrf()).param("version","v1")
+                .param("origin","NO_DECLARADO").param("row","filtro").param("column","grupo")
+                .param("expectedHash",frame.hash()).param("expectedCutoff",frame.cutoff()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var saved=CanonicalJson.read(savedResponse,LiveResultsService.Saved.class);
+        String form=mvc.perform(get("/admin/reportes/nuevo").param("analysisId",saved.analysisId()).param("crossId",saved.crossId()))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(form).contains("sin plantilla","Corte congelado",frame.cutoff(),saved.crossId(),"report-customizer.js");
+        var generated=mvc.perform(post("/admin/reportes").with(csrf()).param("analysisId",saved.analysisId()).param("crossIds",saved.crossId()))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        String json=mvc.perform(get(generated.getResponse().getRedirectedUrl()+"/contenido.json"))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var report=CanonicalJson.read(json,Map.class);var content=(Map<?,?>)report.get("content");
+        assertThat(((Map<?,?>)content.get("context")).get("cutoff_utc")).isEqualTo(frame.cutoff());
+        var analysis=(Map<?,?>)content.get("analysis");
+        assertThat(((Map<?,?>)analysis.get("result")).get("submission_count")).isEqualTo(1);
+        assertThat((List<?>)content.get("crosses")).hasSize(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_template",Integer.class)).isZero();
+    }
+    @Test void customizedReportJourneyReusesTemplateOnNewCutAndKeepsEveryExportFrozen() throws Exception {
+        var selected=new LiveResultsService.Selection("NO_DECLARADO",null,null,"filtro","grupo");
+        var frame=live.current(version,selected,"live-admin");
+        var saved=CanonicalJson.read(mvc.perform(post(url()+"/guardar").with(csrf()).param("version","v1").param("row","filtro").param("column","grupo")
+                .param("expectedHash",frame.hash()).param("expectedCutoff",frame.cutoff())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),LiveResultsService.Saved.class);
+        mvc.perform(get("/admin/reportes/nuevo").param("analysisId",saved.analysisId()).param("crossId",saved.crossId())).andExpect(status().isOk());
+        var defaults=bo.edu.umss.mercado.reporting.ReportCustomization.defaults(analyses.get(saved.analysisId()),List.of(saved.crossId()));
+        var config=new bo.edu.umss.mercado.reporting.ReportCustomization.Configuration(defaults.analysisId(),"Informe <script>ejemplo</script>","Introducción de ejemplo",true,true,true,"Interpretación de este corte",
+                defaults.questions().stream().map(q->new bo.edu.umss.mercado.reporting.ReportCustomization.Question(q.id(),true,q.title(),"Nota <img src=x>",q.id().equals("meses")?List.of("table","columns"):List.of("table","columns","bars","pie","donut"))).toList(),
+                defaults.crossIds(),List.of(new bo.edu.umss.mercado.reporting.ReportCustomization.Cross(saved.crossId(),"Comparación propia","Nota de cruce",List.of("table","heat","grouped","stacked"))));
+        String previewPath="/admin/reportes/personalizar/vista-previa",generatePath="/admin/reportes/personalizar/generar",applyPath="/admin/reportes/personalizar/plantillas/aplicar";
+        var preview=CanonicalJson.read(mvc.perform(post(previewPath).with(csrf()).contentType("application/json").content(CanonicalJson.json(config)))
+                .andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString(),Map.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report",Integer.class)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_presentation_template",Integer.class)).isZero();
+        var request=Map.of("configuration",config,"expectedHash",preview.get("hash"),"saveTemplate",true,"templateName","Plantilla <b>ejemplo</b>");
+        mvc.perform(post(generatePath).contentType("application/json").content(CanonicalJson.json(request))).andExpect(status().isForbidden());
+        mvc.perform(post(generatePath).with(csrf()).with(user("lector").roles("USER")).contentType("application/json").content(CanonicalJson.json(request))).andExpect(status().isForbidden());
+        var generated=CanonicalJson.read(mvc.perform(post(generatePath).with(csrf()).contentType("application/json").content(CanonicalJson.json(request))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),Map.class);
+        String report=(String)generated.get("url");
+        var html=mvc.perform(get(report)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(html).contains("Informe &lt;script&gt;","Nota &lt;img","Comparación propia","Guardar como PDF").doesNotContain("<script>ejemplo</script>","privado@example.test");
+        var frozen=new LinkedHashMap<String,byte[]>();
+        for(String suffix:List.of("/contenido.json","/resultados.csv","/resultados.xlsx")){
+            frozen.put(suffix,mvc.perform(get(report+suffix)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsByteArray());
+            mvc.perform(get(report+suffix).with(anonymous())).andExpect(status().is3xxRedirection());
+            mvc.perform(get(report+suffix).with(user("lector").roles("USER"))).andExpect(status().isForbidden());
+        }
+        mvc.perform(get(report+"/nuevo")).andExpect(status().isOk()).andExpect(content().string(containsString("Comparación propia")));
+        String template=jdbc.queryForObject("SELECT id FROM report_presentation_template",String.class);
+        response(version,"NO_SABE");var nextFrame=live.current(version,selected,"live-admin");
+        var next=live.save(version,selected,nextFrame.hash(),nextFrame.cutoff(),"live-admin");
+        String applyBody=CanonicalJson.json(Map.of("templateId",template,"analysisId",next.analysisId()));
+        mvc.perform(post(applyPath).with(csrf()).with(user("lector").roles("USER")).contentType("application/json").content(applyBody)).andExpect(status().isForbidden());
+        var applied=CanonicalJson.read(mvc.perform(post(applyPath).with(csrf()).contentType("application/json").content(applyBody)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),Map.class);
+        var nextConfig=CanonicalJson.read(CanonicalJson.json(applied.get("configuration")),bo.edu.umss.mercado.reporting.ReportCustomization.Configuration.class);
+        assertThat(nextConfig.comment()).isEmpty();assertThat(nextConfig.questions()).allMatch(q->q.comment().isEmpty());assertThat(nextConfig.crossIds()).doesNotContain(saved.crossId());
+        assertThat(nextConfig.questions().getFirst().representations()).contains("pie","donut","bars");
+        var nextPreview=CanonicalJson.read(mvc.perform(post(previewPath).with(csrf()).contentType("application/json").content(CanonicalJson.json(nextConfig))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),Map.class);
+        var nextReport=CanonicalJson.read(mvc.perform(post(generatePath).with(csrf()).contentType("application/json").content(CanonicalJson.json(Map.of("configuration",nextConfig,"expectedHash",nextPreview.get("hash"),"saveTemplate",false))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),Map.class);
+        var nextJson=CanonicalJson.read(mvc.perform(get(nextReport.get("url")+"/contenido.json")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),Map.class);
+        assertThat(((Map<?,?>)((Map<?,?>)((Map<?,?>)nextJson.get("content")).get("analysis")).get("result")).get("submission_count")).isEqualTo(2);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM report_presentation_template",Integer.class)).isEqualTo(1);
+        for(var entry:frozen.entrySet())mvc.perform(get(report+entry.getKey())).andExpect(status().isOk()).andExpect(content().bytes(entry.getValue()));
+    }
     @Test void repeatedConsultationsDoNotPersistAndNewResponseUpdatesResult() {
         var first=current();assertThat(current().hash()).isEqualTo(first.hash());
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_preparation_run",Integer.class)).isZero();
