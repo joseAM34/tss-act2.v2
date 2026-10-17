@@ -25,7 +25,7 @@ test('cruces agrupados y apilados usan los mismos conteos absolutos que el mapa 
 test('histograma y caja representan los intervalos y cuartiles calculados por Java',()=>{
   const variable={label:'Meses',unit:'meses',advanced:{histogram:{bins:[{lower:0,upper:2,closed_upper:false,count:3},{lower:2,upper:4,closed_upper:true,count:1}]},box:{values:[0,1,2,3,4]}}};
   const histogram=options.variable(variable,'histogram'),box=options.variable(variable,'box');
-  assert.deepEqual(histogram.series[0].data,[3,1]);assert.deepEqual(histogram.xAxis.data,['[0, 2)','[2, 4]']);assert.deepEqual(box.series[0].data,[[0,1,2,3,4]]);assert.equal(box.series[0].type,'boxplot');
+  assert.deepEqual(histogram.series[0].data,[3,1]);assert.deepEqual(histogram.xAxis.data,['[0.00, 2.00)','[2.00, 4.00]']);assert.deepEqual(box.series[0].data,[[0,1,2,3,4]]);assert.equal(box.series[0].type,'boxplot');
 });
 test('línea y área conservan meses y ceros, sin suavizar ni proyectar',()=>{
   const variable={advanced:{time:{months:['2026-01','2026-02','2026-03'],counts:[0,2,0]}}};

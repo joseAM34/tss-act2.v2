@@ -5,6 +5,11 @@
   const form=$('custom-form'),csrf=form.querySelector('[name=_csrf]');
   let screen='',question=null,cross=null,advancedIndex=null,timer,sequence=0,controller,latest=null,expectedHash='',generating=false,applying=false;
   let disposers=[];
+  // Bounded, page-memory cache. Never persisted to storage or trusted for generation.
+  const previewCache=new Map();let cacheScope='';
+  const scope=()=>['preguntas','pregunta'].includes(screen)?'question:'+question:['cruces','cruce-editar'].includes(screen)?'cross:'+cross:screen;
+  const hasCrossPreview=id=>latest?.catalog?.crosses?.some(c=>c.id===id);
+
   config.crossSettings=config.crossSettings||[];config.advanced=config.advanced||[];
   config.questions.forEach(item=>item.representations=item.representations||['table','columns']);
   config.crossSettings.forEach(item=>item.representations=item.representations||['table','heat']);
@@ -80,7 +85,7 @@
       check.name=isCross?'crossIds':'questions';check.value=id;check.checked=isCross?config.crossIds.includes(id):item.included;
       check.addEventListener('change',()=>{if(isCross){config.crossIds=config.crossIds.filter(value=>value!==id);if(check.checked){crossSetting(id);config.crossIds.push(id);}}else item.included=check.checked;invalidate();});label.append(check,node('span','Incluir'));
       const button=node('button',isCross?item.result.row_label+' × '+item.result.column_label:item.title);button.type='button';button.dataset[isCross?'cross':'question']=id;button.setAttribute('aria-pressed','false');
-      button.addEventListener('click',()=>{if(isCross){cross=cross===id?null:id;if(cross)refresh();}else question=question===id?null:id;render();});row.append(label,button);container.append(row);
+      button.addEventListener('click',()=>{previewCache.clear();if(isCross){cross=cross===id?null:id;if(cross&&!hasCrossPreview(cross))refresh();}else question=question===id?null:id;render();});row.append(label,button);container.append(row);
     });
   };
   const renderCrossList=()=>{$('custom-crosses').replaceChildren();list($('custom-crosses'),bootstrap.crosses,true);if(!bootstrap.crosses.length)$('custom-crosses').append(node('p','No hay cruces guardados de este conjunto.'));};
@@ -96,7 +101,10 @@
     status('Actualizando vista previa…');
     const requestController=controller,timeout=setTimeout(()=>requestController.abort(),20000);
     try{
-      const data=await post('/admin/reportes/personalizar/vista-previa'+(cross?'?focusCross='+encodeURIComponent(cross):''),config,controller.signal);
+      const currentScope=scope();if(cacheScope!==currentScope){previewCache.clear();cacheScope=currentScope;}
+      const key=JSON.stringify([config,cross]);
+      const data=previewCache.get(key)||await post('/admin/reportes/personalizar/vista-previa'+(cross?'?focusCross='+encodeURIComponent(cross):''),config,controller.signal);
+      if(token===sequence){if(previewCache.size>=6)previewCache.delete(previewCache.keys().next().value);previewCache.set(key,data);}
       if(token!==sequence)return;latest=data;expectedHash=data.hash;$('custom-generate').disabled=false;status('Vista previa verificada con el corte congelado.');render();
     }catch(error){if(token!==sequence)return;latest=null;expectedHash='';status(error.name==='AbortError'?'La consulta tardó demasiado. Cambia una opción o recarga para volver a intentar.':error.message,true);render();}
     finally{clearTimeout(timeout);}
@@ -184,11 +192,12 @@
     else if(screen!=='cruce-nuevo'){pair=[];pairHash='';pairPreview=null;pairRepresentations=['table','heat'];$('new-cross-title').value='';$('new-cross-comment').value='';$('new-cross-preview').replaceChildren();$('new-cross-status').textContent='Selecciona dos preguntas compatibles.';renderCandidates();
       representationButtons($('new-cross-representations'),pairRepresentations,crossChoices,()=>{pairHash='';pairPreview=null;pairSequence++;pairController?.abort();newDispose?.();newDispose=null;$('new-cross-preview').replaceChildren();renderCandidates();if(pairRepresentations.length)previewPair();else $('new-cross-status').textContent='Activa al menos una representación.';});}
     if(next==='avanzados'&&screen!=='avanzado')advancedIndex=null;if(next==='avanzado'&&advancedIndex===null){location.hash='avanzados';return;}
+    if(next!==screen)previewCache.clear();
     screen=next;root.querySelectorAll('[data-custom-screen]').forEach(section=>section.hidden=section.dataset.customScreen!==screen);
     const titles={reporte:'Generar reporte',personalizar:'Personalizar reporte',preguntas:'Preguntas y gráficos',pregunta:'Configurar esta pregunta',cruces:'Comparaciones del reporte','cruce-nuevo':'Crear comparación','cruce-editar':'Editar comparación',avanzados:'Gráficos avanzados',avanzado:'Configurar gráfico avanzado',presentacion:'Presentación y comentarios'};
     $('custom-heading').textContent=titles[screen];$('custom-back').hidden=screen==='reporte';$('custom-back').href=screen==='personalizar'?'#reporte':screen==='pregunta'?'#preguntas':'#personalizar';
     if(screen==='pregunta'){const q=active();$('question-title').value=q.title;$('question-comment').value=q.comment;$('question-original').textContent=bootstrap.result.variables.find(v=>v.question_id===question).label;questionButtons();}
-    if(screen==='cruce-editar'){const setting=crossSetting(cross);$('edit-cross-title').value=setting.title;$('edit-cross-comment').value=setting.comment;representationButtons($('edit-cross-representations'),setting.representations,crossChoices,invalidate);refresh();}
+    if(screen==='cruce-editar'){const setting=crossSetting(cross);$('edit-cross-title').value=setting.title;$('edit-cross-comment').value=setting.comment;representationButtons($('edit-cross-representations'),setting.representations,crossChoices,invalidate);if(!hasCrossPreview(cross))refresh();}
     if(screen.startsWith('cruce-'))$('custom-back').href='#cruces';
     $('custom-back').textContent=screen.startsWith('cruce-')?'← Comparaciones':screen==='pregunta'?'← Preguntas y gráficos':screen==='personalizar'?'← Volver al reporte':'← Personalizar';
     if(screen==='avanzados')renderAdvancedList();
@@ -217,5 +226,5 @@
     catch(error){status(error.message,true);expectedHash='';latest=null;render();}
     finally{generating=false;}
   });
-  window.addEventListener('hashchange',route);window.addEventListener('pagehide',()=>{controller?.abort();clearTimeout(timer);disposers.forEach(dispose=>dispose());});route();refresh();
+  window.addEventListener('hashchange',route);window.addEventListener('pagehide',()=>{previewCache.clear();controller?.abort();clearTimeout(timer);disposers.forEach(dispose=>dispose());});route();refresh();
 })();

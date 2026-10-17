@@ -1,9 +1,9 @@
 <!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
 <aside th:fragment="variable(v)" class="stat-help" aria-label="Cómo leer esta pregunta">
-  <strong>Cómo leer este resultado</strong>
+  <strong>Cómo leer este resultado</strong><p>Parte del informe: estadística univariada y visualización. Describe una pregunta del conjunto seleccionado; las bases y los faltantes se muestran junto a sus cifras.</p>
   <p th:if="${v.answered == 0}">No hay valores para resumir en esta selección. Revisa el origen, las fechas y los estados de respuesta. «Sin datos» no equivale a cero.</p>
   <div th:if="${v.numeric != null}">
-    <p>El gráfico compara mínimo, mediana y máximo en la unidad indicada; no representa una evolución temporal ni un pronóstico.</p>
+    <p>Las columnas y barras del resumen numérico comparan mínimo, mediana y máximo. El histograma muestra frecuencias por intervalo y la caja resume cuartiles y extremos. Las líneas de recepción cuentan envíos por mes; no son un pronóstico.</p>
     <details><summary>¿Qué significa cada medida?</summary><dl>
       <dt>Media</dt><dd>Promedio de los valores observados. Los valores extremos pueden moverlo.</dd>
       <dt>Mediana</dt><dd>Valor central al ordenar los datos; con una cantidad par se promedian los dos centrales.</dd>
@@ -19,7 +19,7 @@
   <details><summary>Bases y estados, sin confusiones</summary><p>«Con valor» identifica respuestas registradas; «Sin respuesta», preguntas aplicables sin valor; «No aplica», preguntas fuera de la condición correspondiente. La base aplicable reúne con valor y sin respuesta. «No sabe» y «No puede valorar», cuando existen, son categorías propias.</p><p>La unidad es un envío: no se garantiza que cada envío corresponda a una persona o empresa independiente. Estas cifras describen la selección; no prueban causalidad ni representan automáticamente a toda la población.</p></details>
 </aside>
 <aside th:fragment="cross(t)" class="stat-help" aria-label="Cómo interpretar este cruce">
-  <strong>¿Qué muestra este cruce?</strong>
+  <strong>¿Qué muestra este cruce?</strong><p>Parte del informe: estadística bivariada y visualización de frecuencias conjuntas. Chi-cuadrado corresponde al contraste de asociación, solo cuando su diagnóstico permite ejecutarlo; un cruce descriptivo no demuestra causalidad.</p>
   <p>Cada celda cuenta envíos con ambas respuestas. El mapa de calor representa esos conteos: más intensidad significa más envíos, no mayor asociación estadística. Consulta la tabla para conocer los valores exactos.</p>
   <details><summary>Cómo comparar porcentajes y frecuencias esperadas</summary><p>El porcentaje de fila divide entre el total de esa fila; sirve para comparar la distribución de columnas entre filas. El de columna usa el total de esa columna. El del total usa todos los pares con valor. Una base vacía se muestra como «Sin base».</p><p>La frecuencia esperada es el conteo de referencia bajo independencia, calculado a partir de los totales de fila y columna. Es un diagnóstico de la prueba, no una respuesta observada ni una predicción.</p></details>
   <strong>¿Se puede ejecutar chi-cuadrado?</strong>

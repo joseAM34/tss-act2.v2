@@ -105,7 +105,7 @@ public class ReportController {
         var context=webContext(request,response,Map.of("content",content,"report",Map.of("created_at","Vista previa","actor",actor.getName())));
         var all=new ReportCustomization.Configuration(configuration.analysisId(),configuration.title(),configuration.introduction(),configuration.context(),configuration.tables(),configuration.charts(),configuration.comment(),
                 configuration.questions().stream().map(q->ReportCustomization.catalogQuestion(q,configuration)).toList(),focusCross.isBlank()||!ReportCustomization.activeCross(focusCross,configuration)?configuration.crossIds():List.of(focusCross),configuration.crossSettings(),configuration.advanced()==null?null:configuration.advanced().stream().map(a->new ReportCustomization.Advanced(a.type(),a.questions(),a.title(),a.comment(),true)).toList());
-        var catalog=reports.preview(all,actor.getName());
+        var catalog=CanonicalJson.hash(all).equals(CanonicalJson.hash(configuration))?content:reports.preview(all,actor.getName());
         var catalogContext=webContext(request,response,Map.of("content",catalog,"report",Map.of("created_at","Vista previa","actor",actor.getName())));
         return Map.of("content",content,"hash",CanonicalJson.hash(content),"html",templates.process("fragments/report-document",Set.of("documentContent"),context),
                 "catalog",catalog,"catalogHtml",templates.process("fragments/report-document",Set.of("documentContent"),catalogContext));
