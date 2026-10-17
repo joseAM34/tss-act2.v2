@@ -9,3 +9,5 @@
 #custom-form .custom-scroll{height:calc(100dvh - 40px);max-height:none;min-height:480px}
 #custom-form .custom-columns{gap:14px}
 @media(max-width:760px){#custom-form .custom-scroll{height:85dvh;min-height:360px}}
+
+#custom-crosses .custom-choice>[data-cross]{flex:1;min-width:0}#custom-crosses .remove-report-cross{flex-shrink:0;font-size:.7rem;padding:5px 7px;color:#8c3d29;border:1px solid #decac2;border-radius:4px}#custom-crosses .restore-report-cross{font-size:.75rem;padding:6px;border:0;background:transparent;text-decoration:underline}.numeric-summary{max-width:520px}.numeric-summary tbody th{font-weight:500}

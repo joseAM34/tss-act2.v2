@@ -63,7 +63,9 @@
     const container=$('advanced-list');container.replaceChildren();
     config.advanced.forEach((item,index)=>{
       const row=node('div');row.className='custom-choice';const label=node('label'),check=node('input');check.type='checkbox';check.checked=item.included;check.setAttribute('aria-label','Incluir '+item.title);check.addEventListener('change',()=>{item.included=check.checked;invalidate();});label.append(check,node('span','Incluir'));
-      const button=node('button',item.title);button.type='button';button.dataset.advanced=String(index);button.setAttribute('aria-pressed',String(index===advancedIndex));button.addEventListener('click',()=>{advancedIndex=advancedIndex===index?null:index;renderAdvancedList();render();});row.append(label,button);container.append(row);
+      const button=node('button',item.title);button.type='button';button.dataset.advanced=String(index);button.setAttribute('aria-pressed',String(index===advancedIndex));button.addEventListener('click',()=>{advancedIndex=advancedIndex===index?null:index;renderAdvancedList();render();});row.append(label,button);
+      if(isCross){const remove=node('button','Quitar');remove.type='button';remove.className='remove-report-cross';remove.setAttribute('aria-label','Quitar del reporte '+(config.crossSettings.find(c=>c.id===id)?.title||crossName(item)));remove.addEventListener('click',()=>{hiddenCrosses.add(id);config.crossIds=config.crossIds.filter(value=>value!==id);if(cross===id)cross=null;previewCache.clear();renderCrossList();invalidate();render();});row.append(remove);}
+      container.append(row);
     });if(!config.advanced.length)container.append(node('p','No hay gráficos avanzados añadidos.'));
   }
   function addAdvanced(type,ids,title){
@@ -78,6 +80,7 @@
   $('add-scatter').addEventListener('click',()=>{const x=$('scatter-x').value,y=$('scatter-y').value;if(!x||!y||x===y){$('advanced-status').textContent='Selecciona dos magnitudes distintas.';return;}addAdvanced('scatter',[x,y],advancedOptions.numeric.find(item=>item.id===x).label+' × '+advancedOptions.numeric.find(item=>item.id===y).label);});
   advancedOptions.radar.forEach(item=>{const button=node('button',item.title);button.type='button';button.className='button button-outline';button.addEventListener('click',()=>addAdvanced('radar',item.questions,item.title));$('radar-options').append(button);});
   if(!advancedOptions.radar.length)$('radar-options').append(node('p','No hay paneles compatibles de cinco criterios de empleadores con su escala original en este conjunto.'));
+  const hiddenCrosses=new Set();
   const list=(container,items,isCross)=>{
     items.forEach(item=>{
     const id=item.id,row=node('div');row.className='custom-choice';
@@ -85,10 +88,17 @@
       check.name=isCross?'crossIds':'questions';check.value=id;check.checked=isCross?config.crossIds.includes(id):item.included;
       check.addEventListener('change',()=>{if(isCross){config.crossIds=config.crossIds.filter(value=>value!==id);if(check.checked){crossSetting(id);config.crossIds.push(id);}}else item.included=check.checked;invalidate();});label.append(check,node('span','Incluir'));
       const button=node('button',isCross?item.result.row_label+' × '+item.result.column_label:item.title);button.type='button';button.dataset[isCross?'cross':'question']=id;button.setAttribute('aria-pressed','false');
-      button.addEventListener('click',()=>{previewCache.clear();if(isCross){cross=cross===id?null:id;if(cross&&!hasCrossPreview(cross))refresh();}else question=question===id?null:id;render();});row.append(label,button);container.append(row);
+      button.addEventListener('click',()=>{previewCache.clear();if(isCross){cross=cross===id?null:id;if(cross&&!hasCrossPreview(cross))refresh();}else question=question===id?null:id;render();});row.append(label,button);
+      if(isCross){const remove=node('button','Quitar');remove.type='button';remove.className='remove-report-cross';remove.setAttribute('aria-label','Quitar del reporte '+(config.crossSettings.find(c=>c.id===id)?.title||crossName(item)));remove.addEventListener('click',()=>{hiddenCrosses.add(id);config.crossIds=config.crossIds.filter(value=>value!==id);if(cross===id)cross=null;previewCache.clear();renderCrossList();invalidate();render();});row.append(remove);}
+      container.append(row);
     });
   };
-  const renderCrossList=()=>{$('custom-crosses').replaceChildren();list($('custom-crosses'),bootstrap.crosses,true);if(!bootstrap.crosses.length)$('custom-crosses').append(node('p','No hay cruces guardados de este conjunto.'));};
+  const renderCrossList=()=>{
+    const container=$('custom-crosses');container.replaceChildren();
+    const visible=bootstrap.crosses.filter(item=>!hiddenCrosses.has(item.id));list(container,visible,true);
+    if(!visible.length)container.append(node('p','No hay comparaciones visibles. Puedes crear una o volver a mostrar las quitadas.'));
+    if(hiddenCrosses.size){const restore=node('button','Volver a mostrar comparaciones quitadas ('+hiddenCrosses.size+')');restore.type='button';restore.className='restore-report-cross';restore.addEventListener('click',()=>{hiddenCrosses.clear();renderCrossList();render();});container.append(restore);}
+  };
   list($('custom-questions'),questions(),false);renderCrossList();
   function invalidate(){expectedHash='';$('custom-generate').disabled=true;sequence++;controller?.abort();status('Actualizando vista previa…');clearTimeout(timer);timer=setTimeout(refresh,250);}
   async function post(url,body,signal){
@@ -179,7 +189,7 @@
       if(!bootstrap.crosses.some(item=>item.id===saved.id))bootstrap.crosses.unshift(saved);
       if(!config.crossIds.includes(saved.id))config.crossIds.push(saved.id);
       config.crossSettings=config.crossSettings.filter(item=>item.id!==saved.id);config.crossSettings.push({id:saved.id,title:title||crossName(saved).slice(0,200),comment,representations});
-      cross=saved.id;renderCrossList();invalidate();location.hash='cruces';
+      hiddenCrosses.delete(saved.id);cross=saved.id;renderCrossList();invalidate();location.hash='cruces';
     }catch(error){pairHash='';$('new-cross-status').textContent=error.message+' Vuelve a seleccionar las preguntas para revisar la vista previa.';}
     finally{pairSaving=false;renderCandidates();}
   });
@@ -210,7 +220,7 @@
     try{
       const data=await post('/admin/reportes/personalizar/plantillas/aplicar',{templateId:$('presentation-template').value,analysisId:config.analysisId});
       for(const item of data.crosses)if(!bootstrap.crosses.some(c=>c.id===item.id))bootstrap.crosses.push(item);
-      Object.assign(config,data.configuration);
+      Object.assign(config,data.configuration);hiddenCrosses.clear();
       config.crossSettings=config.crossSettings||[];config.advanced=config.advanced||[];
       config.questions.forEach(q=>q.representations=q.representations||['table','columns']);
       config.crossSettings.forEach(c=>c.representations=c.representations||['table','heat']);
