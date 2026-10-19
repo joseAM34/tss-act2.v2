@@ -67,6 +67,20 @@ class HealthEndpointIntegrationTest {
     }
 
     @Test
+    void faviconIsPublicAndIndependentOfDatabaseAvailability() throws Exception {
+        doThrow(new DataAccessResourceFailureException("Database unavailable"))
+                .when(jdbc).queryForObject("SELECT 1", Integer.class);
+        mvc.perform(get("/favicon.ico")).andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("/favicon.svg"));
+        var result = mvc.perform(get("/favicon.svg")).andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith("image/svg+xml"))
+                .andExpect(header().doesNotExist(HttpHeaders.SET_COOKIE)).andReturn();
+        assertThat(result.getRequest().getSession(false)).isNull();
+        mvc.perform(get("/admin")).andExpect(redirectedUrl("/login"));
+        mvc.perform(post("/favicon.ico").with(csrf())).andExpect(redirectedUrl("/login"));
+    }
+
+    @Test
     @WithMockUser(roles = "ADMIN")
     void healthPostRemainsForbiddenWithOrWithoutCsrf() throws Exception {
         mvc.perform(post("/healthz")).andExpect(status().isForbidden());

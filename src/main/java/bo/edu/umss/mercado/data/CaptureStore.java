@@ -83,6 +83,22 @@ public class CaptureStore {
                 .stream().map(this::input).toList();
     }
 
+    /** Request-local batching; retain the same per-capture checks and never cache across requests. */
+    @org.springframework.transaction.annotation.Transactional(readOnly=true)
+    public List<Input> inputs(java.util.Collection<String> responseIds) {
+        var ids=new ArrayList<>(new java.util.LinkedHashSet<>(responseIds));
+        if(ids.isEmpty())return List.of();
+        var previous=readScope.get();var scope=new ReadScope();
+        for(int start=0;start<ids.size();start+=200){
+            var batch=ids.subList(start,Math.min(start+200,ids.size()));String placeholders=String.join(",",java.util.Collections.nCopies(batch.size(),"?"));
+            jdbc.query("SELECT * FROM survey_response WHERE id IN ("+placeholders+")",(rs,n)->{var row=new org.springframework.jdbc.core.ColumnMapRowMapper().mapRow(rs,n);row.put("submitted_at",rs.getObject("submitted_at",OffsetDateTime.class));return row;},batch.toArray()).forEach(row->scope.responses.put((String)row.get("id"),List.of(row)));
+            jdbc.queryForList("SELECT * FROM response_capture WHERE response_id IN ("+placeholders+")",batch.toArray()).forEach(row->scope.captures.put((String)row.get("response_id"),List.of(row)));
+        }
+        readScope.set(scope);
+        try{return bo.edu.umss.mercado.importing.CsvImportEvidence.inResponseSnapshot(jdbc,ids,()->ids.stream().map(this::input).toList());}
+        finally{if(previous==null)readScope.remove();else readScope.set(previous);}
+    }
+
     /** Verifica en lote las mismas capturas y recibos, dentro del snapshot repetible del consumidor. */
     public List<VerifiedInput> verifiedVersionInputs(String versionId,OffsetDateTime cutoff,java.time.LocalDate from,java.time.LocalDate until){
         var previous=readScope.get();var scope=new ReadScope();var args=new ArrayList<Object>(List.of(versionId,cutoff));String condition="r.publication_version_id=? AND r.submitted_at<=?";

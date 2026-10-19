@@ -15,6 +15,14 @@ public final class CsvImportEvidence {
         ReadScope(JdbcTemplate jdbc){this.jdbc=jdbc;}
     }
     private record Parsed(List<List<String>> table,String sheetName) {}
+    /** Exact frozen members, including cuts that contain several survey versions. */
+    public static <T> T inResponseSnapshot(JdbcTemplate jdbc,Collection<String> responseIds,java.util.function.Supplier<T> action){
+        if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("La lectura agrupada requiere una transacción.");
+        var previous=READ_SCOPE.get();var scope=new ReadScope(jdbc);var ids=new ArrayList<>(new LinkedHashSet<>(responseIds));
+        for(int start=0;start<ids.size();start+=200){var batch=ids.subList(start,Math.min(start+200,ids.size()));String placeholders=String.join(",",Collections.nCopies(batch.size(),"?"));
+            jdbc.queryForList("SELECT r.*,b.version_id,b.source_hash,b.platform,b.delimiter,b.source_sheet,m.mapping_json,m.mapping_hash"+JOIN+" WHERE r.response_id IN ("+placeholders+")",batch.toArray()).forEach(row->scope.rows.put((String)row.get("response_id"),row));}
+        READ_SCOPE.set(scope);try{return action.get();}finally{if(previous==null)READ_SCOPE.remove();else READ_SCOPE.set(previous);}
+    }
     /** Cache limitado a una lectura transaccional; nunca sobrevive a la carga o a una actualización. */
     public static <T> T inVersionSnapshot(JdbcTemplate jdbc,String versionId,java.util.function.Supplier<T> action){
         if(!org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive())throw new IllegalStateException("La lectura agrupada requiere una transacción.");

@@ -21,7 +21,7 @@ public class SecurityConfig {
         return http.authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.GET, "/", "/login", "/configuracion-inicial", "/gracias", "/encuestas/**",
-                                "/css/**", "/js/**", "/vendor/**", "/favicon.svg", "/healthz").permitAll()
+                                "/css/**", "/js/**", "/vendor/**", "/favicon.svg", "/favicon.ico", "/healthz").permitAll()
                         .requestMatchers(HttpMethod.POST, "/encuestas/**", "/configuracion-inicial").permitAll()
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                         .anyRequest().denyAll())

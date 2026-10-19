@@ -35,7 +35,21 @@ public class TextDictionaryService {
         rules=TextMentions.canonicalize(rules);jdbc.update("INSERT INTO scoped_text_dictionary_revision(context_key,revision,survey_id,question_key,definition_hash,dictionary_scope,rules_text,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",context(logical,key),current+1,logical.get("survey_id"),key,CanonicalJson.hash(q),mode,rules,CanonicalJson.hash(rules),actor,OffsetDateTime.now());return editor(logical,key,mode);
     }
     @SuppressWarnings("unchecked")
-    public Map<String,Map<String,Object>> selections(Map<String,Object> logical){var selected=new LinkedHashMap<String,Map<String,Object>>();for(var q:(List<Map<String,Object>>)logical.get("dictionary")){if(!Set.of("text","textarea","email","tel").contains(q.getOrDefault("original_type","")))continue;String key=(String)q.get("question_id");var view=editor(logical,key,"");String rules=(String)view.get("rules");if("GLOBAL".equals(view.get("dictionaryScope")))rules=globalRules(rules);selected.put(key,Map.of("scope",view.get("dictionaryScope"),"revision",view.get("revision"),"rules",rules,"hash",CanonicalJson.hash(rules)));}return selected;}
+    public Map<String,Map<String,Object>> selections(Map<String,Object> logical){
+        var contexts=new LinkedHashMap<String,String>();for(var q:(List<Map<String,Object>>)logical.get("dictionary"))if(Set.of("text","textarea","email","tel").contains(q.getOrDefault("original_type",""))){String key=(String)q.get("question_id");contexts.put(key,context(logical,key));}
+        var histories=new HashMap<String,List<Map<String,Object>>>();var keys=new ArrayList<>(new LinkedHashSet<>(contexts.values()));
+        for(int start=0;start<keys.size();start+=200){var batch=keys.subList(start,Math.min(start+200,keys.size()));String placeholders=String.join(",",Collections.nCopies(batch.size(),"?"));
+            for(var row:jdbc.queryForList("SELECT * FROM scoped_text_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))histories.computeIfAbsent((String)row.get("context_key"),k->new ArrayList<>()).add(row);}
+        Saved global=null;String appliedGlobal=null;var selected=new LinkedHashMap<String,Map<String,Object>>();
+        for(var entry:contexts.entrySet()){
+            var rows=histories.getOrDefault(entry.getValue(),List.of());String mode=rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope");checkScope(mode);
+            Saved saved;String rules;
+            if("PRIVATE".equals(mode)){saved=privateSaved(rows);rules=saved.rules();}
+            else{if(global==null){global=global();appliedGlobal=globalRules(global.rules());}saved=global;rules=appliedGlobal;}
+            selected.put(entry.getKey(),Map.of("scope",mode,"revision",saved.revision(),"rules",rules,"hash",CanonicalJson.hash(rules)));
+        }
+        return selected;
+    }
     public static String globalRules(String rules){return TextMentions.parse(rules).stream().map(t->{var aliases=t.aliases().stream().filter(a->!TextMentions.normalize(a).matches("[0-9 ]+")).toList();return aliases.isEmpty()?"":t.label()+"="+String.join("|",aliases);}).filter(s->!s.isBlank()).collect(java.util.stream.Collectors.joining("\n"));}
     public Map<String,Object> scopedImport(Map<String,Object> logical,String key,String scope,String editor,String incoming){var view=editor(logical,key,scope);var result=new LinkedHashMap<>(importPreview(new Saved(((Number)view.get("revision")).intValue(),(String)view.get("rules")),editor,incoming));result.put("contextRevision",view.get("contextRevision"));result.put("dictionaryScope",scope);return result;}
     public Saved global(){var rows=jdbc.queryForList("SELECT revision,rules_text,rules_hash FROM universal_dictionary_revision ORDER BY revision DESC LIMIT 1");if(rows.isEmpty()){

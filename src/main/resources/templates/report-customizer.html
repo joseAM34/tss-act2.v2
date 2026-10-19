@@ -10,6 +10,7 @@
 <p th:text="${analysis.result.title + ' · ' + analysis.result.instrument_version + ' · ' + analysis.result.origin + ' · ' + analysis.result.submission_count + ' envíos'}"></p>
 <p th:text="${'Corte congelado: ' + sourceCutoff + ' · Recepción: ' + (analysis.result.from_date == null ? 'sin inicio' : analysis.result.from_date) + ' a ' + (analysis.result.until_date == null ? 'sin final' : analysis.result.until_date) + ' · America/La_Paz'}"></p>
 <p id="custom-status" role="status">Preparando vista previa…</p><div th:if="${error != null}" class="alert alert-error" th:text="${error}"></div>
+<button type="button" id="custom-retry" class="button button-outline" hidden>Volver a intentar la vista previa</button>
 <textarea id="custom-bootstrap" hidden th:text="${customBootstrap}" aria-label="Configuración inicial"></textarea>
 <form id="custom-form" th:action="@{/admin/reportes/personalizar/generar}" method="post" class="data-form">
 <section data-custom-screen="reporte"><div class="custom-columns"><section class="review-card"><h2 th:text="${templateEditState != null and templateEditState.editing ? 'Presentación de la plantilla' : 'Datos del reporte'}"></h2>

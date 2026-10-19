@@ -1,5 +1,9 @@
 # Decisiones del proyecto
 
+## 2026-10-19 — Lecturas agrupadas para la vista previa de reportes
+
+Ante el aviso de tiempo de espera se agrupan las lecturas de capturas, procedencia y diccionarios, manteniendo miembros y huellas del corte y las verificaciones de integridad. Los ámbitos de lectura no sobreviven a la operación. Se añade reintento explícito sobre la misma configuración. Mediciones locales, pruebas y límites: [RENDIMIENTO_REPORTES.md](RENDIMIENTO_REPORTES.md).
+
 ## 2026-10-19 — Word editable para reportes
 
 El usuario autorizó exportar reportes a DOCX con textos y tablas editables y gráficos nativos con datos incorporados. La descarga usa el reporte verificado y congelado, conserva selección de contenido, advertencias sensibles y acceso ADMIN. Los mapas de calor se entregan como tablas coloreadas y las cajas como tablas de cinco valores, con aclaración explícita; no se convierten gráficos en capturas de pantalla. La paginación puede variar respecto al PDF. Véase [EXPORTACION_WORD.md](EXPORTACION_WORD.md).
