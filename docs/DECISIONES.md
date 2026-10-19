@@ -1,5 +1,9 @@
 # Decisiones del proyecto
 
+## 2026-10-19 — Word editable para reportes
+
+El usuario autorizó exportar reportes a DOCX con textos y tablas editables y gráficos nativos con datos incorporados. La descarga usa el reporte verificado y congelado, conserva selección de contenido, advertencias sensibles y acceso ADMIN. Los mapas de calor se entregan como tablas coloreadas y las cajas como tablas de cinco valores, con aclaración explícita; no se convierten gráficos en capturas de pantalla. La paginación puede variar respecto al PDF. Véase [EXPORTACION_WORD.md](EXPORTACION_WORD.md).
+
 ## Generador visual de reportes: prototipo
 
 Fecha: 2026-10-17. El usuario autorizó el paso 1 del nuevo [generador con personalización y vista previa](GENERADOR_REPORTES_PROPUESTA.md). Tras la corrección del usuario, la maqueta separa inicio, Personalizar, listado/editor de preguntas, listado/editor de comparaciones y presentación. Cada editor previsualiza solo su contenido. Cada pregunta tiene tabla y gráfico predeterminados; conserva preguntas agrupadas con casillas, compatibilidad indicada con texto/color, comparaciones nombradas y plantilla opcional. Usa fixtures identificadas y no modifica la aplicación ni Neon. La compatibilidad técnica no concede independencia o aprobación institucional. Se conservan las guías útiles y los prototipos en el repositorio; exportaciones, secretos y evidencia temporal siguen excluidos.

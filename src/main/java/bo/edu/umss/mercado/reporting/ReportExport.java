@@ -92,7 +92,7 @@ public final class ReportExport {
             for(var row:rows) {
                 sheet.append("<row r=\"").append(++n).append("\">"); int col=0;
                 for(Object value:row) {
-                    sheet.append("<c r=\"").append((char)('A'+col++)).append(n).append("\"");
+                    sheet.append("<c r=\"").append(column(++col)).append(n).append("\"");
                     if(value instanceof Number) sheet.append("><v>").append(value).append("</v></c>");
                     else sheet.append(" t=\"inlineStr\"><is><t xml:space=\"preserve\">").append(xml(value.toString())).append("</t></is></c>");
                 }
@@ -102,7 +102,12 @@ public final class ReportExport {
         }
         return bytes.toByteArray();
     }
-    private static String xml(String text) {
+    static String column(int index) {
+        var name=new StringBuilder();
+        while(index>0){index--;name.append((char)('A'+index%26));index/=26;}
+        return name.reverse().toString();
+    }
+    static String xml(String text) {
         var safe=new StringBuilder();
         text.codePoints().filter(c->c==9||c==10||c==13||c>=32&&c<=0xD7FF||c>=0xE000&&c<=0xFFFD||c>=0x10000&&c<=0x10FFFF).forEach(safe::appendCodePoint);
         return safe.toString().replace("&","&amp;").replace("<","&lt;").replace(">","&gt;").replace("\"","&quot;");

@@ -168,6 +168,14 @@ public class ReportController {
     void json(@PathVariable String id,HttpServletResponse response) throws IOException {
         var report=reports.get(id); response.setContentType("application/json;charset=UTF-8"); response.setHeader("Cache-Control","no-store"); response.getWriter().write(CanonicalJson.json(report));
     }
+    @GetMapping("/{id}/reporte.docx")
+    void word(@PathVariable String id,HttpServletResponse response) throws IOException {
+        var bytes=bo.edu.umss.mercado.reporting.ReportWordExport.docx(reports.get(id));
+        response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        response.setHeader("Cache-Control","no-store");
+        response.setHeader("Content-Disposition","attachment; filename=\"reporte-"+id.replaceAll("[^A-Za-z0-9-]","_")+".docx\"");
+        response.setContentLength(bytes.length);response.getOutputStream().write(bytes);
+    }
     @GetMapping("/{id}/resultados.{format:csv|xlsx}")
     void download(@PathVariable String id,@PathVariable String format,HttpServletResponse response) throws IOException {
         response.setHeader("Cache-Control","no-store");
