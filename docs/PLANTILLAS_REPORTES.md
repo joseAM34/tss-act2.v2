@@ -1,0 +1,15 @@
+# Plantillas del personalizador de reportes
+
+La biblioteca de Reportes utiliza el mismo personalizador para crear, editar y usar plantillas. El primer paso permite elegir el total actual de una versión publicada/cerrada o un corte guardado. El total captura todos sus envíos al abrir el editor; el corte conserva los miembros y versiones exactos ya guardados. Abrir el total no crea un corte con nombre. Los orígenes y bases permanecen identificados.
+
+Crear o editar una plantilla utiliza la vista previa y los controles de Reportes: preguntas incluidas, títulos, introducción, tablas, representaciones compatibles, respuestas abiertas, coincidencias y comparaciones. El botón Guardar plantilla/Guardar cambios de plantilla guarda únicamente el diseño; no genera un reporte. También se conserva la opción de guardar una nueva plantilla al generar un reporte.
+
+Una plantilla no almacena respuestas, conjuntos, identificadores de análisis/cruces fuente, comentarios del reporte, diccionarios ni autorizaciones sensibles. Guarda la definición compatible del instrumento y las recetas de comparaciones. Al aplicarla se recrean los cruces como exploratorios desde la nueva fuente. Las preguntas adicionales de la fuente quedan excluidas; no se sustituyen preguntas ausentes. Los diccionarios global/privado se resuelven en la fuente elegida y se congelan al generar el reporte. Los campos sensibles deben habilitarse y seleccionarse nuevamente.
+
+La biblioteca ofrece Usar, Editar, Duplicar y editar la copia, y Eliminar con confirmación explícita. Editar mantiene la identidad de la plantilla; duplicar crea una identidad independiente con nombre propio. Guardados, duplicaciones y eliminaciones comprueban la huella del diseño y el nombre para rechazar una pantalla obsoleta. Todas las operaciones requieren ADMIN y las mutaciones verifican CSRF. Los textos administrativos se escapan en las vistas.
+
+Eliminar o editar una plantilla no modifica los reportes existentes: cada reporte conserva su configuración y sus cifras verificadas. V25 registra eventos administrativos con instantáneas de las plantillas. Las plantillas antiguas se abren adaptadas al editor actual y se guardan como nuevas al editarlas. Eliminarlas de la biblioteca conserva internamente sus revisiones, necesarias para verificar reportes históricos. Las rutas antiguas de creación/edición visibles llevan al selector y al personalizador actuales; la generación histórica se conserva para compatibilidad.
+
+Si un corte no tiene menciones, la plantilla de coincidencias puede abrirse y muestra Sin coincidencias, con su base real, sin inventar observaciones ni sectores. Las fuentes requieren un instrumento compatible; una fuente incompatible vuelve al selector con explicación.
+
+Verificación: integración del total y corte con cantidades diferentes, corte vacío, guardado sin reporte, edición concurrente, copia independiente, eliminación que conserva reportes, adaptación de plantillas anteriores, autenticación y CSRF. Navegador con HTML real de Thymeleaf y respuestas de prueba del backend, en anchos 360/768/1280.

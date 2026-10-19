@@ -2,6 +2,15 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const options=require('../../main/resources/static/js/report-charts.js');
 const categorical={numeric:null,distribution:[{label:'Sí',count:7},{label:'No sabe',count:0},{label:'No',count:3}]};
+test('una plantilla sin menciones en su nueva fuente muestra ausencia sin fabricar sectores',()=>{
+  const v={text_counts:{distribution:[{label:'ia',count:0}]}};
+  for(const style of ['text-bars','text-pie','text-donut']){const chart=options.variable(v,style);assert.deepEqual(chart.series,[]);assert.match(chart.title.text,/Sin coincidencias/);}
+});
+test('coincidencias de reportes usan sus menciones congeladas en barras, circular y anillo',()=>{
+  const v={distribution:[{label:'Con respuesta',count:53}],text_counts:{distribution:[{label:'inteligencia artificial',count:35},{label:'sin menciones',count:0},{label:'ciberseguridad',count:14}]}};
+  assert.deepEqual(options.variable(v,'text-bars').series[0].data,[35,14]);
+  for(const style of ['text-pie','text-donut'])assert.deepEqual(options.variable(v,style).series[0].data,[{name:'inteligencia artificial',value:35},{name:'ciberseguridad',value:14}]);
+});
 test('columnas y barras conservan categorías, ceros y conteos en su orientación',()=>{
   const columns=options.variable(categorical,'columns'),bars=options.variable(categorical,'bars');
   assert.deepEqual(columns.xAxis.data,['Sí','No sabe','No']);assert.deepEqual(bars.yAxis.data,columns.xAxis.data);

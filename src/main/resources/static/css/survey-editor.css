@@ -16,3 +16,10 @@
 .general-chart { height: 320px; min-width: 0; }
 .report-prose { white-space: pre-wrap; overflow-wrap: anywhere; }
 .draft-editor li, .draft-editor .draft-checkbox span { overflow-wrap: anywhere; }
+
+.footer-survey-tools{font-size:.72rem;color:var(--muted);max-width:250px}.footer-survey-tools summary{cursor:pointer}.footer-survey-tools a{display:block;margin-top:8px}.footer-survey-tools a:focus-visible,.footer-survey-tools summary:focus-visible{outline:2px solid var(--teal);outline-offset:3px}
+.import-form select,.import-form textarea{box-sizing:border-box;min-width:0;max-width:100%;width:100%}
+.survey-management h1,.survey-management p{overflow-wrap:anywhere}
+.survey-management .checkbox-label{display:flex;align-items:flex-start;gap:10px;margin-block:18px;font-size:.86rem;cursor:pointer}
+.survey-management .data-form input[type=checkbox]{width:18px;height:18px;flex-shrink:0;margin-top:4px;padding:0;accent-color:var(--teal)}
+.survey-management button:disabled{opacity:.5;cursor:wait}

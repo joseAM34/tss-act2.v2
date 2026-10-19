@@ -28,14 +28,20 @@ public class SurveyPublicationService {
     public record Summary(String id, String title, String code, String status) {}
 
     public List<Summary> recent() {
-        return jdbc.query("SELECT id, title, version_code, status FROM survey_version WHERE status IN ('PUBLICADA', 'CERRADA') ORDER BY published_at DESC, id",
+        return jdbc.query("SELECT v.id, v.title, v.version_code, v.status FROM survey_version v JOIN survey s ON s.id = v.survey_id WHERE s.archived = FALSE AND v.status IN ('PUBLICADA', 'CERRADA') ORDER BY v.published_at DESC, v.id",
                 (rs, n) -> new Summary(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)));
+    }
+
+    public List<Summary> publishedForSurvey(String surveyId) {
+        return jdbc.query("SELECT v.id, v.title, v.version_code, v.status FROM survey_version v JOIN survey s ON s.id = v.survey_id WHERE v.survey_id = ? AND s.archived = FALSE AND v.status = 'PUBLICADA' ORDER BY v.published_at DESC, v.id",
+                (rs, n) -> new Summary(rs.getString(1), rs.getString(2), rs.getString(3), rs.getString(4)), surveyId);
     }
 
     @Transactional
     public String publish(String id, long revision, String actor) {
         var initial = drafts.get(id);
         var survey = jdbc.queryForMap("SELECT * FROM survey WHERE id = ? FOR UPDATE", initial.surveyId());
+        if (Boolean.TRUE.equals(survey.get("archived"))) throw archived();
         var d = drafts.get(id);
         if (d.revision() != revision || !id.equals(survey.get("draft_version_id"))) throw conflict();
         drafts.validateForPublication(d, actor);
@@ -114,6 +120,7 @@ public class SurveyPublicationService {
     @Transactional
     public void activate(String id, long revision, String actor) {
         Version target = lockForCapture(id);
+        if (Boolean.TRUE.equals(jdbc.queryForObject("SELECT archived FROM survey WHERE id = ?", Boolean.class, target.surveyId()))) throw archived();
         if (!"PUBLICADA".equals(target.status()) || target.revision() != revision) throw conflict();
         if (target.active()) return;
         String previous = jdbc.queryForObject("SELECT active_version_id FROM survey WHERE id = ?", String.class, target.surveyId());
@@ -129,7 +136,7 @@ public class SurveyPublicationService {
 
     @Transactional(readOnly = true)
     public Version activeVersion(String slug) {
-        var ids = jdbc.queryForList("SELECT active_version_id FROM survey WHERE slug = ? AND active_version_id IS NOT NULL", String.class, slug);
+        var ids = jdbc.queryForList("SELECT active_version_id FROM survey WHERE slug = ? AND archived = FALSE AND active_version_id IS NOT NULL", String.class, slug);
         if (ids.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Esta encuesta no tiene una versión activa.");
         Version version = get(ids.getFirst());
         if (!"PUBLICADA".equals(version.status())) throw conflict();
@@ -138,14 +145,15 @@ public class SurveyPublicationService {
 
     @Transactional(readOnly = true)
     public List<SurveyDefinition> activeDefinitions() {
-        return jdbc.queryForList("SELECT active_version_id FROM survey WHERE active_version_id IS NOT NULL ORDER BY created_at, id", String.class)
+        return jdbc.queryForList("SELECT active_version_id FROM survey WHERE archived = FALSE AND active_version_id IS NOT NULL ORDER BY created_at, id", String.class)
                 .stream().map(this::get).filter(v -> "PUBLICADA".equals(v.status())).map(v -> v.content().definition()).toList();
     }
 
     @Transactional
     public String successor(String id, String actor) {
         Version version = get(id);
-        var survey = jdbc.queryForMap("SELECT draft_version_id FROM survey WHERE id = ? FOR UPDATE", version.surveyId());
+        var survey = jdbc.queryForMap("SELECT * FROM survey WHERE id = ? FOR UPDATE", version.surveyId());
+        if (Boolean.TRUE.equals(survey.get("archived"))) throw archived();
         if (survey.get("draft_version_id") != null) return (String) survey.get("draft_version_id");
         return drafts.insertSuccessor(version.content(), actor, id);
     }
@@ -156,5 +164,6 @@ public class SurveyPublicationService {
                 operation, actor, OffsetDateTime.now(ZoneOffset.UTC), json, hash);
     }
     private static ResponseStatusException conflict() { return new ResponseStatusException(HttpStatus.CONFLICT, "La versión cambió o ya no admite esta operación. Recarga para ver su estado actual."); }
+    private static ResponseStatusException archived() { return new ResponseStatusException(HttpStatus.CONFLICT, "Restaura esta encuesta antes de publicar o activar versiones."); }
     private static ResponseStatusException corrupt() { return new ResponseStatusException(HttpStatus.CONFLICT, "No se pudo verificar la integridad de esta publicación."); }
 }

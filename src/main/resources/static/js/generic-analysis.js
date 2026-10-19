@@ -15,7 +15,7 @@
       chart.setOption({tooltip: {trigger: 'axis', renderMode: 'richText'}, grid: {containLabel: true, left: 15, right: 15, bottom: 80},
         xAxis: {type: 'category', data: labels, axisLabel: {rotate: 30, width: 100, overflow: 'truncate'}},
         yAxis: {type: 'value', name: variable.numeric ? variable.unit : 'Envíos'},
-        series: [{type: 'bar', data: values}], aria: {enabled: true}});
+        series: [{type: 'bar', colorBy: variable.numeric ? 'series' : 'data', data: values}], aria: {enabled: true}});
       charts.push(chart);
     });
     window.addEventListener('resize', () => charts.forEach(chart => chart.resize()));

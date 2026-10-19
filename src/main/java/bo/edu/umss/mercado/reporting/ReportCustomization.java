@@ -5,7 +5,8 @@ import java.util.*;
 /** Presentation choices only. All figures come from the verified frozen analysis. */
 public final class ReportCustomization {
     private ReportCustomization() {}
-    public record Question(String id, boolean included, String title, String comment,List<String> representations) {
+    public record Question(String id, boolean included, String title, String comment,List<String> representations,boolean sensitiveAcknowledged) {
+        public Question(String id,boolean included,String title,String comment,List<String> representations){this(id,included,title,comment,representations,false);}
         public Question(String id,boolean included,String title,String comment){this(id,included,title,comment,null);}
         public Question { representations=representations==null?null:List.copyOf(representations); }
     }
@@ -46,9 +47,12 @@ public final class ReportCustomization {
         if(!expected.equals(c.questions().stream().map(Question::id).toList()))throw new IllegalArgumentException("Las preguntas no corresponden al análisis o están repetidas.");
         for(int i=0;i<c.questions().size();i++){
             var q=c.questions().get(i);text(q.title(),2000,true);text(q.comment(),1000,false);
+            if(Boolean.TRUE.equals(variables.get(i).get("sensitive_text"))&&!q.sensitiveAcknowledged()&&q.representations()!=null&&q.representations().stream().anyMatch(r->r.startsWith("text-")))throw new IllegalArgumentException("Confirma la advertencia de datos sensibles para esta pregunta antes de incluir sus textos o coincidencias.");
             if(q.representations()!=null){
                 var allowed=new HashSet<>(List.of("table","columns","bars"));
-                if(Set.of("radio","select").contains(variables.get(i).get("type"))&&variables.get(i).get("numeric")==null)allowed.addAll(List.of("pie","donut"));
+                if(variables.get(i).get("text_counts") instanceof Map<?,?>)allowed.add("text-content");
+                if(variables.get(i).get("text_counts") instanceof Map<?,?>)allowed.addAll(List.of("text-table","text-bars","text-pie","text-donut"));
+                if(Set.of("radio","select","coverage").contains(variables.get(i).get("type"))&&variables.get(i).get("numeric")==null)allowed.addAll(List.of("pie","donut"));
                 if(variables.get(i).get("advanced") instanceof Map<?,?> options){if(options.containsKey("histogram"))allowed.add("histogram");if(options.containsKey("box"))allowed.add("box");if(options.containsKey("time"))allowed.addAll(List.of("line","area"));}
                 representations(q.representations(),allowed);
                 if(q.included()&&!active(q.representations(),c))throw new IllegalArgumentException("Activa una representación para cada pregunta incluida.");
@@ -83,9 +87,11 @@ public final class ReportCustomization {
             var q=c.questions().get(i);if(!q.included())continue;
             var v=new LinkedHashMap<>(original.get(i));v.put("label",q.title());v.put("original_label",original.get(i).get("label"));
             v.put("report_comment",q.comment());v.put("report_tables",c.tables());variables.add(v);
-            if(q.representations()!=null){v.put("report_tables",q.representations().contains("table")&&c.tables());v.put("report_graphs",c.charts()?q.representations().stream().filter(r->!r.equals("table")).toList():List.of());}
+            if(q.representations()!=null){v.put("report_tables",q.representations().contains("table")&&c.tables());v.put("report_text_table",q.representations().contains("text-table")&&c.tables());v.put("report_text_content",q.representations().contains("text-content")&&c.tables());v.put("report_graphs",c.charts()?q.representations().stream().filter(r->!Set.of("table","text-table","text-content").contains(r)).toList():List.of());}
         }
-        result.put("variables",variables);return result;
+        result.put("variables",variables);
+        if(result.get("strata") instanceof List<?> strata)result.put("strata",strata.stream().map(s->display(c,Map.of("result",s))).toList());
+        return result;
     }
     private static String defaultTitle(Object title) { String value="Reporte: "+title;return value.substring(0,Math.min(200,value.length())); }
     public static List<Map<String,Object>> displayCrosses(Configuration config,List<Map<String,Object>> originals) {
@@ -99,13 +105,15 @@ public final class ReportCustomization {
     }
     public static boolean multiple(Configuration c){return c.questions()!=null&&c.questions().stream().anyMatch(q->q.representations()!=null)||c.crossSettings()!=null&&c.crossSettings().stream().anyMatch(q->q.representations()!=null);}
     public static boolean advanced(Configuration c){return c.questions()!=null&&c.questions().stream().anyMatch(q->q.representations()!=null&&q.representations().stream().anyMatch(r->Set.of("histogram","box","line","area").contains(r)))||c.advanced()!=null&&!c.advanced().isEmpty();}
-    public static String label(String value){return switch(value){case "columns"->"Columnas verticales";case "bars"->"Barras horizontales";case "pie"->"Circular";case "donut"->"Anillo";case "heat"->"Mapa de calor";case "grouped"->"Barras agrupadas";case "stacked"->"Barras apiladas";case "histogram"->"Histograma";case "box"->"Caja: mínimo, Q1, mediana, Q3, máximo";case "line"->"Línea: envíos con valor por mes de recepción";case "area"->"Área: envíos con valor por mes de recepción";default->"Tabla";};}
-    public static Question catalogQuestion(Question q,Configuration c){return new Question(q.id(),(c.tables()||c.charts())&&(q.representations()==null||active(q.representations(),c)),q.title(),q.comment(),q.representations());}
+    public static String label(String value){return switch(value){case "text-bars"->"Barras de coincidencias";case "text-pie"->"Circular de coincidencias";case "text-donut"->"Anillo de coincidencias";case "columns"->"Columnas verticales";case "bars"->"Barras horizontales";case "pie"->"Circular";case "donut"->"Anillo";case "heat"->"Mapa de calor";case "grouped"->"Barras agrupadas";case "stacked"->"Barras apiladas";case "histogram"->"Histograma";case "box"->"Caja: mínimo, Q1, mediana, Q3, máximo";case "line"->"Línea: envíos con valor por mes de recepción";case "area"->"Área: envíos con valor por mes de recepción";default->"Tabla";};}
+    public static Question catalogQuestion(Question q,Configuration c){return new Question(q.id(),(c.tables()||c.charts())&&(q.representations()==null||active(q.representations(),c)),q.title(),q.comment(),q.representations(),q.sensitiveAcknowledged());}
     public static boolean activeCross(String id,Configuration c){
         if(c.crossSettings()==null)return true;
         return c.crossSettings().stream().filter(s->s.id().equals(id)).findFirst().map(s->s.representations()==null||active(s.representations(),c)).orElse(true);
     }
-    private static boolean active(List<String> representations,Configuration c){return representations.stream().anyMatch(r->r.equals("table")?c.tables():c.charts());}
+    public static Set<String> originalQuestions(Configuration c){return c.tables()?c.questions().stream().filter(q->q.included()&&q.representations()!=null&&q.representations().contains("text-content")).map(Question::id).collect(java.util.stream.Collectors.toSet()):Set.of();}
+    public static Set<String> sensitiveQuestions(Configuration c){return c.questions().stream().filter(Question::sensitiveAcknowledged).map(Question::id).collect(java.util.stream.Collectors.toSet());}
+    private static boolean active(List<String> representations,Configuration c){return representations.stream().anyMatch(r->Set.of("table","text-table","text-content").contains(r)?c.tables():c.charts());}
     private static void representations(List<String> values,Set<String> allowed){
         if(values.size()>allowed.size()||new HashSet<>(values).size()!=values.size()||!allowed.containsAll(values))throw new IllegalArgumentException("Representación no compatible o repetida. Revisa el tipo de pregunta o comparación.");
     }

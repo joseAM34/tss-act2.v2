@@ -1,0 +1,2505 @@
+[
+  {
+    "key": "titulados-oficial",
+    "title": "Encuesta oficial a titulados de Ingeniería en Sistemas",
+    "description": "Encuesta para conocer la trayectoria profesional, la formación y las necesidades de actualización de titulados de Ingeniería en Sistemas.",
+    "version": "2026-10-fuente-oficial-1",
+    "questions": [
+      {
+        "id": "edad",
+        "section": "Datos generales y formación complementaria",
+        "label": "Edad que tiene actualmente:",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "EDAD_19_22",
+            "label": "19 - 22 años"
+          },
+          {
+            "value": "EDAD_23_26",
+            "label": "23 - 26 años"
+          },
+          {
+            "value": "EDAD_27_30",
+            "label": "27 - 30 años"
+          },
+          {
+            "value": "EDAD_31_34",
+            "label": "31 - 34 años"
+          },
+          {
+            "value": "EDAD_35_MAS",
+            "label": "35 años o más"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Seleccione el rango de edad que corresponda.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "genero",
+        "section": "Datos generales y formación complementaria",
+        "label": "Género:",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "HOMBRE",
+            "label": "Hombre"
+          },
+          {
+            "value": "MUJER",
+            "label": "Mujer"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "formacion_complementaria",
+        "section": "Datos generales y formación complementaria",
+        "label": "Posterior a sus estudios de pregrado en Ingeniería en Sistemas, ¿Ha realizado o se encuentra realizando algún programa de formación complementaria? (programas de posgrado, diplomados, doble titulación",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "NO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "nivel_cursado",
+        "section": "Datos generales y formación complementaria",
+        "label": "¿CUÁL ES EL PROGRAMA DE FORMACIÓN COMPLEMENTARIA DE MAYOR NIVEL QUE HA CONCLUIDO O QUE SE ENCUENTRA REALIZANDO?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "DIPLOMADO",
+            "label": "DIPLOMADO"
+          },
+          {
+            "value": "DOCTORADO",
+            "label": "DOCTORADO"
+          },
+          {
+            "value": "ESPECIALIDAD",
+            "label": "ESPECIALIDAD"
+          },
+          {
+            "value": "MAESTRIA",
+            "label": "MAESTRIA"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "institucion_cursada",
+        "section": "Datos generales y formación complementaria",
+        "label": "¿DONDE HA CURSADO EL PROGRAMA INDICADO?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "EUPG",
+            "label": "ESCUELA UNIVERSITARIA DE POSGRADO (EUPG)"
+          },
+          {
+            "value": "POSGRADO_FCYT",
+            "label": "DIRECCIÓN DE POSGRADO FCyT"
+          },
+          {
+            "value": "IBNORCA",
+            "label": "IBNORCA"
+          },
+          {
+            "value": "UNIVERSIDAD_INTERNACIONAL",
+            "label": "UNIVERSIDADES INTERNACIONALES"
+          },
+          {
+            "value": "UNIVERSIDAD_PUBLICA_NACIONAL",
+            "label": "UNIVERSIDADES PÚBLICAS NACIONALES"
+          },
+          {
+            "value": "UNIVERSIDAD_PRIVADA_NACIONAL",
+            "label": "UNIVERSIDADES PRIVADAS NACIONALES"
+          },
+          {
+            "value": "OTRO",
+            "label": "OTRO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "financiamiento_cursado",
+        "section": "Datos generales y formación complementaria",
+        "label": "¿CUÁL FUE LA FUENTE DE FINANCIAMIENTO PARA CURSAR EL PROGRAMA INDICADO?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "RECURSOS_PROPIOS",
+            "label": "FINANCIADO CON RECURSOS PROPIOS"
+          },
+          {
+            "value": "BECA_TOTAL",
+            "label": "TOTAL FINANCIAMIENTO POR MEDIO DE UNA BECA"
+          },
+          {
+            "value": "BECA_PARCIAL",
+            "label": "FINANCIADO PARCIALMENTE POR MEDIO DE UNA BECA"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "programa_cursado",
+        "section": "Datos generales y formación complementaria",
+        "label": "INDIQUE EL NOMBRE DEL PROGRAMA",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "interes_posgrado",
+        "section": "Interés en formación continua",
+        "label": "¿ESTARÍA INTERESADO EN REALIZAR ESTUDIOS EN ALGÚN PROGRAMA DE POSGRADO\nDENTRO DE LAS ÁREAS DE LA INGENIERÍA EN SISTEMAS?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "NO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "area_interes",
+        "section": "Interés en formación continua",
+        "label": "¿EN CUÁL DE LAS SIGUIENTES ÁREAS LE INTERESARÍA REALIZAR EL PROGRAMA?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "IA",
+            "label": "IA"
+          },
+          {
+            "value": "ROBOTICA",
+            "label": "Robótica"
+          },
+          {
+            "value": "INGENIERIA_SOFTWARE",
+            "label": "Ingenieria de Software"
+          },
+          {
+            "value": "BASE_DATOS",
+            "label": "Base de Datos"
+          },
+          {
+            "value": "REDES_SEGURIDAD",
+            "label": "Redes de Datos y Seguridad"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "institucion_interes",
+        "section": "Interés en formación continua",
+        "label": "EN CASO DE REALIZAR UN ESTUDIO DE POSGRADO ¿EN QUÉ ORGANIZACIÓN\nEDUCATIVA OPTARÍA POR REALIZAR SUS ESTUDIOS DE POSGRADO?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "EUPG",
+            "label": "ESCUELA UNIVERSITARIA DE POSGRADO (EUPG)"
+          },
+          {
+            "value": "POSGRADO_FCYT",
+            "label": "DIRECCIÓN DE POSGRADO FCyT"
+          },
+          {
+            "value": "IBNORCA",
+            "label": "IBNORCA"
+          },
+          {
+            "value": "UNIVERSIDAD_INTERNACIONAL",
+            "label": "UNIVERSIDADES INTERNACIONALES"
+          },
+          {
+            "value": "UNIVERSIDAD_PUBLICA_NACIONAL",
+            "label": "UNIVERSIDADES PÚBLICAS NACIONALES"
+          },
+          {
+            "value": "UNIVERSIDAD_PRIVADA_NACIONAL",
+            "label": "UNIVERSIDADES PRIVADAS NACIONALES"
+          },
+          {
+            "value": "OTRO",
+            "label": "OTRO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "opinion_posgrado_fcyt",
+        "section": "Interés en formación continua",
+        "label": "¿CUAL ES SU OPINIÓN PERSONAL RESPECTO AL POSGRADO DE LA FCyT?.¿Considera que existen programas de formación de posgrado ofertados en la Dirección de Posgrado de la FCyT que son afines a las áreas de e",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente en desacuerdo"
+          },
+          {
+            "value": "DESACUERDO",
+            "label": "En desacuerdo"
+          },
+          {
+            "value": "ACUERDO",
+            "label": "De acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de Acuerdo"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "anios_vida_profesional",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿CUÁNTOS SON LOS AÑOS DE VIDA PROFESIONAL QUE LLEVA HASTA LA FECHA?",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Indique el tiempo en años. Puede aclarar su respuesta si corresponde.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "tiempo_desempleado",
+        "section": "Trayectoria y situación laboral",
+        "label": "DE LA CANTIDAD DE TIEMPO RESPONDIDA EN LA PREGUNTA ANTERIOR, ¿QUÉ CANTIDAD CORRESPONDE AL TOTAL DE TIEMPO EN QUE SE HA ENCONTRADO DESEMPLEADO?",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Indique el tiempo y su unidad: meses o años.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "estado_laboral",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿CUÁL DE LAS SIGUIENTES AFIRMACIONES DESCRIBE SU SITUACIÓN LABORAL ACTUAL?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "EMPLEADO",
+            "label": "Actualmente me encuentro trabajando un una organización"
+          },
+          {
+            "value": "DESEMPLEADO",
+            "label": "Actualmente NO trabajo"
+          },
+          {
+            "value": "EMPRENDIMIENTO",
+            "label": "Actualmente dedico mi tiempo COMPLETO a un emprendimiento propio"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "nombre_organizacion",
+        "section": "Trayectoria y situación laboral",
+        "label": "Nombre de la empresa u organización donde trabaja actualmente:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "rubro_organizacion",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿CUÁL ES EL RUBRO DE LA ORGANIZACIÓN DONDE TRABAJA ACTUALMENTE?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "BANCA",
+            "label": "Banca"
+          },
+          {
+            "value": "DESARROLLO_DE_SOFTWARE",
+            "label": "Desarrollo de Software"
+          },
+          {
+            "value": "EDUCACION",
+            "label": "Educación"
+          },
+          {
+            "value": "REDES_DE_COMPUTADORAS",
+            "label": "Redes de Computadoras"
+          },
+          {
+            "value": "SALUD",
+            "label": "Salud"
+          },
+          {
+            "value": "TELECOMUNICACIONES",
+            "label": "Telecomunicaciones"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "otro_rubro",
+        "section": "Trayectoria y situación laboral",
+        "label": "OTRO RUBRO:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "sector_organizacion",
+        "section": "Trayectoria y situación laboral",
+        "label": "EL TRABAJO EN EL QUE SE ENCUENTRA, ¿A QUÉ SECTOR CORRESPONDE?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "PUBLICO",
+            "label": "PÚBLICO"
+          },
+          {
+            "value": "PRIVADO",
+            "label": "PRIVADO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "departamento_trabajo",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿EN QUÉ DEPARTAMENTO DE BOLIVIA TRABAJA?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "COCHABAMBA",
+            "label": "COCHABAMBA"
+          },
+          {
+            "value": "EXTRANJERO",
+            "label": "EXTRANJERO"
+          },
+          {
+            "value": "LA_PAZ",
+            "label": "LA PAZ"
+          },
+          {
+            "value": "ORURO",
+            "label": "ORURO"
+          },
+          {
+            "value": "SANTA_CRUZ",
+            "label": "SANTA CRUZ"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "area_organizacion",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿CUÁL ES EL ÁREA DENTRO DE LA ORGANIZACIÓN DONDE DESARROLLA SUS\nACTIVIDADES PROFESIONALES?",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "ADMINISTRACION",
+            "label": "Administración"
+          },
+          {
+            "value": "COMPUTO",
+            "label": "Computo"
+          },
+          {
+            "value": "CONTABILIDAD",
+            "label": "Contabilidad"
+          },
+          {
+            "value": "DESARROLLO",
+            "label": "Desarrollo"
+          },
+          {
+            "value": "R_R_H_H",
+            "label": "R.R.H.H."
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 5,
+        "hint": "Puede seleccionar más de una opción.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "otra_area",
+        "section": "Trayectoria y situación laboral",
+        "label": "OTR@ AREA:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "cargo_actual",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿Cuál es el cargo que desempeña en su actual trabajo?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "DESARROLLO",
+            "label": "Desarrollo"
+          },
+          {
+            "value": "EJECUTIVO",
+            "label": "Ejecutivo"
+          },
+          {
+            "value": "HELP_DESK",
+            "label": "Help Desk"
+          },
+          {
+            "value": "TECNICO",
+            "label": "Técnico"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "otro_cargo",
+        "section": "Trayectoria y situación laboral",
+        "label": "OTR@ CARGO:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "pertinencia_formacion_trabajo",
+        "section": "Trayectoria y situación laboral",
+        "label": ".En su actual puesto de trabajo las labores que se encuentra desempeñando son pertinentes a su formación como Ingeniero de Sistemas.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente en desacuerdo"
+          },
+          {
+            "value": "DESACUERDO",
+            "label": "En desacuerdo"
+          },
+          {
+            "value": "ACUERDO",
+            "label": "De acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de Acuerdo"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "antiguedad_trabajo",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿Qué antigüedad tiene en su actual trabajo?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "ENTRE_1_A_2_ANOS",
+            "label": "Entre 1 a 2 años"
+          },
+          {
+            "value": "ENTRE_11_A_15_ANOS",
+            "label": "Entre 11 a 15 años"
+          },
+          {
+            "value": "ENTRE_15_A_20_ANOS",
+            "label": "Entre 15 a 20 años"
+          },
+          {
+            "value": "ENTRE_2_A_5_ANOS",
+            "label": "Entre 2 a 5 años"
+          },
+          {
+            "value": "ENTRE_20_A_25_ANOS",
+            "label": "Entre 20 a 25 años"
+          },
+          {
+            "value": "ENTRE_5_A_8_ANOS",
+            "label": "Entre 5 a 8 años"
+          },
+          {
+            "value": "ENTRE_8_A_11_ANOS",
+            "label": "Entre 8 a 11 años"
+          },
+          {
+            "value": "MENOS_DE_1_ANO",
+            "label": "Menos de 1 año"
+          },
+          {
+            "value": "MAS_DE_25_ANOS",
+            "label": "más de 25 años"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "medio_acceso_empleo",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿A través de qué medio obtuvo el trabajo que actualmente desempeña?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "INTERNET_REDES",
+            "label": "INTERNET Y REDES SOCIALES"
+          },
+          {
+            "value": "ESCRITOS_AUDIOVISUALES",
+            "label": "MEDIOS ESCRITOS O AUDIOVISUALES"
+          },
+          {
+            "value": "OTROS",
+            "label": "OTROS"
+          },
+          {
+            "value": "POSTULACION_COMPETITIVA",
+            "label": "POSTULACIÓN COMPETITIVA (CONVOCATORIAS PÚBLICAS Y PRIVADAS)"
+          },
+          {
+            "value": "RECOMENDACION",
+            "label": "RECOMENDACIÓN DE TERCEROS"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "remuneracion_mensual",
+        "section": "Trayectoria y situación laboral",
+        "label": "Señale la remuneración promedio mensual que está percibiendo en su actual trabajo.",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "ENTRE_BS_2_500_BS_3_500",
+            "label": "Entre Bs. 2.500 - Bs. 3.500"
+          },
+          {
+            "value": "ENTRE_BS_3_501_BS_5_000",
+            "label": "Entre Bs. 3.501 - Bs. 5.000"
+          },
+          {
+            "value": "ENTRE_BS_5_001_BS_7_000",
+            "label": "Entre Bs. 5.001 - Bs. 7.000"
+          },
+          {
+            "value": "ENTRE_BS_7_001_BS_10_000",
+            "label": "Entre Bs. 7.001 - Bs. 10.000"
+          },
+          {
+            "value": "MENOR_A_BS_2500",
+            "label": "Menor a Bs. 2500"
+          },
+          {
+            "value": "MAS_DE_BS_10_000",
+            "label": "Más de Bs. 10.000"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "origen_emprendimiento",
+        "section": "Emprendimiento propio",
+        "label": "¿Cuál es el origen del desarrollo de su propio emprendimiento?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "IDEA_CONJUNTA",
+            "label": "Idea conjunta con compañeros."
+          },
+          {
+            "value": "IDEA_PROPIA",
+            "label": "Idea propia."
+          },
+          {
+            "value": "OTRO",
+            "label": "Otro."
+          },
+          {
+            "value": "STARTUP",
+            "label": "StartUp"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "entregable_emprendimiento",
+        "section": "Emprendimiento propio",
+        "label": "¿Qué tipo de entregable genera el negocio?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "AMBOS",
+            "label": "Ambos"
+          },
+          {
+            "value": "PRODUCTO",
+            "label": "Producto"
+          },
+          {
+            "value": "SERVICIO",
+            "label": "Servicio"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "financiamiento_emprendimiento",
+        "section": "Emprendimiento propio",
+        "label": "¿Ha requerido financiamiento externo para su negocio?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "PROPIO",
+            "label": "No, financiamiento propio."
+          },
+          {
+            "value": "INVERSORES",
+            "label": "Si, mediante inversores."
+          },
+          {
+            "value": "PRESTAMO_BANCARIO",
+            "label": "Si, mediante préstamos bancarios."
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "satisfaccion_emprendimiento",
+        "section": "Emprendimiento propio",
+        "label": ".¿Qué tan satisfecho está con el rendimiento actual de su negocio?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "ALGO_SATISFECHO",
+            "label": "Algo satisfecho"
+          },
+          {
+            "value": "INSATISFECHO",
+            "label": "Insatisfecho"
+          },
+          {
+            "value": "SATISFECHO",
+            "label": "Satisfecho"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "importancia_formacion_negocio",
+        "section": "Emprendimiento propio",
+        "label": ".¿Qué tan importante considera que fue su formación en Ingeniería en Sistemas para iniciar y gestionar su negocio?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "IMPORTANTE",
+            "label": "Importante"
+          },
+          {
+            "value": "MUY_IMPORTANTE",
+            "label": "Muy importante"
+          },
+          {
+            "value": "POCO_IMPORTANTE",
+            "label": "Poco Importante"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "primer_empleo_actual",
+        "section": "Trayectoria y situación laboral",
+        "label": "¿El trabajo que ejerce actualmente es su primer empleo?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "NO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "motivo_no_trabajar",
+        "section": "Trayectoria y situación laboral",
+        "label": "Indique cuál es la razón por la que actualmente no trabaja en un empleo relacionado con su formación como Ingeniero de Sistemas",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "DEMANDA_LABORAL_INEXISTENTE",
+            "label": "Demanda laboral inexistente."
+          },
+          {
+            "value": "HABILIDADES_DEFICIENTES_EN_LAS_ENTREVISTAS",
+            "label": "Habilidades deficientes en las entrevistas."
+          },
+          {
+            "value": "INCUMPLIMIENTO_DE_REQUISITOS_DE_EXPERIENCIA_PREVIA",
+            "label": "Incumplimiento de requisitos de experiencia previa."
+          },
+          {
+            "value": "INCUMPLIMIENTO_DE_REQUISITOS_EN_HABILIDADES_ESPECIFICAS_IDIOMAS_SOFTWARES_ETC",
+            "label": "Incumplimiento de requisitos en habilidades específicas (idiomas, softwares, etc)."
+          },
+          {
+            "value": "OFERTAS_LABORALES_CON_REMUNERACION_MUY_BAJAS",
+            "label": "Ofertas laborales con remuneración muy bajas."
+          },
+          {
+            "value": "OTRO",
+            "label": "Otro"
+          },
+          {
+            "value": "RED_DE_CONTACTOS_LIMITADA",
+            "label": "Red de contactos limitada."
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "trabajo_anterior",
+        "section": "Trayectoria y situación laboral",
+        "label": "Si bien actualmente no trabaja, ¿Ha tenido algún trabajo antes?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "NO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "tiempo_primer_empleo",
+        "section": "Trayectoria y situación laboral",
+        "label": "Luego de titularse, ¿Cuánto tiempo se demoró en conseguir su primer trabajo relacionado con su formación como Ingeniero en Sistemas?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "ANTES_TITULACION",
+            "label": "Ya trabajaba antes de titularse"
+          },
+          {
+            "value": "MENOS_1_MES",
+            "label": "Menos de 1 mes"
+          },
+          {
+            "value": "ENTRE_1_4_MESES",
+            "label": "Entre 1 - 4 meses"
+          },
+          {
+            "value": "ENTRE_4_8_MESES",
+            "label": "Entre 4 - 8 meses"
+          },
+          {
+            "value": "ENTRE_8_12_MESES",
+            "label": "Entre 8 - 12 meses"
+          },
+          {
+            "value": "MAS_12_MESES",
+            "label": "Más de 12 meses"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "cantidad_empleos",
+        "section": "Trayectoria y situación laboral",
+        "label": "Desde que se tituló, ¿en cuántos empleos usted se ha desempeñado? (Incluyendo su actual empleo si corresponde)",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "UNO",
+            "label": "1"
+          },
+          {
+            "value": "DOS",
+            "label": "2"
+          },
+          {
+            "value": "TRES",
+            "label": "3"
+          },
+          {
+            "value": "MAS_TRES",
+            "label": "Más de 3"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "satisfaccion_formacion",
+        "section": "Valoración de la formación profesional",
+        "label": ".De manera global ¿Cuál es el grado de satisfacción que ha desarrollado con la formación profesional recibida en la Carrera de Ingenieria de Sistemas",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente en desacuerdo"
+          },
+          {
+            "value": "DESACUERDO",
+            "label": "En desacuerdo"
+          },
+          {
+            "value": "ACUERDO",
+            "label": "De acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de Acuerdo"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "concordancia_formacion",
+        "section": "Valoración de la formación profesional",
+        "label": ".Considera que existe concordancia entre la formación profesional recibida en la Carrera de Ingeniería de Sistemas  y los requerimientos",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente en desacuerdo"
+          },
+          {
+            "value": "DESACUERDO",
+            "label": "En desacuerdo"
+          },
+          {
+            "value": "ACUERDO",
+            "label": "De acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de Acuerdo"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "aspectos_utiles",
+        "section": "Valoración de la formación profesional",
+        "label": "¿Qué aspectos de la Carrera les resultaron de bastante utilidad?",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "APLICACION_PRACTICA",
+            "label": "La aplicación práctica de conceptos teóricos en proyectos reales."
+          },
+          {
+            "value": "PASANTIAS",
+            "label": "La oportunidad de realizar pasantías o prácticas profesionales."
+          },
+          {
+            "value": "HORARIOS",
+            "label": "La distribución de los horarios de clases."
+          },
+          {
+            "value": "HABILIDADES_ANALITICAS",
+            "label": "El desarrollo de habilidades analíticas y de resolución de problemas."
+          },
+          {
+            "value": "EQUIPOS_MULTIDISCIPLINARIOS",
+            "label": "La colaboración de equipos multidisciplinarios para resolver problemas complejos."
+          },
+          {
+            "value": "HERRAMIENTAS_INDUSTRIA",
+            "label": "La enseñanza de herramientas y software específico de la industria."
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 6,
+        "hint": "Puede seleccionar más de una opción.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "aspectos_mejorar",
+        "section": "Valoración de la formación profesional",
+        "label": "¿Qué aspectos de la Carrera considera que pueden mejorarse?",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "INTEGRACION_TEORIA_PRACTICA",
+            "label": "Mayor integración de la teoría con aplicaciones prácticas en el plan de estudios."
+          },
+          {
+            "value": "VINCULACION_EMPRESAS",
+            "label": "Mayor relacionamiento del estudiante con las empresas por medio de práctica profesionales."
+          },
+          {
+            "value": "HORARIOS",
+            "label": "La distribución de horarios de clases. (Horario para trabajadores, módulos virtuales, etc)"
+          },
+          {
+            "value": "ACTUALIZACION_PLAN",
+            "label": "Actualización constante del plan de estudios para atender tendencias actuales."
+          },
+          {
+            "value": "ACTIVIDADES_EXTRACURRICULARES",
+            "label": "Incremento de actividades extracurriculares (Investigación, servicio social, etc)"
+          },
+          {
+            "value": "ESPECIALIZACION",
+            "label": "Ofrecimiento de más opciones de especialización."
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 6,
+        "hint": "Puede seleccionar más de una opción.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "asignaturas_ventaja",
+        "section": "Valoración de la formación profesional",
+        "label": "Indique 5 asignaturas cursadas en la Carrera que considera que le brindaron una ventaja competitiva al momento de buscar trabajo o desenvolverse profesionalmente.",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "INTRODUCCION",
+            "label": "Introducción"
+          },
+          {
+            "value": "BASE_DATOS",
+            "label": "Base de Datos"
+          },
+          {
+            "value": "INTELIGENCIA_ARTIFICIAL",
+            "label": "Inteligencia Artificial"
+          },
+          {
+            "value": "REDES_COMPUTADORA",
+            "label": "Redes de Computadora"
+          },
+          {
+            "value": "ELECTIVAS",
+            "label": "Electivas"
+          },
+          {
+            "value": "TIS",
+            "label": "T.I.S."
+          },
+          {
+            "value": "BASICAS",
+            "label": "Básicas (Física, Calculo, Algebras)"
+          },
+          {
+            "value": "PLANIFICACION_GESTION",
+            "label": "Planificación de Proyectos y Gestión"
+          },
+          {
+            "value": "REDES_AVANZADAS",
+            "label": "Tecnologia Redes Avanzadas"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 5,
+        "hint": "Puede seleccionar hasta cinco asignaturas.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "otra_asignatura_ventaja",
+        "section": "Valoración de la formación profesional",
+        "label": "Otra asignatura:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "asignaturas_poca_utilidad",
+        "section": "Valoración de la formación profesional",
+        "label": "Indique 5 asignaturas cursadas en la Carrera que no le resultaron de mucha utilidad en su vida profesional.",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "BASICAS",
+            "label": "Básicas (Física, Calculo, Algebras)"
+          },
+          {
+            "value": "APLICACIONES_TV_DIGITAL",
+            "label": "Aplic. Interactivas para Televisión Digital"
+          },
+          {
+            "value": "TELEFONIA_IP",
+            "label": "Telefonía IP"
+          },
+          {
+            "value": "WEB_SEMANTICAS",
+            "label": "Web Semánticas"
+          },
+          {
+            "value": "GRAFICACION_COMPUTADORA",
+            "label": "Graficación por Computadora"
+          },
+          {
+            "value": "ROBOTICA",
+            "label": "Robótica"
+          },
+          {
+            "value": "TALLER_PROGRAMACION_BAJO_NIVEL",
+            "label": "Taller de Programación en Bajo Nivel"
+          },
+          {
+            "value": "TEORIA_AUTOMATAS_LENGUAJES_FORMALES",
+            "label": "Teoría de Autómatas y Leng. Formales"
+          },
+          {
+            "value": "PROGRAMACION_FUNCIONAL",
+            "label": "Programación Funcional"
+          },
+          {
+            "value": "TEORIA_GRAFOS",
+            "label": "Teoría de Grafos"
+          },
+          {
+            "value": "CONTABILIDAD_BASICA",
+            "label": "Contabilidad Básica"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 5,
+        "hint": "Puede seleccionar hasta cinco asignaturas.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "otra_asignatura_poca_utilidad",
+        "section": "Valoración de la formación profesional",
+        "label": "Otra asignatura:1",
+        "type": "textarea",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "interes_red_contactos",
+        "section": "Red de contactos",
+        "label": "¿Le interesaría formar parte una red de contactos oficial de la Carrera de Ingeniería en Sistemas para compartir experiencias, proyectos y ofertas laborales?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "NO"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "email_contacto",
+        "section": "Red de contactos",
+        "label": "Email de contacto:",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Opcional. Escriba su dato de contacto solo si desea compartirlo.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "telefono_contacto",
+        "section": "Red de contactos",
+        "label": "Número telefónico de contacto:\nDE PREFERENCIA CON ACCESO A WHATASAPP",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Opcional. Escriba su dato de contacto solo si desea compartirlo.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "linkedin_contacto",
+        "section": "Red de contactos",
+        "label": "LINK de LinkedIn",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Opcional. Escriba su dato de contacto solo si desea compartirlo.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "reviewNotes": {
+      "edad": "Fuente: columna I del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. Se conservan rangos; no son edades exactas.",
+      "genero": "Fuente: columna L del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "formacion_complementaria": "Fuente: columna O del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El encabezado exportado está incompleto; confirme el enunciado antes de recopilar respuestas nuevas.",
+      "nivel_cursado": "Fuente: columna R del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "institucion_cursada": "Fuente: columna U del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "financiamiento_cursado": "Fuente: columna X del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "programa_cursado": "Fuente: columna AA del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "interes_posgrado": "Fuente: columna AD del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "area_interes": "Fuente: columna AG del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "institucion_interes": "Fuente: columna AJ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "opinion_posgrado_fcyt": "Fuente: columna AO del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El encabezado exportado está incompleto; confirme el enunciado antes de recopilar respuestas nuevas.",
+      "anios_vida_profesional": "Fuente: columna AR del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. La unidad declarada es años. Se conserva como texto para admitir decimales y la captura histórica heterogénea; no convertir directamente a meses enteros.",
+      "tiempo_desempleado": "Fuente: columna AU del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Conserve el valor y su unidad original. La exportación contiene números y texto; normalizar requiere una revisión explícita.",
+      "estado_laboral": "Fuente: columna AX del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "nombre_organizacion": "Fuente: columna BA del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "rubro_organizacion": "Fuente: columna BD del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "otro_rubro": "Fuente: columna BG del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "sector_organizacion": "Fuente: columna BJ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "departamento_trabajo": "Fuente: columna BM del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "area_organizacion": "Fuente: columna BP del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. Admite varias selecciones; la fuente también exporta arreglos JSON. No confundir con el cargo o el rubro.",
+      "otra_area": "Fuente: columna BS del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "cargo_actual": "Fuente: columna BV del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "otro_cargo": "Fuente: columna BY del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "pertinencia_formacion_trabajo": "Fuente: columna CD del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "antiguedad_trabajo": "Fuente: columna CG del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "medio_acceso_empleo": "Fuente: columna CJ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "remuneracion_mensual": "Fuente: columna CM del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. Se conservan intervalos de remuneración, no ingresos exactos.",
+      "origen_emprendimiento": "Fuente: columna CP del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "entregable_emprendimiento": "Fuente: columna CS del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "financiamiento_emprendimiento": "Fuente: columna CV del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "satisfaccion_emprendimiento": "Fuente: columna DA del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "importancia_formacion_negocio": "Fuente: columna DF del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "primer_empleo_actual": "Fuente: columna DI del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "motivo_no_trabajar": "Fuente: columna DL del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "trabajo_anterior": "Fuente: columna DO del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. Esta pregunta no identifica por sí sola experiencia relacionada con Sistemas.",
+      "tiempo_primer_empleo": "Fuente: columna DR del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "cantidad_empleos": "Fuente: columna DU del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "satisfaccion_formacion": "Fuente: columna DZ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El encabezado exportado está incompleto; confirme el enunciado antes de recopilar respuestas nuevas.",
+      "concordancia_formacion": "Fuente: columna EE del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El encabezado exportado está incompleto; confirme el enunciado antes de recopilar respuestas nuevas.",
+      "aspectos_utiles": "Fuente: columna EH del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "aspectos_mejorar": "Fuente: columna EK del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "asignaturas_ventaja": "Fuente: columna EN del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El enunciado solicita cinco asignaturas. Las otras asignaturas se conservan en su campo libre complementario.",
+      "otra_asignatura_ventaja": "Fuente: columna EQ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "asignaturas_poca_utilidad": "Fuente: columna ET del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. El enunciado solicita cinco asignaturas, no dos. Las otras asignaturas se conservan en su campo libre complementario.",
+      "otra_asignatura_poca_utilidad": "Fuente: columna EW del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "interes_red_contactos": "Fuente: columna EZ del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "email_contacto": "Fuente: columna FC del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Se conserva texto de fuente, incluidos valores que no cumplen formato de email, teléfono o URL; no se inventan ni eliminan contactos.",
+      "telefono_contacto": "Fuente: columna FF del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Se conserva texto de fuente, incluidos valores que no cumplen formato de email, teléfono o URL; no se inventan ni eliminan contactos.",
+      "linkedin_contacto": "Fuente: columna FI del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Se conserva texto de fuente, incluidos valores que no cumplen formato de email, teléfono o URL; no se inventan ni eliminan contactos."
+    }
+  },
+  {
+    "key": "empleadores-oficial",
+    "title": "Encuesta oficial a empleadores de Ingeniería en Sistemas",
+    "description": "Encuesta para conocer las necesidades de contratación, las competencias profesionales y la vinculación de los empleadores con Ingeniería de Sistemas.",
+    "version": "2026-10-fuente-oficial-2",
+    "questions": [
+      {
+        "id": "nombre_organizacion",
+        "section": "Datos de la organización",
+        "label": "Nombre de la Empresa o Institución",
+        "type": "text",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "tipo_organizacion",
+        "section": "Datos de la organización",
+        "label": "Tipo de organización",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "PUBLICO",
+            "label": "Público"
+          },
+          {
+            "value": "PRIVADO",
+            "label": "Privado"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "tamano_organizacion",
+        "section": "Datos de la organización",
+        "label": "Tamaño de la organización",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "GRANDE",
+            "label": "Grande (100 funcionarios o más)"
+          },
+          {
+            "value": "MEDIANA",
+            "label": "Mediana (entre 31 a 99 funcionarios)"
+          },
+          {
+            "value": "PEQUENA",
+            "label": "Pequeña (entre 11 a 30 funcionarios)"
+          },
+          {
+            "value": "MICRO",
+            "label": "Micro (hasta 10 funcionarios)"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "sector",
+        "section": "Datos de la organización",
+        "label": "Indique el rubro o sector principal de la organización en la que se desempeña laboralmente el profesional titulado de la Carrera de Ingeniería de Sistemas.",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "DESARROLLO_SOFTWARE",
+            "label": "Desarrollo de software"
+          },
+          {
+            "value": "SERVICIOS_TI",
+            "label": "Servicios de tecnologías de información (TI)"
+          },
+          {
+            "value": "TELECOMUNICACIONES_REDES",
+            "label": "Telecomunicaciones y redes"
+          },
+          {
+            "value": "SOPORTE_MANTENIMIENTO",
+            "label": "Soporte técnico y mantenimiento de sistemas"
+          },
+          {
+            "value": "CONSULTORIA_TRANSFORMACION_DIGITAL",
+            "label": "Consultoría en sistemas / transformación digital"
+          },
+          {
+            "value": "BANCA_FINANZAS",
+            "label": "Banca y servicios financieros"
+          },
+          {
+            "value": "GOBIERNO",
+            "label": "Instituciones públicas / gobierno"
+          },
+          {
+            "value": "EDUCACION_INVESTIGACION",
+            "label": "Educación e investigación"
+          },
+          {
+            "value": "INDUSTRIA_MANUFACTURA",
+            "label": "Industria y manufactura"
+          },
+          {
+            "value": "COMERCIO",
+            "label": "Comercio y comercio electrónico"
+          },
+          {
+            "value": "SALUD",
+            "label": "Salud"
+          },
+          {
+            "value": "CIBERSEGURIDAD",
+            "label": "Seguridad informática / ciberseguridad"
+          },
+          {
+            "value": "ANALISIS_DATOS",
+            "label": "Análisis de datos / inteligencia de negocios"
+          },
+          {
+            "value": "EMPRENDIMIENTO_TECNOLOGICO",
+            "label": "Startups o emprendimientos tecnológicos"
+          },
+          {
+            "value": "OTROS",
+            "label": "Otros"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "contratacion_reciente",
+        "section": "Empleabilidad",
+        "label": "¿La organización ha contratado Ingenieros de la carrera de Sistemas en los últimos 5 años?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "SI",
+            "label": "SI"
+          },
+          {
+            "value": "NO",
+            "label": "No"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "probabilidad_contratacion",
+        "section": "Empleabilidad",
+        "label": "Considerando las necesidades actuales y proyectadas de la organización, ¿existe la posibilidad de incorporar Ingenieros de Sistemas en su equipo de trabajo durante los próximos años?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "ALTA",
+            "label": "Sí, existe una alta probabilidad de contratación"
+          },
+          {
+            "value": "SEGUN_CRECIMIENTO",
+            "label": "Sí, dependiendo del crecimiento o nuevos proyectos de la organización"
+          },
+          {
+            "value": "NO_PREVISTA",
+            "label": "No se tiene prevista la contratación actualmente"
+          },
+          {
+            "value": "NO_REQUIERE",
+            "label": "No requiere profesionales del área de Sistemas"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "nivel_formacion_demandado",
+        "section": "Empleabilidad",
+        "label": "¿Qué nivel de formación académica o actualización profesional, demanda su organización para contratar nuevos profesionales del área?",
+        "type": "select",
+        "required": false,
+        "options": [
+          {
+            "value": "LICENCIATURA",
+            "label": "Licenciatura"
+          },
+          {
+            "value": "DIPLOMADO",
+            "label": "Diplomado"
+          },
+          {
+            "value": "ESPECIALIDAD",
+            "label": "Especialidad"
+          },
+          {
+            "value": "MAESTRIA",
+            "label": "Maestría"
+          },
+          {
+            "value": "DOCTORADO",
+            "label": "Doctorado"
+          },
+          {
+            "value": "POSDOCTORADO",
+            "label": "Post-doctorado"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "medio_convocatoria",
+        "section": "Empleabilidad",
+        "label": "¿A través de qué medio convoca a profesionales en su organización (empresa o institución)?",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "ESCRITOS_AUDIOVISUALES",
+            "label": "Medios escritos y audiovisuales"
+          },
+          {
+            "value": "INTERNET_REDES",
+            "label": "Internet y Redes sociales"
+          },
+          {
+            "value": "POSTULACION_COMPETITIVA",
+            "label": "Postulación competitiva (convocatorias públicas y privadas)"
+          },
+          {
+            "value": "OFERTA_PERSONAL",
+            "label": "Oferta profesional personal"
+          },
+          {
+            "value": "RECOMENDACION",
+            "label": "Recomendación de terceros"
+          },
+          {
+            "value": "OTROS",
+            "label": "Otros"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "cargos_desempenados",
+        "section": "Empleabilidad",
+        "label": "¿Qué tipo de cargos desempeñan los profesionales titulados de la Carrera de Ingeniería de Sistemas en su organización?\n(Puede seleccionar más de una opción)",
+        "type": "checkbox",
+        "required": false,
+        "options": [
+          {
+            "value": "APOYO",
+            "label": "De apoyo / asistencia tecnológica"
+          },
+          {
+            "value": "TECNICO",
+            "label": "Técnico (desarrollo de software, administración de sistemas, redes, bases de datos, soporte TI)"
+          },
+          {
+            "value": "ANALISTA",
+            "label": "Analista (sistemas, datos, procesos o soluciones tecnológicas)"
+          },
+          {
+            "value": "ESPECIALISTA",
+            "label": "Especialista (ciberseguridad, arquitectura de software, infraestructura tecnológica, entre otros)"
+          },
+          {
+            "value": "SUPERVISOR",
+            "label": "Supervisor / Coordinador de área tecnológica"
+          },
+          {
+            "value": "JEFATURA",
+            "label": "Jefatura o Gerencial (gestión de proyectos, dirección de TI, transformación digital)"
+          },
+          {
+            "value": "CONSULTOR",
+            "label": "Consultor tecnológico"
+          },
+          {
+            "value": "DOCENTES",
+            "label": "Docentes"
+          },
+          {
+            "value": "OTRO",
+            "label": "Otro"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 9,
+        "hint": "Puede seleccionar más de una opción.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "areas_emergentes",
+        "section": "Empleabilidad",
+        "label": "Desde su experiencia en el sector laboral, ¿qué nuevas áreas de conocimiento, tecnologías o tendencias emergentes considera importantes para la formación del profesional de Ingeniería de Sistemas?",
+        "type": "textarea",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "herramientas_tecnologicas",
+        "section": "Empleabilidad",
+        "label": "¿Cuáles son las nuevas herramientas tecnológicas (software, plataformas o entornos de desarrollo) que, a su criterio, debería conocer y manejar el profesional titulado de la Carrera de Ingeniería de Sistemas?",
+        "type": "textarea",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "competencias_requeridas",
+        "section": "Empleabilidad",
+        "label": "Desde su experiencia en el ámbito laboral, ¿qué habilidades, competencias y destrezas considera fundamentales que debe desarrollar el profesional de Ingeniería de Sistemas para responder adecuadamente a las necesidades de la organización y del mercado laboral?",
+        "type": "textarea",
+        "required": false,
+        "options": [],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_01",
+        "section": "Formación y perfil profesional",
+        "label": "La Carrera de Ingeniería de Sistemas de la Universidad Mayor de San Simón brinda confianza a nuestra organización como formadora de profesionales del área tecnológica.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_02",
+        "section": "Formación y perfil profesional",
+        "label": "Considero que el título profesional otorgado por la Carrera de Ingeniería de Sistemas es consistente con el nivel de formación y las competencias demostradas por sus titulados.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_03",
+        "section": "Formación y perfil profesional",
+        "label": "Las autoridades de la Carrera de Ingeniería de Sistemas consultan regularmente nuestra opinión como empleadores respecto al perfil profesional y las competencias requeridas en el ámbito laboral.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_04",
+        "section": "Formación y perfil profesional",
+        "label": "Conozco el perfil profesional y las competencias de egreso declaradas por la Carrera de Ingeniería de Sistemas.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_05",
+        "section": "Formación y perfil profesional",
+        "label": "El perfil profesional declarado por la Carrera de Ingeniería de Sistemas es coherente con el desempeño laboral demostrado por sus titulados.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_06",
+        "section": "Formación y perfil profesional",
+        "label": "La formación proporcionada por la Carrera de Ingeniería de Sistemas permite a sus titulados alcanzar un desempeño destacado tanto en el ámbito profesional como en su formación integral.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_07",
+        "section": "Formación y perfil profesional",
+        "label": "La Carrera de Ingeniería de Sistemas considera nuestra opinión como empleadores e incorpora las necesidades del sector laboral en la definición y mejora de actividades de formación práctica, pasantías y modalidades de titulación.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_08",
+        "section": "Formación y perfil profesional",
+        "label": "El desempeño profesional de los titulados de Ingeniería de Sistemas evidencia el desarrollo de competencias laborales como: comunicación efectiva, análisis y resolución de problemas, pensamiento crítico, aprendizaje continuo, trabajo en equipo, iniciativa personal y manejo adecuado de tecnologías de información.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_09",
+        "section": "Formación y perfil profesional",
+        "label": "Los profesionales titulados de Ingeniería de Sistemas demuestran valores y actitudes relacionados con la ética profesional, responsabilidad social, inclusión, diversidad, respeto a los derechos humanos y compromiso con el medio ambiente.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_10",
+        "section": "Formación y perfil profesional",
+        "label": "He participado en procesos de recopilación de información, evaluación o retroalimentación relacionados con el desempeño laboral de los titulados de la Carrera de Ingeniería de Sistemas.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_11",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "La Carrera de Ingeniería de Sistemas mantiene vínculos con organizaciones e instituciones que generan oportunidades laborales para sus titulados.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_12",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "He participado en actividades de vinculación con el entorno laboral y tecnológico organizadas por la Carrera de Ingeniería de Sistemas o la Facultad de Ciencias y Tecnología.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_13",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "He participado en actividades de difusión de oportunidades laborales, convocatorias, pasantías o prácticas profesionales organizadas por la Carrera de Ingeniería de Sistemas.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_14",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "He participado en actividades de vinculación entre profesionales del sector tecnológico, empleadores, docentes y estudiantes de la Carrera de Ingeniería de Sistemas para el intercambio de conocimientos, experiencias y desarrollo de trabajos conjuntos.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_15",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "Como empleador, he sido consultado sobre el desempeño profesional de los titulados de Ingeniería de Sistemas, con el propósito de retroalimentar el perfil profesional y el plan de estudios de la Carrera.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_16",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "Como empleador, la Carrera de Ingeniería de Sistemas ha consultado nuestra opinión respecto a la pertinencia de la formación impartida y su correspondencia con las necesidades del sector tecnológico y laboral.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_17",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "Cuando nuestra organización requiere profesionales del área de Sistemas, recurrimos a la Universidad Mayor de San Simón y a la Carrera de Ingeniería de Sistemas como fuente de búsqueda de talento profesional.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      },
+      {
+        "id": "criterio_18",
+        "section": "Vinculación y retroalimentación institucional",
+        "label": "He sido consultado periódicamente por la Carrera de Ingeniería de Sistemas durante sus procesos de autoevaluación y mejora continua.",
+        "type": "radio",
+        "required": false,
+        "options": [
+          {
+            "value": "TOTALMENTE_ACUERDO",
+            "label": "Totalmente de acuerdo"
+          },
+          {
+            "value": "PARCIALMENTE_ACUERDO",
+            "label": "Parcialmente de acuerdo"
+          },
+          {
+            "value": "TOTALMENTE_DESACUERDO",
+            "label": "Totalmente desacuerdo"
+          },
+          {
+            "value": "NO_SABE",
+            "label": "No sabe"
+          }
+        ],
+        "dependsOn": null,
+        "dependsValue": null,
+        "minSelections": 0,
+        "maxSelections": 1,
+        "hint": "Si no dispone de información para valorar este criterio, elija No sabe.",
+        "min": null,
+        "max": null
+      }
+    ],
+    "reviewNotes": {
+      "nombre_organizacion": "Fuente: columna C del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "tipo_organizacion": "Fuente: columna D del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "tamano_organizacion": "Fuente: columna E del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "sector": "Fuente: columna F del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "contratacion_reciente": "Fuente: columna G del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "probabilidad_contratacion": "Fuente: columna H del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "nivel_formacion_demandado": "Fuente: columna I del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "medio_convocatoria": "Fuente: columna J del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas.",
+      "cargos_desempenados": "Fuente: columna K del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. La exportación combina etiquetas con comas internas; no se deben separar como palabras sueltas. Por solicitud del usuario, la plantilla incorpora Docentes como categoría observada en la exportación para permitir su importación desde la creación inicial. Esto no acredita que fuera una opción predefinida del formulario original ni aprobación institucional; los demás textos añadidos en Otro requieren revisión.",
+      "areas_emergentes": "Fuente: columna L del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "herramientas_tecnologicas": "Fuente: columna M del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "competencias_requeridas": "Fuente: columna N del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable.",
+      "criterio_01": "Fuente: columna O del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_02": "Fuente: columna P del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_03": "Fuente: columna Q del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_04": "Fuente: columna R del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_05": "Fuente: columna S del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_06": "Fuente: columna T del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_07": "Fuente: columna U del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_08": "Fuente: columna V del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_09": "Fuente: columna W del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_10": "Fuente: columna X del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_11": "Fuente: columna Y del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_12": "Fuente: columna Z del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_13": "Fuente: columna AA del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_14": "Fuente: columna AB del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_15": "Fuente: columna AC del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_16": "Fuente: columna AD del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_17": "Fuente: columna AE del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante.",
+      "criterio_18": "Fuente: columna AF del Excel oficial. Revise obligatoriedad y saltos con el formulario original; esta configuración es editable. Confirme también las opciones que no aparecen en las respuestas exportadas. No sabe es una categoría propia, sin puntaje; no equivale a una respuesta faltante."
+    }
+  }
+]

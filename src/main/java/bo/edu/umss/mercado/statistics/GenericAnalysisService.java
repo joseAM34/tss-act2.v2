@@ -51,7 +51,8 @@ public class GenericAnalysisService {
     }
     @SuppressWarnings("unchecked")
     public Map<String, Object> calculate(Map<String, Object> logical) {
-        if (!GenericPreparationService.RULES.equals(logical.get("rules_version"))) throw new IllegalArgumentException("Contrato de preparación no compatible.");
+        if (!GenericPreparationService.supportedRules(logical.get("rules_version"))) throw new IllegalArgumentException("Contrato de preparación no compatible.");
+        boolean totals=GenericPreparationService.TOTAL_RULES.equals(logical.get("rules_version"));
         var matrix = (List<Map<String, Object>>) logical.get("matrix");
         var dictionary = (List<Map<String, Object>>) logical.get("dictionary");
         var variables = new ArrayList<Map<String, Object>>();
@@ -62,14 +63,17 @@ public class GenericAnalysisService {
             var options = (List<Map<String, Object>>) q.get("options");
             options.forEach(o -> frequencies.put((String) o.get("value"), 0));
             int mentions = 0;
-            for (var row : matrix) {
+            var available=totals?matrix.stream().filter(r->((Map<?,?>)r.get("states")).containsKey(key)).toList():matrix;
+            for (var row : available) {
                 var states = (Map<String, String>) row.get("states"); var values = (Map<String, Object>) row.get("values");
                 String state = states.get(key); Object value = values.get(key);
                 if ("NO_APLICA".equals(state)) { if (value != null) throw invalid(); notApplicable++; continue; }
                 if ("SIN_RESPUESTA".equals(state)) { if (value != null) throw invalid(); missing++; continue; }
                 if (!"CON_VALOR".equals(state) || value == null) throw invalid();
                 answered++;
-                if ("MAGNITUD_ENTERA".equals(q.get("treatment"))) {
+                if (totals && "COBERTURA".equals(q.get("treatment"))) {
+                    if (!Boolean.TRUE.equals(value)) throw invalid();
+                } else if ("MAGNITUD_ENTERA".equals(q.get("treatment"))) {
                     if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue()) || number.doubleValue() != Math.rint(number.doubleValue())) throw invalid();
                     numbers.add(number.doubleValue());
                 } else if ("NOMINAL".equals(q.get("treatment"))) {
@@ -79,23 +83,36 @@ public class GenericAnalysisService {
                 } else throw invalid();
             }
             var distribution = new ArrayList<Map<String, Object>>();
+            if (totals && "COBERTURA".equals(q.get("treatment"))) {
+                frequencies.put("CON_VALOR",answered);frequencies.put("SIN_RESPUESTA",missing);frequencies.put("NO_APLICA",notApplicable);
+                mentions=available.size();
+            }
             for (var option : options) {
                 int count = frequencies.get(option.get("value"));
                 distribution.add(map("code", option.get("value"), "label", option.get("label"), "count", count,
-                        "respondent_base", answered, "respondent_percent", percent(count, answered),
+                        "respondent_base", totals && "COBERTURA".equals(q.get("treatment"))?available.size():answered, "respondent_percent", percent(count, totals && "COBERTURA".equals(q.get("treatment"))?available.size():answered),
                         "mention_base", mentions, "mention_percent", percent(count, mentions)));
             }
             variables.add(map("question_id", key, "label", q.get("label"), "type", q.get("type"), "treatment", q.get("treatment"), "unit", q.get("unit"),
-                    "total", matrix.size(), "answered", answered, "missing", missing, "not_applicable", notApplicable,
+                    "total", available.size(), "answered", answered, "missing", missing, "not_applicable", notApplicable,
                     "applicable_base", answered + missing, "response_percent", percent(answered, answered + missing),
                     "mentions", mentions, "distribution", distribution, "numeric", "MAGNITUD_ENTERA".equals(q.get("treatment")) ? StatisticalMath.numeric(numbers) : null));
+            if(totals){var variable=variables.getLast();variable.put("source_versions",q.get("source_versions"));variable.put("coverage_only","COBERTURA".equals(q.get("treatment")));variable.put("original_type",q.get("original_type"));}
         }
-        return map("protocol", PROTOCOL, "preparation_rules", logical.get("rules_version"), "title", ((Map<String, Object>) logical.get("definition")).get("title"),
+        var result=map("protocol", PROTOCOL, "preparation_rules", logical.get("rules_version"), "title", ((Map<String, Object>) logical.get("definition")).get("title"),
                 "study_id", logical.get("study_id"), "survey_id", logical.get("survey_id"), "version_id", logical.get("version_id"),
                 "instrument_version", logical.get("instrument_version"), "publication_hash", logical.get("publication_hash"),
                 "config_id", logical.get("config_id"), "config_hash", logical.get("config_hash"), "origin", logical.get("origin"), "mode", logical.get("mode"),
                 "from_date", logical.get("from_date"), "until_date", logical.get("until_date"), "timezone", logical.get("timezone"),
                 "submission_count", matrix.size(), "variables", variables, "scope", "Descriptivos de envíos seleccionados; sin inferencia, índices ni comparabilidad automática.");
+        if(totals){
+            result.put("source_versions",((List<Map<String,Object>>)logical.get("source_versions")).stream().map(v->map("id",v.get("id"),"code",v.get("code"),"publication_hash",v.get("publication_hash"))).toList());
+            result.put("origin_counts",List.of("REAL","SINTETICO","NO_DECLARADO").stream().map(o->map("origin",o,"count",matrix.stream().filter(r->o.equals(r.get("origin"))).count())).toList());
+            if(!Boolean.TRUE.equals(logical.get("_stratum"))){
+                result.put("strata",List.of("REAL","SINTETICO","NO_DECLARADO").stream().map(origin->{var selected=new LinkedHashMap<>(logical);selected.put("matrix",matrix.stream().filter(r->origin.equals(r.get("origin"))).toList());selected.put("origin",origin);selected.put("_stratum",true);return calculate(selected);}).toList());
+            }
+        }
+        return result;
     }
     private Double percent(int count, int base) { return base == 0 ? null : 100d * count / base; }
     private static Map<String, Object> map(Object... pairs) {

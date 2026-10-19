@@ -18,6 +18,8 @@ import static bo.edu.umss.mercado.wrangling.WranglingEngine.map;
 @Service
 public class GenericPreparationService {
     public static final String RULES = "PREPARACION_GENERAL_V1";
+    public static final String TOTAL_RULES = "RESULTADOS_TOTALES_V1";
+    public static boolean supportedRules(Object rules) { return RULES.equals(rules) || TOTAL_RULES.equals(rules); }
     private static final ZoneId ZONE = ZoneId.of("America/La_Paz");
     private final JdbcTemplate jdbc;
     private final SurveyPublicationService publications;
@@ -212,7 +214,7 @@ public class GenericPreparationService {
     @SuppressWarnings("unchecked")
     public String persist(Map<String,Object> bundle) {
         var logical=(Map<String,Object>)bundle.get("logical");
-        if(!RULES.equals(logical.get("rules_version")) || !CanonicalJson.hash(logical).equals(bundle.get("logical_hash")))throw corrupt();
+        if(!supportedRules(logical.get("rules_version")) || !CanonicalJson.hash(logical).equals(bundle.get("logical_hash")))throw corrupt();
         String id=(String)bundle.get("run_id");
         jdbc.update("INSERT INTO survey_preparation_run (id, version_id, config_id, actor, created_at, bundle_json, bundle_hash, logical_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 id,logical.get("version_id"),logical.get("config_id"),actor((String)bundle.get("actor")),OffsetDateTime.parse((String)bundle.get("created_at")),CanonicalJson.json(bundle),CanonicalJson.hash(bundle),bundle.get("logical_hash"));
@@ -226,7 +228,7 @@ public class GenericPreparationService {
         if (!CanonicalJson.hash(bundle).equals(row.get("bundle_hash")) || !id.equals(bundle.get("run_id"))
                 || !CanonicalJson.hash(bundle.get("logical")).equals(row.get("logical_hash")) || !row.get("logical_hash").equals(bundle.get("logical_hash"))) throw corrupt();
         Map<String, Object> logical = (Map<String, Object>) bundle.get("logical");
-        if (!RULES.equals(logical.get("rules_version")) || !row.get("version_id").equals(logical.get("version_id")) || !row.get("config_id").equals(logical.get("config_id"))) throw corrupt();
+        if (!supportedRules(logical.get("rules_version")) || !row.get("version_id").equals(logical.get("version_id")) || !row.get("config_id").equals(logical.get("config_id"))) throw corrupt();
         return bundle;
     }
     public List<Summary> recent() {

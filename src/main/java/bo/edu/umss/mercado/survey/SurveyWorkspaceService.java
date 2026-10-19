@@ -17,7 +17,7 @@ public class SurveyWorkspaceService {
     private final JdbcTemplate jdbc;
     private final SurveyCatalog catalog;
     public SurveyWorkspaceService(JdbcTemplate jdbc, SurveyCatalog catalog) { this.jdbc = jdbc; this.catalog = catalog; }
-    public record Card(String slug, String title, String description, int versions, boolean draft, long responses, boolean legacy) {}
+    public record Card(String slug, String title, String description, int versions, boolean draft, long responses, boolean legacy, boolean archived) {}
     public record Version(String id, String code, String title, String description, String status, boolean active, long responses) {
         public boolean draft() { return status.equals("BORRADOR"); }
         public boolean published() { return status.equals("PUBLICADA"); }
@@ -35,16 +35,22 @@ public class SurveyWorkspaceService {
     public record Link(String title, String date, String path) {}
 
     public List<Card> all() {
+        return all(false);
+    }
+    public List<Card> all(boolean includeArchived) {
         var cards = new ArrayList<Card>();
         for (var s : catalog.all()) {
+            // Conserva acceso al historial original sin imponer formularios vacíos en instalaciones nuevas.
+            if (total(s.slug()) == 0) continue;
             var w = open(s.slug(), "");
             cards.add(new Card(s.slug(), s.title(), s.description(), w.versions().size(), false,
-                    total(s.slug()), true));
+                    total(s.slug()), true, false));
         }
-        for (String slug : jdbc.queryForList("SELECT slug FROM survey ORDER BY created_at DESC, id", String.class)) {
+        for (var row : jdbc.queryForList("SELECT slug, archived FROM survey WHERE archived = FALSE OR ? = TRUE ORDER BY created_at DESC, id", includeArchived)) {
+            String slug = (String) row.get("slug");
             var w = open(slug, "");
             cards.add(new Card(slug, w.title(), w.selected().description(),
-                    (int) w.versions().stream().filter(v -> !v.draft()).count(), !w.draftId().isEmpty(), total(slug), false));
+                    (int) w.versions().stream().filter(v -> !v.draft()).count(), !w.draftId().isEmpty(), total(slug), false, (Boolean) row.get("archived")));
         }
         return cards;
     }

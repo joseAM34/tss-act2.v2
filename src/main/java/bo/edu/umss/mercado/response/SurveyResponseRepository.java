@@ -70,7 +70,22 @@ public class SurveyResponseRepository {
         return store(version.content().definition(), token, validation, version);
     }
 
+    /** Solo para recepción administrativa documentada; la evidencia debe insertarse en la misma transacción. */
+    @Transactional
+    public String saveHistoricalImport(String versionId, String token, ValidationResult validation) {
+        if (!validation.valid()) throw new IllegalArgumentException("No se puede guardar una recepción con errores.");
+        var version = publications.lockForCapture(versionId);
+        var existing = responseIdForToken(token);
+        if (existing.isPresent()) return captures.verifyRetry(existing.get(), version.content().definition(), validation, false);
+        if (!"PUBLICADA".equals(version.status())) throw new ResponseStatusException(HttpStatus.GONE, "Esta versión está cerrada y no admite recepción.");
+        return store(version.content().definition(), token, validation, version, false);
+    }
+
     private String store(SurveyDefinition survey, String token, ValidationResult validation, SurveyPublicationService.Version publication) {
+        return store(survey, token, validation, publication, true);
+    }
+
+    private String store(SurveyDefinition survey, String token, ValidationResult validation, SurveyPublicationService.Version publication, boolean consent) {
         if (!validation.valid()) throw new IllegalArgumentException("No se puede guardar un formulario con errores.");
         Map<String, List<String>> answers = validation.answers();
         var questionIds = survey.questions().stream().map(Question::id).collect(Collectors.toSet());
@@ -90,19 +105,21 @@ public class SurveyResponseRepository {
         }
         var checkedValues = new LinkedMultiValueMap<String, String>();
         answers.forEach((key, values) -> checkedValues.put(key, List.copyOf(values)));
-        checkedValues.set("consent", "SI");
-        if (!new SurveyValidator().validate(survey, checkedValues).valid()) {
+        if (consent) checkedValues.set("consent", "SI");
+        var checked = consent ? new SurveyValidator().validate(survey, checkedValues)
+                : new SurveyValidator().validateHistorical(survey, checkedValues);
+        if (!checked.valid()) {
             throw new IllegalArgumentException("Los valores no cumplen las reglas de esta versión del instrumento.");
         }
         var existing = responseIdForToken(token);
-        if (existing.isPresent()) return captures.verifyRetry(existing.get(), survey, validation);
+        if (existing.isPresent()) return captures.verifyRetry(existing.get(), survey, validation, consent);
         String id = UUID.randomUUID().toString();
         OffsetDateTime submittedAt = OffsetDateTime.now(ZoneOffset.UTC).truncatedTo(java.time.temporal.ChronoUnit.MICROS);
         jdbc.update("""
                 INSERT INTO survey_response (id, submission_token, survey_slug, instrument_version, submitted_at, consent,
                     publication_version_id, dynamic_survey_id, publication_hash)
-                VALUES (?, ?, ?, ?, ?, TRUE, ?, ?, ?)
-                """, id, token, survey.slug(), survey.version(), submittedAt,
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, id, token, survey.slug(), survey.version(), submittedAt, consent ? Boolean.TRUE : null,
                 publication == null ? null : publication.id(), publication == null ? null : publication.surveyId(), publication == null ? null : publication.hash());
         List<Object[]> batch = new ArrayList<>();
         List<Object[]> stateBatch = new ArrayList<>();
@@ -125,7 +142,7 @@ public class SurveyResponseRepository {
                 INSERT INTO survey_question_state (response_id, question_id, question_index, question_label, answer_state)
                 VALUES (?, ?, ?, ?, ?)
                 """, stateBatch);
-        captures.persist(id, survey, validation, submittedAt);
+        captures.persist(id, survey, validation, submittedAt, consent);
         return id;
     }
 

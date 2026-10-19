@@ -15,6 +15,11 @@ public class SurveyWorkspaceAdvice {
     private final SurveyWorkspaceService workspaces;
     private final JdbcTemplate jdbc;
     public SurveyWorkspaceAdvice(SurveyWorkspaceService workspaces,JdbcTemplate jdbc) { this.workspaces=workspaces;this.jdbc=jdbc; }
+    @ModelAttribute("adminPresetTools")
+    boolean adminPresetTools(HttpServletRequest request) {
+        String path=request.getRequestURI().substring(request.getContextPath().length());
+        return request.isUserInRole("ADMIN") && (path.equals("/admin") || path.startsWith("/admin/"));
+    }
     @ModelAttribute
     void context(HttpServletRequest request,HttpServletResponse response,Model model) {
         String path=request.getRequestURI().substring(request.getContextPath().length());

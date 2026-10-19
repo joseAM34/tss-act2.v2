@@ -296,3 +296,36 @@ Autorizado con «luz verde». Guardar plantilla es opcional al generar; el nombr
 ### 2026-10-17 — Cierre técnico del generador (paso 8)
 
 Autorizado con «luz verde». Verificado el recorrido HTTP desde Resultados hasta reportes personalizados, plantilla opcional, descargas y reutilización en otro corte; se conserva idéntico el reporte anterior tras respuestas nuevas. Se corrigió el aviso de error de aplicación de plantilla para que la actualización de la vista previa no lo oculte. Estado y alcance en [ACEPTACION_GENERADOR_REPORTES.md](ACEPTACION_GENERADOR_REPORTES.md). El cierre no implica despliegue remoto, aceptación con usuarios finales, aprobación institucional ni finalización de otros entregables del proyecto.
+
+
+## 2026-10-18 — Encuestas predefinidas opcionales a partir de fuentes oficiales
+
+El usuario pidió que una instalación nueva empiece sin encuestas obligatorias y que una opción discreta en el pie de administración cree las oficiales como cualquier otra encuesta. Se conservan estructuras reutilizables de titulados (49 preguntas) y empleadores (30 preguntas, incluidos 18 criterios distintos), sin respuestas de campo. La denominación de fuente oficial no concede aprobación del estudio/instrumento. Los criterios 01–10 coinciden con el catálogo previo; los ocho adicionales no son las repeticiones eliminadas del PDF original.
+
+Las recetas se materializan mediante el editor ordinario. No se ejecutan al arrancar. Repetir una instalación conserva una copia original sin duplicarla; recuperar tras una edición crea otra encuesta y no sobrescribe la edición ni sus respuestas. Los borradores o encuestas sin datos se eliminan con confirmación concreta; aquellas con respuestas, importaciones o preparación se pueden archivar y restaurar, preservando sus originales. Archivar cierra recepción y no altera definiciones ni hashes.
+
+Las exportaciones no documentan toda la obligatoriedad, saltos ni opciones nunca seleccionadas: las plantillas parten como borradores opcionales, con revisión administrativa separada de las ayudas a participantes. Se preservan rangos, cuatro categorías de escala y selecciones múltiples; los contactos históricos se reciben como texto sin fabricar formatos válidos. La creación automática de encuestas arbitrarias desde archivos queda fuera de este incremento: el botón es un armador de estas dos estructuras conocidas.
+
+Se añade recepción histórica documentada para archivos sin columna de consentimiento, con revisión explícita, evidencia y ausencia de registro conservada (NULL en respuesta, recibo congelado verificable), independiente de la aceptación del participante. Los formularios públicos siguen exigiendo aceptación. El origen continúa NO_DECLARADO hasta revisión trazable. No se cargaron respuestas reales ni se migró Neon para esta entrega.
+
+Guía: [ENCUESTAS_PREDEFINIDAS.md](ENCUESTAS_PREDEFINIDAS.md); reglas de recepción: [IMPORTACION_HISTORICA.md](IMPORTACION_HISTORICA.md).
+
+## 2026-10-18 — Cargo observado incluido al crear empleadores
+
+El usuario prefirió que la encuesta predefinida admita desde su creación el cargo «Docentes» presente en la exportación, evitando una adaptación posterior de esa opción en cada importación. La receta de empleadores avanza a `2026-10-fuente-oficial-2` y añade `DOCENTES`, conservando los ocho cargos anteriores y su selección múltiple. Las notas administrativas distinguen esta categoría observada de una opción predefinida confirmada del formulario original; no se atribuye aprobación institucional. Establecer la receta actual crea una encuesta ordinaria nueva cuando solo existe la receta anterior, sin alterar sus publicaciones, respuestas ni originales.
+
+## 2026-10-19 — Eliminar encuestas con descarga previa de respaldo
+
+El usuario autorizó agilizar la eliminación incluso cuando hay datos, mediante un respaldo descargable. La gestión ofrece descarga ZIP y confirmación explícita de que se guardó antes del borrado definitivo. La descarga por sí sola conserva la encuesta. Se exige la misma cuenta administrativa, una constancia de respaldo reciente y una huella completa idéntica; las modificaciones posteriores obligan a descargar otro respaldo. El borrado y su auditoría son una sola transacción.
+
+El ZIP conserva filas originales, versiones, capturas, estados, revisiones, importaciones y archivos originales, preparación y productos propios. El estudio, las plantillas reutilizables y los conjuntos históricos compartidos se conservan para no alterar otras encuestas ni sus huellas. El respaldo enumera sus referencias. La constancia V20 guarda únicamente identificadores, fechas y huellas, sin respuestas ni copias de archivos. El ZIP permite recuperación técnica, no restauración automática desde el importador. Ver [ELIMINACION_CON_RESPALDO.md](ELIMINACION_CON_RESPALDO.md).
+
+## 2026-10-19 — Resultados unificados y cortes por tiempo y versiones
+
+El usuario autorizó reunir Respuestas y Resultados bajo Resultados, mantener Ver envíos para la consulta individual y renombrar Reportes y plantillas como Reportes. El total comprende todos los envíos de la versión seleccionada; se carga por sesión y se actualiza únicamente con el botón explícito. Cambiar representaciones conserva las cifras cargadas y permite varias simultáneas.
+
+Los cortes se delimitan por recepción inclusiva en hora de Bolivia y por una, varias o todas las versiones de la misma encuesta. Las definiciones incompatibles permanecen separadas. Un corte guardado es inmutable; actualizar su vista permite crear otro. La generación directa del reporte congela internamente la vista mostrada sin exigir guardar un corte previamente. Los totales conservan estratos por origen y alcance descriptivo. La eliminación confirmada de un corte conserva los envíos originales. Especificación y límites: [RESULTADOS_Y_CORTES.md](RESULTADOS_Y_CORTES.md).
+
+- 2026-10-19: el usuario autorizó diccionario global y diccionario privado por pregunta, comunes a Resultados y Reportes. El privado reemplaza al global en esa pregunta y conserva trazabilidad por encuesta/definición; no mezcla sus equivalencias con otras preguntas. Los alias solo numéricos se aplican únicamente en contexto privado. La elección se confirma al guardar y se congela en cada reporte. Se corrige el falso bloqueo de nombre del programa como campo identificativo.
+
+- 2026-10-19: el usuario autorizó unificar creación y uso de plantillas con el personalizador actual de reportes. Al usarlas se elige total de una versión o corte guardado. Se implementan edición, duplicación editable y eliminación de plantillas, conservando reportes ya generados. Las plantillas no trasladan datos ni autorizaciones sensibles. Las anteriores se adaptan al editor actual sin alterar sus revisiones históricas. Véase docs/PLANTILLAS_REPORTES.md.

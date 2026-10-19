@@ -7,7 +7,7 @@
       <span class="badge badge-neutral" th:text="${workspace.selected.label()}"></span>
     </div>
     <nav class="workspace-tabs" aria-label="Secciones de la encuesta">
-      <a th:each="item : ${ {'resumen','versiones','respuestas','resultados','importar','reportes'} }" th:href="${workspace.link(item)}" th:attr="aria-current=${workspaceSection == item ? 'page' : null}" th:text="${item == 'reportes' ? 'Reportes y plantillas' : #strings.capitalize(item)}"></a>
+      <a th:each="item : ${ {'resumen','versiones','resultados','importar','reportes'} }" th:href="${workspace.link(item)}" th:attr="aria-current=${(workspaceSection == item or (workspaceSection == 'respuestas' and item == 'resultados')) ? 'page' : null}" th:text="${item == 'reportes' ? 'Reportes' : #strings.capitalize(item)}"></a>
     </nav>
   </div>
 </section>

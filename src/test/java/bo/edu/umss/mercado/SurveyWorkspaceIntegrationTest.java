@@ -63,7 +63,7 @@ class SurveyWorkspaceIntegrationTest {
         mvc.perform(get("/admin/espacio")).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store"))
                 .andExpect(content().string(containsString("Mis encuestas"))).andExpect(content().string(containsString("Solo borrador")))
                 .andExpect(content().string(not(containsString("<script>alert(1)</script>"))));
-        assertThat(spaces.all()).anyMatch(c->c.slug().equals("titulados")).anyMatch(c->c.slug().equals(drafts.get(draft).slug()));
+        assertThat(spaces.all()).noneMatch(c->c.slug().equals("titulados")).anyMatch(c->c.slug().equals(drafts.get(draft).slug()));
     }
     @Test void defaultsToActiveAndRejectsForeignVersion() throws Exception {
         assertThat(spaces.open(slug,"").selected().id()).isEqualTo(second);
@@ -146,7 +146,7 @@ class SurveyWorkspaceIntegrationTest {
         mvc.perform(get("/admin/espacio/"+slug+"/resultados").param("version","v1")).andExpect(status().isOk())
                 .andExpect(content().string(containsString(a))).andExpect(content().string(not(containsString(a2))));
         for(String path:List.of("/admin/preparacion?versionId="+first,"/admin/preparacion/conjuntos/"+p,"/admin/analisis-general/"+a,"/admin/reportes/"+report,"/admin/respuestas/"+firstResponse,"/admin/encuestas/versiones/"+first)) {
-            mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().string(containsString("/respuestas?version=v1")));
+            mvc.perform(get(path)).andExpect(status().isOk()).andExpect(content().string(containsString("/resultados?version=v1")));
         }
     }
     @Test void versionSelectionDoesNotLeakBetweenTabsOrSurveys() throws Exception {

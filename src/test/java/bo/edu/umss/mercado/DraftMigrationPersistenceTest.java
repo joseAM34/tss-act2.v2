@@ -47,7 +47,7 @@ class DraftMigrationPersistenceTest {
             var analyses = new bo.edu.umss.mercado.statistics.GenericAnalysisService(jdbc, preparation);
             analysisId = analyses.create(runId, "admin");
             originalAnalysis = bo.edu.umss.mercado.data.CanonicalJson.json(analyses.get(analysisId));
-            var reportService = new bo.edu.umss.mercado.reporting.ReportService(jdbc, analyses, new bo.edu.umss.mercado.statistics.GenericCrossService(jdbc, preparation), preparation);
+            var reportService = new bo.edu.umss.mercado.reporting.ReportService(jdbc, analyses, new bo.edu.umss.mercado.statistics.GenericCrossService(jdbc, preparation), preparation, new bo.edu.umss.mercado.reporting.ReportTextProjection(new bo.edu.umss.mercado.data.CaptureStore(jdbc, registry)),new bo.edu.umss.mercado.statistics.TextDictionaryService(jdbc));
             String templateId = reportService.createTemplate(new bo.edu.umss.mercado.reporting.ReportService.Template("Reporte persistente", "Prueba", java.util.List.of("CONTEXTO", "DESCRIPTIVOS", "COMENTARIOS"), false), "admin");
             reportId = reportService.generate(reportService.latest(templateId).id(), analysisId, java.util.List.of(), "Comentario persistente", "admin");
             originalReport = bo.edu.umss.mercado.data.CanonicalJson.json(reportService.get(reportId));
@@ -71,7 +71,7 @@ class DraftMigrationPersistenceTest {
             assertThat(bo.edu.umss.mercado.data.CanonicalJson.json(preparation.bundle(runId))).isEqualTo(originalBundle);
             var analyses = new bo.edu.umss.mercado.statistics.GenericAnalysisService(jdbc, preparation);
             assertThat(bo.edu.umss.mercado.data.CanonicalJson.json(analyses.get(analysisId))).isEqualTo(originalAnalysis);
-            var reportService = new bo.edu.umss.mercado.reporting.ReportService(jdbc, analyses, new bo.edu.umss.mercado.statistics.GenericCrossService(jdbc, preparation), preparation);
+            var reportService = new bo.edu.umss.mercado.reporting.ReportService(jdbc, analyses, new bo.edu.umss.mercado.statistics.GenericCrossService(jdbc, preparation), preparation, new bo.edu.umss.mercado.reporting.ReportTextProjection(new bo.edu.umss.mercado.data.CaptureStore(jdbc, registry)),new bo.edu.umss.mercado.statistics.TextDictionaryService(jdbc));
             assertThat(bo.edu.umss.mercado.data.CanonicalJson.json(reportService.get(reportId))).isEqualTo(originalReport);
             var captures = new bo.edu.umss.mercado.data.CaptureStore(jdbc, registry);
             var csv = new bo.edu.umss.mercado.importing.CsvImportService(jdbc, publications, new bo.edu.umss.mercado.response.SurveyResponseRepository(jdbc, catalog, captures, publications), captures, new bo.edu.umss.mercado.survey.SurveyValidator());

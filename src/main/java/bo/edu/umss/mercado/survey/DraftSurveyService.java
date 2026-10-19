@@ -53,7 +53,7 @@ public class DraftSurveyService {
         return jdbc.query("""
                 SELECT v.id, v.title, v.revision, v.updated_at,
                        (SELECT COUNT(*) FROM survey_question q WHERE q.version_id = v.id) AS question_count
-                FROM survey_version v WHERE v.status = 'BORRADOR' ORDER BY v.updated_at DESC, v.id
+                FROM survey_version v JOIN survey s ON s.id=v.survey_id WHERE s.archived=FALSE AND v.status = 'BORRADOR' ORDER BY v.updated_at DESC, v.id
                 """, (rs, n) -> new Summary(rs.getString("id"), rs.getString("title"), rs.getLong("revision"),
                 rs.getInt("question_count"), rs.getObject("updated_at", OffsetDateTime.class).toString()));
     }
@@ -112,6 +112,19 @@ public class DraftSurveyService {
         }
         return insert(copyTitle(source.title()), source.description(), source.slug(), source.version(),
                 List.copyOf(sections.values()), items, actor, "COPIAR_CATALOGO");
+    }
+
+    /** Materializes a reusable definition as an ordinary editable survey. No responses are copied. */
+    @Transactional
+    public String fromTemplate(SurveyDefinition source, String actor) {
+        var sections = new LinkedHashMap<String, Section>();
+        var items = new ArrayList<Item>();
+        for (Question question : source.questions()) {
+            var section = sections.computeIfAbsent(question.section(), title -> new Section(uuid(), title));
+            items.add(new Item(section.id(), question));
+        }
+        return insert(source.title(), source.description(), source.slug(), source.version(),
+                List.copyOf(sections.values()), items, actor, "CREAR_PREDEFINIDA");
     }
 
     @Transactional
@@ -235,6 +248,8 @@ public class DraftSurveyService {
     }
 
     private void save(Draft d, long expected, String actor, String operation) {
+        var state=jdbc.queryForMap("SELECT * FROM survey WHERE id=? FOR UPDATE",d.surveyId());
+        if(Boolean.TRUE.equals(state.get("archived")))throw new ResponseStatusException(HttpStatus.CONFLICT,"Restaura la encuesta archivada antes de editarla.");
         if (d.revision() != expected) throw conflict();
         validate(d, actor);
         int changed = jdbc.update("""

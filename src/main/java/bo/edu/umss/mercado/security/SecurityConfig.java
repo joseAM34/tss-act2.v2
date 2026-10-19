@@ -25,7 +25,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/encuestas/**", "/configuracion-inicial").permitAll()
                         .requestMatchers("/admin", "/admin/**").hasRole("ADMIN")
                         .anyRequest().denyAll())
-                .formLogin(form -> form.loginPage("/login").defaultSuccessUrl("/admin", true).permitAll())
+                .formLogin(form -> form.loginPage("/login").successHandler((request,response,authentication)->{
+                    var session=request.getSession(false);
+                    if(session!=null){session.removeAttribute("workspaceResultsCache");session.removeAttribute("workspaceReportPreferences");}
+                    response.sendRedirect(request.getContextPath()+"/admin");
+                }).permitAll())
                 .logout(logout -> logout.logoutSuccessUrl("/login?logout"))
                 .headers(headers -> headers.contentSecurityPolicy(csp -> csp.policyDirectives(
                         "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; "

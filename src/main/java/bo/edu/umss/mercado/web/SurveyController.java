@@ -46,8 +46,7 @@ public class SurveyController {
 
     @GetMapping("/")
     String home(Model model) {
-        var available = new java.util.ArrayList<>(catalog.all()); available.addAll(publications.activeDefinitions());
-        model.addAttribute("surveys", available);
+        model.addAttribute("surveys", publications.activeDefinitions());
         return "home";
     }
 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Gestionar encuesta')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main survey-management" id="contenido" th:with="s=${surveyManagement}">
+  <a class="text-link" th:href="@{/admin/espacio/{slug}(slug=${s.slug})}">← Volver a la encuesta</a>
+  <p class="eyebrow">Gestionar encuesta</p><h1 th:text="${s.title}"></h1>
+  <p class="page-intro" th:text="${s.versions + ' versiones · ' + s.responses + ' envíos'}"></p>
+  <section class="review-card" th:if="${!s.archived}"><h2>Archivar encuesta</h2>
+    <p>La retira del listado habitual y cierra todas sus versiones en recepción. Conserva respuestas, importaciones, análisis y reportes.</p>
+    <p>Puedes restaurar su espacio después. Las versiones cerradas seguirán cerradas; para recibir respuestas prepara y publica una nueva versión.</p>
+    <form th:action="@{/admin/espacio/{slug}/gestion/archivar(slug=${s.slug})}" method="post">
+      <input type="hidden" name="expectedHash" th:value="${s.hash}"><button class="button button-outline" type="submit">Archivar encuesta</button>
+    </form>
+  </section>
+  <section class="review-card" th:if="${s.archived}"><h2>Encuesta archivada</h2>
+    <p>Recupera su espacio en el listado habitual. Las versiones cerradas conservan sus datos y no se reabren automáticamente.</p>
+    <form th:action="@{/admin/espacio/{slug}/gestion/restaurar(slug=${s.slug})}" method="post">
+      <input type="hidden" name="expectedHash" th:value="${s.hash}"><button class="button button-primary" type="submit">Restaurar encuesta</button>
+    </form>
+  </section>
+  <section class="review-card"><h2 th:text="${s.deletable ? 'Eliminar encuesta sin datos' : 'Respaldar y eliminar encuesta'}"></h2>
+    <th:block th:if="${s.deletable}">
+      <p>Elimina esta encuesta y sus borradores o publicaciones vacías. No tiene respuestas, importaciones ni configuraciones de preparación asociadas.</p>
+      <form class="data-form" th:action="@{/admin/espacio/{slug}/gestion/eliminar(slug=${s.slug})}" method="post">
+        <input type="hidden" name="expectedHash" th:value="${s.hash}">
+        <label class="checkbox-label"><input type="checkbox" name="confirm" value="true" required> Confirmo que quiero eliminar esta encuesta sin datos.</label>
+        <button class="button button-outline" type="submit">Eliminar encuesta</button>
+      </form>
+    </th:block>
+    <div th:unless="${s.deletable}" data-survey-deletion>
+      <p>Descarga un respaldo ZIP con respuestas, versiones, archivos originales, preparación, análisis y reportes. Después confirma que lo guardaste para eliminar la encuesta y sus datos.</p>
+      <p th:text="${s.responses + ' envíos · ' + s.imports + ' lotes · ' + s.workbooks + ' libros Excel · ' + s.preparations + ' conjuntos preparados'}"></p>
+      <form th:action="@{/admin/espacio/{slug}/gestion/respaldo.zip(slug=${s.slug})}" method="post" data-survey-backup>
+        <input type="hidden" name="expectedHash" th:value="${s.hash}">
+        <button class="button button-outline" type="submit">1. Descargar respaldo ZIP</button>
+      </form>
+      <p data-backup-status role="status" aria-live="polite" th:text="${backupReceipt == null ? 'La descarga prepara el respaldo; la encuesta se conserva hasta que confirmes la eliminación.' : 'Hay un respaldo preparado con tu cuenta. Comprueba que el ZIP se guardó completo antes de eliminar.'}"></p>
+      <form class="data-form" th:action="@{/admin/espacio/{slug}/gestion/eliminar-con-respaldo(slug=${s.slug})}" method="post" data-delete-with-backup th:hidden="${backupReceipt == null}">
+        <input type="hidden" name="expectedHash" th:value="${s.hash}">
+        <input type="hidden" name="backupId" th:value="${backupReceipt == null ? '' : backupReceipt.id}">
+        <label class="checkbox-label"><input type="checkbox" name="confirm" value="true" required> Guardé el respaldo ZIP y confirmo la eliminación definitiva de esta encuesta y sus datos.</label>
+        <button class="button button-outline" type="submit">2. Eliminar definitivamente</button>
+      </form>
+      <noscript><p>Después de guardar el ZIP, vuelve a cargar esta pantalla para confirmar la eliminación.</p></noscript>
+      <details><summary>Qué contiene y qué se conserva</summary><p>El ZIP incluye los datos originales en JSON, una tabla CSV de lectura y los archivos importados. Permite recuperación técnica; no se restaura automáticamente desde la pantalla de importación.</p><p>Las plantillas reutilizables, la constancia administrativa y los conjuntos históricos compartidos con otras encuestas se conservan. El respaldo indica sus referencias. Si los datos cambian después de la descarga, tendrás que descargar un respaldo actualizado.</p></details>
+    </div>
+  </section>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer><script defer th:src="@{/js/survey-management.js}"></script></body></html>

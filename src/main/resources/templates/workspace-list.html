@@ -5,12 +5,15 @@
 <main class="container page-main" id="contenido">
   <div class="workspace-heading"><div><p class="eyebrow">Tu espacio de trabajo</p><h1>Mis encuestas</h1><p class="page-intro">Elige una encuesta para gestionar sus versiones, respuestas y resultados.</p></div><a class="button button-primary" href="#crear-encuesta">＋ Crear encuesta</a></div>
   <div class="alert alert-error" role="alert" th:if="${error != null}" th:text="${error}"></div>
+  <p><a class="text-link" th:if="${includeArchived != true}" th:href="@{/admin/espacio(archivadas=true)}">Mostrar también encuestas archivadas</a><a class="text-link" th:if="${includeArchived == true}" th:href="@{/admin/espacio}">Ocultar encuestas archivadas</a></p>
+  <p class="page-intro" th:if="${#lists.isEmpty(surveyCards)}">Aún no hay encuestas. Crea una para empezar.</p>
   <div class="workspace-cards">
     <article class="workspace-card" th:each="s : ${surveyCards}">
-      <div class="workspace-card-top"><span class="workspace-symbol" aria-hidden="true">▤</span><span class="badge badge-neutral" th:text="${s.legacy ? 'Cuestionario UMSS' : 'Encuesta editable'}"></span></div>
+      <div class="workspace-card-top"><span class="workspace-symbol" aria-hidden="true">▤</span><span class="badge badge-neutral" th:text="${s.archived ? 'Archivada' : s.legacy ? 'Historial original' : 'Encuesta editable'}"></span></div>
       <h2 th:text="${s.title}"></h2><p th:text="${s.description}"></p>
       <div class="workspace-meta"><span th:text="${s.versions + ' versiones'}"></span><span th:if="${s.draft}">Borrador disponible</span><span th:text="${s.responses + ' envíos'}"></span></div>
       <a class="button button-primary" th:href="@{/admin/espacio/{slug}(slug=${s.slug})}">Abrir encuesta →</a>
+      <a class="text-link" th:if="${!s.legacy}" th:href="@{/admin/espacio/{slug}/gestion(slug=${s.slug})}" th:text="${s.archived ? 'Restaurar o gestionar' : 'Archivar o eliminar'}"></a>
     </article>
   </div>
   <section class="review-card" id="crear-encuesta"><h2>Crear una encuesta</h2><p>Empieza con un borrador. También puedes abrir una encuesta y crear una variante desde sus versiones.</p>

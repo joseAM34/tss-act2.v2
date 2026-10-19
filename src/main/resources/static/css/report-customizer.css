@@ -11,3 +11,4 @@
 @media(max-width:760px){#custom-form .custom-scroll{height:85dvh;min-height:360px}}
 
 #custom-crosses .custom-choice>[data-cross]{flex:1;min-width:0}#custom-crosses .remove-report-cross{flex-shrink:0;font-size:.7rem;padding:5px 7px;color:#8c3d29;border:1px solid #decac2;border-radius:4px}#custom-crosses .restore-report-cross{font-size:.75rem;padding:6px;border:0;background:transparent;text-decoration:underline}.numeric-summary{max-width:520px}.numeric-summary tbody th{font-weight:500}
+.report-text-split{display:flex;flex-direction:column;width:65px}.report-representations .report-text-split button{border-radius:4px 4px 0 0;flex:1}.report-text-split a.button{display:block;width:65px;min-height:22px;padding:2px;text-align:center;font-size:.8rem;line-height:1.2;border-radius:0 0 4px 4px;border-top:0}

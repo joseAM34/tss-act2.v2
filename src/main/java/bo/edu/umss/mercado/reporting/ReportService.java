@@ -25,8 +25,11 @@ public class ReportService {
     private final GenericAnalysisService analyses;
     private final GenericCrossService crosses;
     private final GenericPreparationService preparation;
-    public ReportService(JdbcTemplate jdbc, GenericAnalysisService analyses, GenericCrossService crosses, GenericPreparationService preparation) {
+    private final ReportTextProjection textProjection;
+    private final bo.edu.umss.mercado.statistics.TextDictionaryService textDictionary;
+    public ReportService(JdbcTemplate jdbc, GenericAnalysisService analyses, GenericCrossService crosses, GenericPreparationService preparation,ReportTextProjection textProjection,bo.edu.umss.mercado.statistics.TextDictionaryService textDictionary) {
         this.jdbc = jdbc; this.analyses = analyses; this.crosses = crosses; this.preparation = preparation;
+        this.textProjection=textProjection;this.textDictionary=textDictionary;
     }
     @Transactional
     public String createTemplate(Template definition, String actor) {
@@ -125,18 +128,38 @@ public class ReportService {
     public Map<String,Object> advancedData(String analysisId){
         var analysis=analyses.get(analysisId);
         var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
-        return map("result",enrichedAnalysis(analysis).get("result"),"options",ReportAdvancedProjection.options(logical));
+        var dictionary=textDictionary.global();analysis=enrichedAnalysis(analysis);
+        return map("result",textProjection.enrich((Map<String,Object>)analysis.get("result"),logical,dictionary.rules(),dictionary.revision(),Set.of(),Set.of(),textDictionary.selections(logical),false),"options",ReportAdvancedProjection.options(logical));
+    }
+    @Transactional(readOnly=true)
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> dictionaryLogical(String analysisId,String questionId,boolean sensitiveAcknowledged){dictionaryContext(analysisId,questionId,sensitiveAcknowledged);return (Map<String,Object>)preparation.bundle((String)analyses.get(analysisId).get("preparation_id")).get("logical");}
+    @Transactional(readOnly=true)
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> dictionaryContext(String analysisId,String questionId,boolean sensitiveAcknowledged){
+        var analysis=analyses.get(analysisId);var bundle=preparation.bundle((String)analysis.get("preparation_id"));
+        var dictionary=textDictionary.global();var result=textProjection.enrich((Map<String,Object>)analysis.get("result"),(Map<String,Object>)bundle.get("logical"),dictionary.rules(),dictionary.revision(),Set.of(questionId),sensitiveAcknowledged?Set.of(questionId):Set.of(),textDictionary.selections((Map<String,Object>)bundle.get("logical")),false);
+        var variable=((List<Map<String,Object>>)result.get("variables")).stream().filter(v->questionId.equals(v.get("question_id"))&&v.containsKey("text_content")).findFirst().orElseThrow(()->new IllegalArgumentException("Esta pregunta no admite gestión de texto."));
+        return map("label",variable.get("label"),"sensitive",Boolean.TRUE.equals(variable.get("sensitive_text")),"terms",bo.edu.umss.mercado.statistics.TextDictionaryService.extract((List<String>)variable.get("text_content")));
     }
     @Transactional(readOnly=true)
     public Map<String,Object> preview(ReportCustomization.Configuration config,String actor) {
         if(config==null)throw new IllegalArgumentException("Configuración vacía.");
-        var analysis=analyses.get(config.analysisId());if(ReportCustomization.advanced(config))analysis=enrichedAnalysis(analysis);ReportCustomization.validate(config,analysis);
+        var analysis=analyses.get(config.analysisId());if(ReportCustomization.advanced(config))analysis=enrichedAnalysis(analysis);
+        var dictionary=textDictionary.global();
+        @SuppressWarnings("unchecked") var textLogical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
+        analysis=new LinkedHashMap<>(analysis);
+        @SuppressWarnings("unchecked") var textResult=(Map<String,Object>)analysis.get("result");
+        var textSelections=textDictionary.selections(textLogical);analysis.put("result",textProjection.enrich(textResult,textLogical,dictionary.rules(),dictionary.revision(),ReportCustomization.originalQuestions(config),ReportCustomization.sensitiveQuestions(config),textSelections,false));
+        ReportCustomization.validate(config,analysis);
         if(config.crossSettings()!=null)for(var setting:config.crossSettings()){
             if(!analysis.get("preparation_id").equals(crosses.get(setting.id()).get("preparation_id")))throw new IllegalArgumentException("La presentación del cruce no pertenece al conjunto del análisis.");
         }
         var definition=ReportCustomization.template(config);
         var content=build(new Revision(null,null,0,actor,"",CanonicalJson.hash(definition),definition),config.analysisId(),config.crossIds(),config.comment(),actor);
         content.put("format","REPORTE_HTML_V3");content.put("presentation",config);content.put("display_result",ReportCustomization.display(config,analysis));
+        content.put("text_dictionary",map("revision",dictionary.revision(),"rules",dictionary.rules(),"hash",CanonicalJson.hash(dictionary.rules())));
+        content.put("text_projection_version",3);content.put("text_dictionaries",textSelections);
         if(config.crossSettings()!=null){
             content.put("format","REPORTE_HTML_V4");
             @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
@@ -187,6 +210,12 @@ public class ReportService {
             boolean advanced="REPORTE_HTML_V6".equals(content.get("format"));
             if(advanced!=ReportCustomization.advanced(config))throw corrupt();
             if(advanced)analysis=enrichedAnalysis(analysis);
+            if(content.get("text_dictionary") instanceof Map<?,?> dictionary){
+                String rules=(String)dictionary.get("rules");if(!CanonicalJson.hash(rules).equals(dictionary.get("hash")))throw corrupt();
+                var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
+                analysis=new LinkedHashMap<>(analysis);analysis.put("result",textProjection.enrich((Map<String,Object>)analysis.get("result"),logical,rules,((Number)dictionary.get("revision")).intValue(),ReportCustomization.originalQuestions(config),ReportCustomization.sensitiveQuestions(config),(Map<String,Map<String,Object>>)content.getOrDefault("text_dictionaries",Map.of()),!content.containsKey("text_projection_version")||((Number)content.get("text_projection_version")).intValue()<3));
+                if(!content.containsKey("text_projection_version"))for(var v:(List<Map<String,Object>>)((Map<?,?>)analysis.get("result")).get("variables")){v.remove("text_available");v.remove("sensitive_text");}
+            }
             ReportCustomization.validate(config,analysis);
             if(!advanced&&ReportCustomization.multiple(config)!= "REPORTE_HTML_V5".equals(content.get("format")))throw corrupt();
             if(advanced){var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");if(!CanonicalJson.hash(ReportAdvancedProjection.charts(config,logical)).equals(CanonicalJson.hash(content.get("advanced_charts"))))throw corrupt();}

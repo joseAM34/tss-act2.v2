@@ -14,6 +14,13 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class CsvImportService {
+    public static final String HISTORICAL_VALUE="RECEPCION_HISTORICA_V1";
+    public static final String HISTORICAL_ACK="RECEPCION_HISTORICA_DOCUMENTADA_V1: Recibí este archivo histórico para revisión y análisis académico. La fuente no registra una aceptación individual; esta recepción administrativa no afirma consentimiento ni aprobación institucional.";
+    public static boolean historical(Mapping mapping) {
+        return mapping.consentColumn()==-2 && HISTORICAL_VALUE.equals(mapping.consentValue())
+                && mapping.consentEvidence()!=null && (mapping.consentEvidence().equals(HISTORICAL_ACK)
+                || mapping.consentEvidence().startsWith(HISTORICAL_ACK+"\nReferencia: "));
+    }
     public record Column(String questionId,int index) {}
     public record Mapping(List<Column> columns,int consentColumn,String consentValue,int dateColumn,int externalIdColumn,
                           String optionMode,String multipleSeparator,boolean compatible,String compatibilityEvidence,String consentEvidence) {
@@ -101,27 +108,31 @@ public class CsvImportService {
             Column c=m.columns().get(i); if(!questions.get(i).id().equals(c.questionId())) throw invalid("La correspondencia no pertenece a esta versión.");
             index(c.index(),n); if(c.index()>=0 && !used.add(c.index())) throw invalid("Una columna no puede asignarse a dos campos.");
         }
-        for(int c:List.of(m.consentColumn(),m.dateColumn(),m.externalIdColumn())) { index(c,n); if(c>=0 && !used.add(c)) throw invalid("Una columna no puede asignarse a dos campos."); }
+        if(m.consentColumn()==-2 && !historical(m)) throw invalid("La recepción histórica requiere su declaración administrativa explícita; no equivale a consentimiento.");
+        if(!historical(m)) index(m.consentColumn(),n);
+        index(m.dateColumn(),n); index(m.externalIdColumn(),n);
+        for(int c:List.of(m.consentColumn(),m.dateColumn(),m.externalIdColumn())) if(c>=0 && !used.add(c)) throw invalid("Una columna no puede asignarse a dos campos.");
         text(m.consentValue(),80,true); text(m.compatibilityEvidence(),2000,false); text(m.consentEvidence(),2000,false);
         require(Set.of("CODIGOS","ETIQUETAS","AUTO"),m.optionMode(),"Representación de opciones no admitida.");
-        if(m.multipleSeparator()==null || !Set.of("","|",";",",","AUTO").contains(m.multipleSeparator())) throw invalid("Separador de selección múltiple no admitido.");
+        if(m.multipleSeparator()==null || !Set.of("","|",";",",","AUTO","JSON","MIXTO_V1").contains(m.multipleSeparator())) throw invalid("Separador de selección múltiple no admitido.");
     }
     public Preview preview(String batchId,String revisionId) {
         var b=batch(batchId); var revision=revision(batchId,revisionId); var m=revision.mapping(); var version=publications.get(b.versionId()); validate(m,b,version);
         var issues=new ArrayList<String>();
         if(!m.compatible() || m.compatibilityEvidence().isBlank()) issues.add("Falta revisión documentada de preguntas, opciones, unidades, obligatoriedad y condiciones del instrumento externo.");
-        if(m.consentColumn()<0 || m.consentEvidence().isBlank()) issues.add("Falta columna y evidencia de consentimiento académico en la fuente. El lote solo puede conservarse para revisión.");
+        boolean historical=historical(m);
+        if(!historical && (m.consentColumn()<0 || m.consentEvidence().isBlank())) issues.add("Falta columna y evidencia de consentimiento académico en la fuente. El lote solo puede conservarse para revisión.");
         if(m.columns().stream().anyMatch(c -> c.index()<0)) issues.add("Todas las preguntas, incluidas las opcionales, requieren columna de origen; no se infieren estados de campos no recolectados.");
         var rows=new ArrayList<Row>(); var seenIds=new HashSet<String>(); var rowHashes=new HashSet<String>();
         var questions=version.content().definition().questions();
         for(int i=1;i<b.table().size();i++) {
             var cells=b.table().get(i); rowHashes.add(CanonicalJson.hash(cells)); var fields=new LinkedMultiValueMap<String,String>(); var errors=new LinkedHashMap<String,String>();
             String consent=cell(cells,m.consentColumn()).strip();
-            fields.set("consent",consent.equals(m.consentValue())?"SI":"");
+            if(!historical) fields.set("consent",consent.equals(m.consentValue())?"SI":"");
             for(int q=0;q<questions.size();q++) {
                 var question=questions.get(q); String raw=cell(cells,m.columns().get(q).index()); if(raw.isBlank()) continue;
                 // Las revisiones anteriores conservan su conversión y huellas exactamente.
-                if(m.optionMode().equals("AUTO") || m.multipleSeparator().equals("AUTO")) {
+                if(m.optionMode().equals("AUTO") || Set.of("AUTO","JSON","MIXTO_V1").contains(m.multipleSeparator())) {
                     try {fields.put(question.id(),question.options().isEmpty()?List.of(question.type().equals("number")?raw.strip():raw):ImportSuggestions.options(question,raw,m.optionMode(),m.multipleSeparator()));}
                     catch(IllegalArgumentException ex){errors.put(question.id(),ex.getMessage());}
                 } else {
@@ -140,7 +151,7 @@ public class CsvImportService {
                     fields.put(question.id(),converted);
                 }
             }
-            var validation=validator.validate(version.content().definition(),fields); validation.errors().forEach(errors::putIfAbsent);
+            var validation=historical?validator.validateHistorical(version.content().definition(),fields):validator.validate(version.content().definition(),fields); validation.errors().forEach(errors::putIfAbsent);
             for(int q=0;q<questions.size();q++) if(validation.states().get(questions.get(q).id())==AnswerState.NO_APLICA && !cell(cells,m.columns().get(q).index()).isBlank()) errors.put(questions.get(q).id(),"La fuente trae un valor aunque la condición declarada indica No aplica; no se descarta automáticamente.");
             String date=cell(cells,m.dateColumn());
             if(!date.isBlank()) try { OffsetDateTime.parse(date.strip()); } catch(java.time.format.DateTimeParseException ex) { errors.put("_fecha","La fecha externa requiere ISO 8601 con zona, o deja esa columna sin interpretar."); }
@@ -176,18 +187,21 @@ public class CsvImportService {
         actor=text(actor,100,true); var mapping=revision(batchId,revisionId);
         for(Row row:preview.rows()) {
             String token=UUID.nameUUIDFromBytes(("csv:"+batchId+":"+row.number()).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
-            String id=responses.savePublished(b.versionId(),token,row.validation()); var capture=captures.input(id);
+            boolean historical=historical(mapping.mapping());
+            String id=historical?responses.saveHistoricalImport(b.versionId(),token,row.validation()):responses.savePublished(b.versionId(),token,row.validation());
+            String captureHash=jdbc.queryForObject("SELECT capture_hash FROM response_capture WHERE response_id=?",String.class,id);
             String rawHash=CanonicalJson.hash(row.cells());
             var evidence=map("batch_id",batchId,"mapping_id",revisionId,"row_number",row.number(),"response_id",id,"source_hash",b.sourceHash(),"mapping_hash",mapping.hash(),"raw_row_hash",rawHash,
-                    "capture_hash",capture.captureHash(),"platform_declared",b.platform(),"external_date",row.externalDate(),"date_precision",mapping.mapping().dateColumn()<0?"SIN_COLUMNA_DECLARADA":datePrecision(row.externalDate()),
+                    "capture_hash",captureHash,"platform_declared",b.platform(),"external_date",row.externalDate(),"date_precision",mapping.mapping().dateColumn()<0?"SIN_COLUMNA_DECLARADA":datePrecision(row.externalDate()),
                     "external_id",row.externalId(),"external_id_status",mapping.mapping().externalIdColumn()<0?"SIN_COLUMNA_DECLARADA":row.externalId().isBlank()?"VACIO_EN_FUENTE":"PROPORCIONADO_EN_FUENTE",
                     "overlap_reviewed",overlapReviewed,"overlap_candidates",preview.candidates());
+            if(historical) { evidence.put("receipt_mode",HISTORICAL_VALUE); evidence.put("consent_status","NO_REGISTRADO_EN_FUENTE"); evidence.put("receipt_evidence",mapping.mapping().consentEvidence()); }
             if(sheet(b.delimiter())>0) { evidence.put("source_format","XLSX"); evidence.put("source_sheet",sheet(b.delimiter())); evidence.put("source_sheet_name",XlsxFile.open(original(batchId)).sheets().get(sheet(b.delimiter())-1).name()); }
             jdbc.update("INSERT INTO csv_import_row (batch_id, row_number, mapping_id, response_id, raw_row_json, raw_row_hash, capture_hash, evidence_json, evidence_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    batchId,row.number(),revisionId,id,CanonicalJson.json(row.cells()),rawHash,capture.captureHash(),CanonicalJson.json(evidence),CanonicalJson.hash(evidence));
+                    batchId,row.number(),revisionId,id,CanonicalJson.json(row.cells()),rawHash,captureHash,CanonicalJson.json(evidence),CanonicalJson.hash(evidence));
         }
         jdbc.update("INSERT INTO csv_import_confirmation (batch_id, mapping_id, preview_hash, overlap_reviewed, actor, created_at) VALUES (?, ?, ?, ?, ?, ?)",batchId,revisionId,previewHash,overlapReviewed,actor,OffsetDateTime.now(ZoneOffset.UTC));
-        return imported(batchId);
+        var ids=imported(batchId); ids.forEach(captures::input); return ids;
     }
     public List<String> imported(String batchId) { return jdbc.queryForList("SELECT response_id FROM csv_import_row WHERE batch_id = ? ORDER BY row_number",String.class,batchId); }
     public List<Summary> recent() { return jdbc.query("SELECT id, file_name, version_id, created_at FROM csv_import_batch ORDER BY created_at DESC, id DESC LIMIT 100",(rs,n)->new Summary(rs.getString(1),rs.getString(2),rs.getString(3),rs.getObject(4,OffsetDateTime.class).toInstant().toString())); }

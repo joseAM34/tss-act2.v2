@@ -1,0 +1,4 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><head th:replace="~{fragments/layout :: head('Resultados y cortes')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido"><a class="back-link" th:href="${workspace.link('resultados')}">← Resultados del total actual</a><h1 th:text="${resultCut != null ? resultCut.name : 'Generar corte de datos'}"></h1><div th:replace="~{fragments/workspace-results :: panel}"></div></main>
+<footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

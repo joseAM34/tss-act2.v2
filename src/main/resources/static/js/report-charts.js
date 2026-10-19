@@ -1,7 +1,8 @@
-﻿'use strict';
+'use strict';
 const ReportChartOptions={
-  labels:{columns:'Columnas verticales',bars:'Barras horizontales',pie:'Circular',donut:'Anillo',heat:'Mapa de calor',grouped:'Barras agrupadas',stacked:'Barras apiladas',histogram:'Histograma',box:'Caja',line:'Envíos con valor por mes de recepción',area:'Envíos con valor por mes de recepción'},
+  labels:{'text-bars':'Barras de coincidencias','text-pie':'Circular de coincidencias','text-donut':'Anillo de coincidencias',columns:'Columnas verticales',bars:'Barras horizontales',pie:'Circular',donut:'Anillo',heat:'Mapa de calor',grouped:'Barras agrupadas',stacked:'Barras apiladas',histogram:'Histograma',box:'Caja',line:'Envíos con valor por mes de recepción',area:'Envíos con valor por mes de recepción'},
   variable(v,style){
+    if(style.startsWith('text-')){const distribution=v.text_counts.distribution.filter(row=>row.count>0);if(!distribution.length)return {animation:false,title:{text:'Sin coincidencias para esta fuente',left:'center',top:'center',textStyle:{fontSize:14}},series:[]};return this.variable({distribution},style.slice(5));}
     if(['histogram','box','line','area'].includes(style)){
       const base={animation:false,aria:{enabled:true},tooltip:{trigger:'axis',renderMode:'richText',...(style==='box'?{valueFormatter:value=>Array.isArray(value)?value.map(n=>Number(n).toFixed(2)).join(', '):Number(value).toFixed(2)}:{})},grid:{containLabel:true,left:20,right:20,bottom:80}};
       if(style==='box')return {...base,xAxis:{type:'category',data:[v.label],axisLabel:{width:120,overflow:'truncate'}},yAxis:{type:'value',name:v.unit},series:[{type:'boxplot',data:[v.advanced.box.values]}]};
@@ -10,9 +11,9 @@ const ReportChartOptions={
     }
     const labels=v.numeric?['Mínimo','Mediana','Máximo']:v.distribution.map(o=>o.label),values=v.numeric?['min','median','max'].map(k=>v.numeric[k]):v.distribution.map(o=>o.count);
     const base={animation:false,aria:{enabled:true}};
-    if(style==='pie'||style==='donut')return {...base,tooltip:{trigger:'item',renderMode:'richText'},legend:{type:'scroll',bottom:0},series:[{type:'pie',radius:style==='donut'?['35%','62%']:'62%',center:['50%','43%'],label:{formatter:'{b}: {c}'},data:labels.map((name,i)=>({name,value:values[i]}))}]};
+    if(style==='pie'||style==='donut')return {...base,tooltip:{trigger:'item',renderMode:'richText'},legend:{type:'scroll',bottom:0},series:[{type:'pie',stillShowZeroSum:false,radius:style==='donut'?['35%','62%']:'62%',center:['50%','43%'],label:{formatter:'{b}: {c}'},data:labels.map((name,i)=>({name,value:values[i]}))}]};
     const category={type:'category',data:labels,axisLabel:{rotate:style==='bars'?0:25,width:100,overflow:'truncate'}},numeric={type:'value',name:v.numeric?v.unit:'Envíos',...(v.numeric?{axisLabel:{formatter:value=>Number(value).toFixed(2)}}:{}),minInterval:v.numeric?0:1};
-    return {...base,tooltip:{trigger:'axis',renderMode:'richText',...(v.numeric?{valueFormatter:value=>Number(value).toFixed(2)}:{})},grid:{containLabel:true,left:15,right:20,bottom:80},xAxis:style==='bars'?numeric:category,yAxis:style==='bars'?category:numeric,series:[{type:'bar',data:values}]};
+    return {...base,tooltip:{trigger:'axis',renderMode:'richText',...(v.numeric?{valueFormatter:value=>Number(value).toFixed(2)}:{})},grid:{containLabel:true,left:15,right:20,bottom:80},xAxis:style==='bars'?numeric:category,yAxis:style==='bars'?category:numeric,series:[{type:'bar',colorBy:v.numeric?'series':'data',data:values}]};
   },
   advanced(a){
     const base={animation:false,aria:{enabled:true},tooltip:{renderMode:'richText',valueFormatter:value=>Array.isArray(value)?value.map((n,i)=>a.type==='scatter'&&i===2?String(n):Number(n).toFixed(2)).join(', '):Number(value).toFixed(2)}};

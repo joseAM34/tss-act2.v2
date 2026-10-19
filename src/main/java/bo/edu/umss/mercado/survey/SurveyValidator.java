@@ -14,6 +14,16 @@ public class SurveyValidator {
     private static final Set<String> CONTROL_FIELDS = Set.of("_csrf", "formToken", "consent");
 
     public ValidationResult validate(SurveyDefinition survey, MultiValueMap<String, String> submitted) {
+        return validate(survey, submitted, true);
+    }
+
+    /** Recepción administrativa histórica: valida respuestas sin afirmar consentimiento del participante. */
+    public ValidationResult validateHistorical(SurveyDefinition survey, MultiValueMap<String, String> submitted) {
+        if (submitted.containsKey("consent")) throw new IllegalArgumentException("La recepción histórica no declara consentimiento del participante.");
+        return validate(survey, submitted, false);
+    }
+
+    private ValidationResult validate(SurveyDefinition survey, MultiValueMap<String, String> submitted, boolean requireConsent) {
         var answers = new LinkedHashMap<String, List<String>>();
         var errors = new LinkedHashMap<String, String>();
         var states = new LinkedHashMap<String, AnswerState>();
@@ -22,7 +32,7 @@ public class SurveyValidator {
         if (submitted.keySet().stream().anyMatch(key -> !known.contains(key))) {
             errors.put("_form", "Se recibieron campos que no pertenecen a esta encuesta. Recargue e intente nuevamente.");
         }
-        if (!List.of("SI").equals(submitted.get("consent"))) {
+        if (requireConsent && !List.of("SI").equals(submitted.get("consent"))) {
             errors.put("consent", "Debe aceptar el uso académico de las respuestas para enviarlas.");
         }
 
@@ -49,7 +59,7 @@ public class SurveyValidator {
                 errors.put(q.id(), "Cada opción puede seleccionarse una sola vez.");
                 continue;
             }
-            int maxLength = q.type().equals("textarea") ? 2000 : 1000;
+            int maxLength = !requireConsent && Set.of("text","textarea").contains(q.type()) ? 8000 : q.type().equals("textarea") ? 2000 : 1000;
             if (values.stream().anyMatch(v -> v.length() > maxLength || v.indexOf('\0') >= 0)) {
                 errors.put(q.id(), "La respuesta debe tener como máximo " + maxLength + " caracteres válidos.");
                 continue;

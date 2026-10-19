@@ -4,6 +4,7 @@ import bo.edu.umss.mercado.data.CanonicalJson;
 import bo.edu.umss.mercado.importing.CsvImportService;
 import bo.edu.umss.mercado.importing.XlsxImportService;
 import bo.edu.umss.mercado.importing.ImportSuggestions;
+import bo.edu.umss.mercado.importing.ImportCatalogService;
 import bo.edu.umss.mercado.survey.SurveyPublicationService;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -21,7 +22,8 @@ public class CsvImportController {
     private final CsvImportService service;
     private final SurveyPublicationService publications;
     private final XlsxImportService excel;
-    public CsvImportController(CsvImportService service,SurveyPublicationService publications,XlsxImportService excel) { this.service=service; this.publications=publications; this.excel=excel; }
+    private final ImportCatalogService catalog;
+    public CsvImportController(CsvImportService service,SurveyPublicationService publications,XlsxImportService excel,ImportCatalogService catalog) { this.service=service; this.publications=publications; this.excel=excel;this.catalog=catalog; }
     @GetMapping
     String scopedIndex(@RequestParam(defaultValue="") String versionId,Model model,HttpServletResponse response) {
         if(!versionId.isEmpty()) {
@@ -72,8 +74,18 @@ public class CsvImportController {
         var shown=(CsvImportService.Mapping)model.getAttribute("mapping");
         model.addAttribute("mappingPending",shown.columns().stream().filter(c->c.index()<0).count());
         model.addAttribute("consentReference",reference(shown.consentEvidence(),CONSENT_ACK));
+        boolean historical=CsvImportService.historical(shown);
+        model.addAttribute("historicalReceipt",historical || Boolean.TRUE.equals(model.getAttribute("suggestHistoricalReceipt")));
+        model.addAttribute("historicalReference",historical?reference(shown.consentEvidence(),CsvImportService.HISTORICAL_ACK):"");
         model.addAttribute("compatibilityReference",reference(shown.compatibilityEvidence(),COMPATIBILITY_ACK));
+        model.addAttribute("reusableVersions",publications.publishedForSurvey(version.surveyId()).stream().filter(v->!v.id().equals(batch.versionId())).toList());
         model.addAttribute("imported",service.imported(id)); return "csv-import-batch";
+    }
+    @GetMapping("/{id}/recepcion-historica")
+    String reviewHistorical(@PathVariable String id,Model model,HttpServletResponse response) {
+        // Suggest a mode without changing mappings or accepting the review on the administrator's behalf.
+        model.addAttribute("suggestHistoricalReceipt",true);
+        return batch(id,model,response);
     }
     @PostMapping("/{id}/correspondencias")
     String map(@PathVariable String id,@RequestParam MultiValueMap<String,String> values,Principal actor,Model model,HttpServletResponse response) {
@@ -90,7 +102,15 @@ public class CsvImportController {
                 if(flag(values,"compatible") && compatibility.isBlank())compatibility=COMPATIBILITY_ACK;
                 if(flag(values,"consentReviewed") && consent.isBlank())consent=CONSENT_ACK;
             }
-            var mapping=new CsvImportService.Mapping(columns,Integer.parseInt(one(values,"consentColumn")),one(values,"consentValue").strip(),Integer.parseInt(one(values,"dateColumn")),Integer.parseInt(one(values,"externalIdColumn")),
+            int consentColumn=Integer.parseInt(one(values,"consentColumn")); String consentValue=one(values,"consentValue").strip();
+            String sourceMode=optional(values,"sourceMode");
+            if(!sourceMode.isEmpty() && !Set.of("CONSENTIMIENTO","HISTORICA").contains(sourceMode)) throw new IllegalArgumentException("Modo de recepción no admitido.");
+            if(sourceMode.equals("HISTORICA")) {
+                if(!flag(values,"historicalReviewed")) throw new IllegalArgumentException("Marca la recepción histórica documentada. No se declara aceptación del participante.");
+                consentColumn=-2; consentValue=CsvImportService.HISTORICAL_VALUE;
+                consent=acknowledgement(true,optional(values,"historicalEvidence"),CsvImportService.HISTORICAL_ACK);
+            } else if(consentColumn==-2) throw new IllegalArgumentException("Selecciona explícitamente el modo de recepción histórica o una columna real de consentimiento.");
+            var mapping=new CsvImportService.Mapping(columns,consentColumn,consentValue,Integer.parseInt(one(values,"dateColumn")),Integer.parseInt(one(values,"externalIdColumn")),
                     one(values,"optionMode"),one(values,"multipleSeparator"),flag(values,"compatible"),compatibility,consent);
             model.addAttribute("mapping",mapping);
             String revision=service.mapColumns(id,Integer.parseInt(one(values,"expectedRevision")),mapping,actor.getName()); return "redirect:/admin/importaciones/"+id+"/vista-previa?revisionId="+revision;
@@ -104,12 +124,15 @@ public class CsvImportController {
         var labels=new LinkedHashMap<String,String>();version.content().definition().questions().forEach(q->labels.put(q.id(),q.label()));
         labels.put("consent","Consentimiento");labels.put("_fecha","Fecha externa");labels.put("_id","Identificador externo");labels.put("_form","Formulario");
         var mapping=service.revision(id,revisionId).mapping();var indexes=new HashMap<String,Integer>();mapping.columns().forEach(c->indexes.put(c.questionId(),c.index()));
+        model.addAttribute("historicalReceipt",CsvImportService.historical(mapping));
+        model.addAttribute("consentReviewPending",!CsvImportService.historical(mapping) && (mapping.consentColumn()<0 || mapping.consentEvidence().isBlank()));
         indexes.put("consent",mapping.consentColumn());indexes.put("_fecha",mapping.dateColumn());indexes.put("_id",mapping.externalIdColumn());
         var problems=new ArrayList<Problem>();
         for(var row:preview.rows())for(var error:row.errors().entrySet()) {
             int index=indexes.getOrDefault(error.getKey(),-1);
             problems.add(new Problem(row.number(),labels.getOrDefault(error.getKey(),error.getKey()),index<0?"Sin columna":row.cells().get(index),error.getValue()));
         }
+        model.addAttribute("catalogProposals",problems.isEmpty() || !mapping.multipleSeparator().equals("MIXTO_V1")?List.of():catalog.proposals(id,revisionId));
         model.addAttribute("problems",problems);return "csv-import-preview";
     }
     @GetMapping("/{id}/vista-previa.json")

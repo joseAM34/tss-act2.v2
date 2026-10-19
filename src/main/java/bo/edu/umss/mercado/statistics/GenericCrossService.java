@@ -55,8 +55,10 @@ public class GenericCrossService {
             (rs,n)->new Summary(rs.getString(1),rs.getString(2),rs.getObject(3,OffsetDateTime.class).toInstant().toString()),preparationId); }
     @SuppressWarnings("unchecked")
     public Map<String, Object> calculate(Map<String, Object> logical, Spec spec) {
-        if (!GenericPreparationService.RULES.equals(logical.get("rules_version"))) throw new IllegalArgumentException("Preparación no compatible.");
+        if (!GenericPreparationService.supportedRules(logical.get("rules_version"))) throw new IllegalArgumentException("Preparación no compatible.");
+        boolean totals=GenericPreparationService.TOTAL_RULES.equals(logical.get("rules_version"));
         if (spec == null || spec.rowQuestion() == null || spec.columnQuestion() == null || spec.rowQuestion().equals(spec.columnQuestion())) throw new IllegalArgumentException("Selecciona dos preguntas distintas.");
+        if(totals && spec.independenceDocumented())throw new IllegalArgumentException("El total es descriptivo. Para inferencia prepara un único estrato y revisa su independencia por separado.");
         if (!Double.isFinite(spec.alpha()) || spec.alpha() <= 0 || spec.alpha() >= 1) throw new IllegalArgumentException("Alpha debe estar entre cero y uno.");
         if (spec.unit() == null || spec.evidence() == null || spec.unit().length() > 120 || spec.evidence().length() > 2000) throw new IllegalArgumentException("Unidad o evidencia no válida.");
         if (spec.independenceDocumented() && (spec.unit().isBlank() || spec.evidence().isBlank())) throw new IllegalArgumentException("Documenta la unidad y evidencia antes de declarar independencia.");
@@ -72,6 +74,7 @@ public class GenericCrossService {
         for (var member : matrix) {
             var answerStates = (Map<String, String>) member.get("states"); var values = (Map<String, Object>) member.get("values");
             String a = answerStates.get(spec.rowQuestion()), b = answerStates.get(spec.columnQuestion());
+            if(totals && (a==null || b==null)){excluded++;states.merge("NO_RECOLECTADA_EN_VERSION",1,Integer::sum);continue;}
             if (!Set.of("CON_VALOR", "SIN_RESPUESTA", "NO_APLICA").contains(a == null ? "" : a) || !Set.of("CON_VALOR", "SIN_RESPUESTA", "NO_APLICA").contains(b == null ? "" : b)) throw new IllegalStateException("Estados no compatibles con el conjunto.");
             states.merge(a + "|" + b, 1, Integer::sum);
             if (!"CON_VALOR".equals(a) || !"CON_VALOR".equals(b)) { excluded++; continue; }

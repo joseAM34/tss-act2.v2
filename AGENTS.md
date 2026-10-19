@@ -13,7 +13,7 @@ Mantener los dos entregables finales: documento de Análisis de Mercado y herram
 - Encuestas públicas; respuestas, reportes, exportaciones y administración protegidos por autenticación en el backend.
 - La cuenta administrativa se guarda en la base de datos con hash BCrypt. La configuración inicial se realiza una sola vez desde la máquina local; no crear cuentas en memoria ni configurar sus credenciales mediante variables de entorno.
 - El inicio principal es manual con Maven. Los scripts opcionales no deben solicitar credenciales ni modificar variables de entorno.
-- Los diez criterios de empleadores aparecen una sola vez en el instrumento y en los análisis.
+- Los diez criterios del catálogo histórico de empleadores aparecen una sola vez. Las plantillas oficiales recibidas en octubre de 2026 conservan dieciocho criterios distintos (los diez anteriores y ocho adicionales), por instrucción del usuario; no eliminar los ocho nuevos ni duplicar observaciones.
 - Conservar las escalas observadas. `No sabe` es una categoría propia, no un puntaje de acuerdo.
 - Documentar las ambigüedades sin afirmar que una propuesta está aprobada.
 - Mantener la correspondencia T01-T41/E00-E22/E09_OTRO y la matriz de obligatoriedad/condiciones en `docs/ACEPTACION_CUESTIONARIOS.md`. Acceso público y criterios sin repetición están aprobados; elegibilidad y varias participaciones distintas siguen pendientes.

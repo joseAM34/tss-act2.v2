@@ -31,6 +31,7 @@
         <a class="button button-outline" th:href="@{/encuestas/{slug}(slug=${survey.slug})}">Responder encuesta <span aria-hidden="true">→</span><span class="sr-only" th:text="${': ' + survey.title}"></span></a>
       </article>
     </div>
+    <p class="participation-note" th:if="${#lists.isEmpty(surveys)}">Todavía no hay encuestas disponibles para responder.</p>
     <div class="participation-note"><span class="note-icon" aria-hidden="true">i</span><p><strong>Antes de comenzar.</strong> Responde según tu experiencia. Los campos obligatorios están marcados con un asterisco. Esta versión permite revisar el instrumento antes de su aplicación formal.</p></div>
   </section>
   <section class="trust-section">

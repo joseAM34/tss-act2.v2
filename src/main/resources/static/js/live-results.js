@@ -22,7 +22,7 @@ if (typeof document !== 'undefined') (() => {
       const v=frame.result.variables[Number(element.dataset.liveVariable)], chart=echarts.init(element);
       chart.setOption({tooltip:{trigger:'axis',renderMode:'richText'},grid:{left:15,right:15,bottom:85,containLabel:true},
         xAxis:{type:'category',data:v.numeric?['Mínimo','Mediana','Máximo']:v.distribution.map(o=>o.label),axisLabel:{rotate:25,width:110,overflow:'truncate'}},
-        yAxis:{type:'value',name:v.numeric?v.unit:'Envíos'},series:[{type:'bar',data:v.numeric?['min','median','max'].map(k=>v.numeric[k]):v.distribution.map(o=>o.count)}],aria:{enabled:true}});
+        yAxis:{type:'value',name:v.numeric?v.unit:'Envíos'},series:[{type:'bar',colorBy:v.numeric?'series':'data',data:v.numeric?['min','median','max'].map(k=>v.numeric[k]):v.distribution.map(o=>o.count)}],aria:{enabled:true}});
       charts.push(chart);
     });
     const element=root.querySelector('[data-live-cross]');

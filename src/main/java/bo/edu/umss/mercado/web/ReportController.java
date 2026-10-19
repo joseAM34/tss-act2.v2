@@ -17,23 +17,27 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Controller @RequestMapping("/admin/reportes")
 public class ReportController {
-    private final ReportService reports;
+    @ModelAttribute
+    void workspacePreferences(@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String templateEditor,Model model,jakarta.servlet.http.HttpSession session){
+        if(session.getAttribute("workspaceReportPreferences") instanceof Map<?,?> saved && saved.get(analysisId) instanceof ReportCustomization.Configuration config)model.addAttribute("customConfiguration",config);
+        if(!templateEditor.isBlank()){if(!(session.getAttribute("reportTemplateEditors") instanceof Map<?,?> editors)||!(editors.get(templateEditor) instanceof Map<?,?> state)||!(state.get("configuration") instanceof ReportCustomization.Configuration config)||!analysisId.equals(config.analysisId()))throw new IllegalArgumentException("La sesión de edición de la plantilla ya no está disponible. Elige nuevamente la fuente.");model.addAttribute("customConfiguration",config);model.addAttribute("templateEditState",Map.of("id",state.get("id"),"hash",state.get("hash"),"name",state.get("name"),"editing",Set.of("create","edit").contains(state.get("mode"))));}
+    }
+    private final bo.edu.umss.mercado.reporting.ReportTemplateLibrary templateLibrary;private final ReportService reports;
     private final bo.edu.umss.mercado.reporting.ReportPresentationTemplates presentations;
     private final GenericAnalysisService analyses;
     private final GenericCrossService crosses;
     private final org.thymeleaf.spring6.SpringTemplateEngine templates;
     private final bo.edu.umss.mercado.reporting.ReportCrossComposer composer;
-    public ReportController(ReportService reports,GenericAnalysisService analyses,GenericCrossService crosses,org.thymeleaf.spring6.SpringTemplateEngine templates,bo.edu.umss.mercado.reporting.ReportCrossComposer composer,bo.edu.umss.mercado.reporting.ReportPresentationTemplates presentations) { this.presentations=presentations; this.reports=reports; this.analyses=analyses; this.crosses=crosses;this.templates=templates;this.composer=composer; }
+    public ReportController(ReportService reports,GenericAnalysisService analyses,GenericCrossService crosses,org.thymeleaf.spring6.SpringTemplateEngine templates,bo.edu.umss.mercado.reporting.ReportCrossComposer composer,bo.edu.umss.mercado.reporting.ReportPresentationTemplates presentations,bo.edu.umss.mercado.reporting.ReportTemplateLibrary templateLibrary) { this.templateLibrary=templateLibrary;this.presentations=presentations; this.reports=reports; this.analyses=analyses; this.crosses=crosses;this.templates=templates;this.composer=composer; }
     @GetMapping
     String index(Model model,HttpServletResponse response) {
-        response.setHeader("Cache-Control","no-store"); model.addAttribute("reports",reports.recent()); model.addAttribute("revisions",reports.revisions()); return "reports";
+        response.setHeader("Cache-Control","no-store"); model.addAttribute("reports",reports.recent()); model.addAttribute("revisions",reports.revisions());model.addAttribute("templateEntries",templateLibrary.entries());return "reports";
     }
     @GetMapping("/plantillas/nueva")
-    String newTemplate(Model model,HttpServletResponse response) { return editor("",0,new ReportService.Template("","",ReportService.SECTIONS,true),model,response); }
+    String newTemplate(Model model,HttpServletResponse response) { response.setHeader("Cache-Control","no-store");var w=(bo.edu.umss.mercado.survey.SurveyWorkspaceService.Workspace)model.getAttribute("workspace");model.addAllAttributes(templateLibrary.picker("","create",w==null?"":w.selected().id()));return "report-template-source"; }
     @GetMapping("/plantillas/{id}/editar")
     String edit(@PathVariable String id,Model model,HttpServletResponse response) {
-        var latest=reports.latest(id); model.addAttribute("history",reports.revisions().stream().filter(r -> r.templateId().equals(id)).toList());
-        return editor(id,latest.revision(),latest.definition(),model,response);
+        response.setHeader("Cache-Control","no-store");String key=presentations.recent().stream().anyMatch(t->t.id().equals(id))?id:"legacy-"+id;model.addAllAttributes(templateLibrary.picker(key,"edit",""));return "report-template-source";
     }
     private String editor(String id,int revision,ReportService.Template d,Model model,HttpServletResponse response) {
         response.setHeader("Cache-Control","no-store"); model.addAttribute("templateId",id); model.addAttribute("expectedRevision",revision); model.addAttribute("definition",d); model.addAttribute("sections",ReportService.SECTIONS); return "report-template-editor";
@@ -55,8 +59,10 @@ public class ReportController {
     @GetMapping("/nuevo")
     String newReport(@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String templateRevisionId,@RequestParam(defaultValue="") String crossId,Model model,HttpServletResponse response) {
         response.setHeader("Cache-Control","no-store"); model.addAttribute("analyses",analyses.recent());
+        if(analysisId.isBlank()){model.addAllAttributes(templateLibrary.picker(templateRevisionId.isBlank()?"":"legacy-"+reports.revision(templateRevisionId).templateId(),templateRevisionId.isBlank()?"report":"use",""));return "report-template-source";}
+        if(!templateRevisionId.isBlank()){var legacy=reports.revision(templateRevisionId).definition();var base=ReportCustomization.defaults(analyses.get(analysisId),List.of());model.addAttribute("customConfiguration",new ReportCustomization.Configuration(analysisId,legacy.title(),legacy.introduction(),legacy.sections().contains("CONTEXTO"),true,legacy.charts(),Objects.toString(model.getAttribute("comment"),""),base.questions(),List.of()));templateRevisionId="";}
         var revisions=new ArrayList<>(reports.revisions());
-        if (!templateRevisionId.isBlank() && revisions.stream().noneMatch(r -> r.id().equals(templateRevisionId))) revisions.add(reports.revision(templateRevisionId));
+        if (!templateRevisionId.isBlank()) {var selectedRevision=reports.revision(templateRevisionId);if(revisions.stream().noneMatch(r -> r.id().equals(selectedRevision.id())))revisions.add(selectedRevision);}
         model.addAttribute("revisions",revisions); model.addAttribute("analysisId",analysisId); model.addAttribute("templateRevisionId",templateRevisionId);
         if (!analysisId.isBlank()) {
             var analysis=analyses.get(analysisId); model.addAttribute("analysis",analysis);
@@ -88,7 +94,7 @@ public class ReportController {
             model.addAttribute("crosses",available);
             var advancedData=reports.advancedData(analysisId);
             model.addAttribute("presentationTemplates",presentations.recent());
-            model.addAttribute("customBootstrap",CanonicalJson.json(Map.of("advancedOptions",advancedData.get("options"),"configuration",config,"result",advancedData.get("result"),"crosses",model.getAttribute("crosses"),"cutoff",model.getAttribute("sourceCutoff"),"crossChoices",composer.choices(analysisId))));
+            model.addAttribute("customBootstrap",CanonicalJson.json(Map.of("templateEditor",model.getAttribute("templateEditState")==null?Map.of():model.getAttribute("templateEditState"),"advancedOptions",advancedData.get("options"),"configuration",config,"result",advancedData.get("result"),"crosses",model.getAttribute("crosses"),"cutoff",model.getAttribute("sourceCutoff"),"crossChoices",composer.choices(analysisId))));
             return "report-customizer";
         }
         return "report-generator";

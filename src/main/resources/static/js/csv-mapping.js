@@ -13,6 +13,16 @@ function proposeCsvColumns(headers, fields) {
 
 if (typeof module !== 'undefined') module.exports = {proposeCsvColumns};
 if (typeof document !== 'undefined') {
+  const receiptMode=document.querySelector('[data-csv-mapping] #sourceMode');
+  if(receiptMode){
+    const updateReceipt=()=>{
+      document.querySelectorAll('[data-receipt-mode]').forEach(element=>{element.hidden=element.dataset.receiptMode!==receiptMode.value;});
+      document.getElementById('consentValue').required=receiptMode.value!=='HISTORICA';
+      const historical=document.querySelector('details[data-receipt-mode="HISTORICA"]');if(historical)historical.open=receiptMode.value==='HISTORICA';
+    };
+    receiptMode.addEventListener('change',updateReceipt);updateReceipt();
+  }
+
   document.querySelector('[data-csv-match]')?.addEventListener('click', () => {
     const form = document.querySelector('[data-csv-mapping]');
     const questionSelects = [...form.querySelectorAll('select[name^="column."]')];

@@ -1,0 +1,2 @@
+'use strict';
+(()=>{const form=document.querySelector('[data-template-source-form]');if(!form)return;const sync=()=>{const total=form.elements.sourceType.value==='total';form.elements.versionId.disabled=!total;form.elements.versionId.required=total;form.elements.cutId.disabled=total;form.elements.cutId.required=!total;};form.querySelectorAll('[name=sourceType]').forEach(input=>input.addEventListener('change',sync));sync();})();

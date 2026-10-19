@@ -19,18 +19,21 @@ public class SurveyWorkspaceController {
     private final DraftSurveyService drafts;
     private final SurveyPublicationService publications;
     private final bo.edu.umss.mercado.statistics.LiveResultsService live;
-    public SurveyWorkspaceController(SurveyWorkspaceService workspaces, SurveyResponseRepository responses, DraftSurveyService drafts, SurveyPublicationService publications,bo.edu.umss.mercado.statistics.LiveResultsService live) {
+    private final bo.edu.umss.mercado.statistics.WorkspaceResultsService results;
+    public SurveyWorkspaceController(SurveyWorkspaceService workspaces, SurveyResponseRepository responses, DraftSurveyService drafts, SurveyPublicationService publications,bo.edu.umss.mercado.statistics.LiveResultsService live,bo.edu.umss.mercado.statistics.WorkspaceResultsService results) {
         this.workspaces=workspaces;this.responses=responses;this.drafts=drafts;this.publications=publications;
         this.live=live;
+        this.results=results;
     }
     @GetMapping
-    String list(Model model,HttpServletResponse response) {
-        response.setHeader("Cache-Control","no-store"); model.addAttribute("surveyCards",workspaces.all()); return "workspace-list";
+    String list(@RequestParam(defaultValue="false") boolean archivadas,Model model,HttpServletResponse response) {
+        response.setHeader("Cache-Control","no-store"); model.addAttribute("surveyCards",workspaces.all(archivadas));
+        model.addAttribute("includeArchived",archivadas); return "workspace-list";
     }
     @PostMapping
     String create(@RequestParam String title,@RequestParam(defaultValue="") String description,Principal actor,Model model,HttpServletResponse response) {
         try { return "redirect:/admin/encuestas/"+drafts.create(title,description,actor.getName()); }
-        catch(IllegalArgumentException ex) { response.setStatus(422);model.addAttribute("error",ex.getMessage());model.addAttribute("createTitle",title);model.addAttribute("createDescription",description);return list(model,response); }
+        catch(IllegalArgumentException ex) { response.setStatus(422);model.addAttribute("error",ex.getMessage());model.addAttribute("createTitle",title);model.addAttribute("createDescription",description);return list(false,model,response); }
     }
     @GetMapping({"/{slug}","/{slug}/{section}"})
     String workspace(@PathVariable String slug,@PathVariable(required=false) String section,@RequestParam(defaultValue="") String version,
@@ -45,11 +48,8 @@ public class SurveyWorkspaceController {
         if(section.equals("respuestas")) model.addAttribute("responses",responses.selected(slug,w.selected().code()));
         if(section.equals("resultados")) {
             model.addAttribute("prepared",workspaces.preparations(w));model.addAttribute("savedAnalyses",workspaces.analyses(w));
-            model.addAttribute("liveOrigin",origin);model.addAttribute("liveFrom",from);model.addAttribute("liveUntil",until);model.addAttribute("liveRow",row);model.addAttribute("liveColumn",column);
-            if(!w.legacy() && !w.selected().draft())try {
-                var frame=live.current(w.selected().id(),LiveResultsController.selection(origin,from,until,row,column),actor.getName());
-                model.addAttribute("liveFrame",frame);model.addAttribute("liveInitial",bo.edu.umss.mercado.data.CanonicalJson.json(frame));
-            }catch(IllegalArgumentException|java.time.DateTimeException|ResponseStatusException ex){model.addAttribute("liveError",ex instanceof ResponseStatusException r?r.getReason():"Revisa el origen, las fechas y las preguntas del cruce. "+ex.getMessage());}
+            model.addAttribute("resultsMode","total");model.addAttribute("resultCuts",w.legacy()?List.of():results.cuts(slug));
+            model.addAttribute("resultsFrom","");model.addAttribute("resultsUntil","");model.addAttribute("selectedVersions",List.of(w.selected().id()));
         }
         if(section.equals("reportes")) {model.addAttribute("savedReports",workspaces.reports(w));model.addAttribute("savedAnalyses",workspaces.analyses(w));}
         if(section.equals("importar")) {model.addAttribute("savedImports",workspaces.imports(w));model.addAttribute("savedWorkbooks",workspaces.workbooks(w));}

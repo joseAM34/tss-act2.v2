@@ -28,6 +28,7 @@
   <div class="container footer-inner">
     <div><strong>Ingeniería de Sistemas · UMSS</strong><p>Estudio de mercado y perfil profesional</p></div>
     <p class="footer-note">Versión inicial para revisión<br>El acceso a las respuestas está protegido.</p>
+    <details class="footer-survey-tools" th:if="${adminPresetTools == true}"><summary>Opciones de encuestas</summary><a th:href="@{/admin/encuestas/predefinidas}">Establecer encuestas predefinidas</a> <a th:href="@{/admin/diccionario}">Alimentar diccionario</a></details>
   </div>
 </footer>
 <div th:fragment="adminBar" class="admin-bar">
