@@ -22,6 +22,16 @@ class DictionaryRecoveryIntegrationTest {
     @Autowired MockMvc mvc;
     @Autowired JdbcTemplate jdbc;
     @Autowired TextDictionaryService dictionaries;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    bo.edu.umss.mercado.reporting.ReportService reports;
+    @Test void reportFailuresLeadToRecoveryInsteadOfTheGenericErrorPage()throws Exception{
+        alter();
+        assertThatThrownBy(()->dictionaries.global()).isInstanceOf(bo.edu.umss.mercado.statistics.DictionaryIntegrityException.class);
+        org.mockito.Mockito.when(reports.recent()).thenThrow(new bo.edu.umss.mercado.statistics.DictionaryIntegrityException());
+        mvc.perform(get("/admin/reportes")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/diccionario/recuperar"));
+        mvc.perform(get("/admin/reportes").accept("application/json")).andExpect(status().isConflict())
+                .andExpect(jsonPath("$.recoveryUrl").value("/admin/diccionario/recuperar"));
+    }
     void alter(){
         dictionaries.saveGlobal(0,"Tema=original","recovery-admin");
         jdbc.update("UPDATE universal_dictionary_revision SET rules_text=? WHERE revision=1","Tema=alterado");
