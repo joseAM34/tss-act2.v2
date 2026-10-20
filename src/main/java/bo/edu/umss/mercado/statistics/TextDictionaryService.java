@@ -13,6 +13,27 @@ public class TextDictionaryService {
     private final JdbcTemplate jdbc;
     public TextDictionaryService(JdbcTemplate jdbc){this.jdbc=jdbc;}
     public record Saved(int revision,String rules) {}
+    public record Recovery(int revision,String rules,String storedHash,String observedHash,String snapshot) {}
+    public Recovery recovery(){
+        var rows=jdbc.queryForList("SELECT revision,rules_text,rules_hash FROM universal_dictionary_revision ORDER BY revision DESC LIMIT 1");
+        if(rows.isEmpty())return null;
+        var row=rows.getFirst();String rules=(String)row.get("rules_text"),stored=(String)row.get("rules_hash");
+        String observed=CanonicalJson.hash(rules);
+        return stored.equals(observed)?null:new Recovery(((Number)row.get("revision")).intValue(),rules,stored,observed,CanonicalJson.hash(row));
+    }
+    @Transactional
+    public void recover(String snapshot,boolean confirmed,String actor){
+        if(!confirmed)throw new IllegalArgumentException("Confirma que aceptas el contenido alterado del diccionario.");
+        if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
+        jdbc.queryForList("SELECT id FROM universal_dictionary_state WHERE id=1 FOR UPDATE");
+        jdbc.queryForList("SELECT revision FROM universal_dictionary_revision ORDER BY revision DESC LIMIT 1 FOR UPDATE");
+        var current=recovery();
+        if(current==null||!current.snapshot().equals(snapshot))throw new IllegalStateException("El diccionario cambió. Recarga y revisa antes de confirmar.");
+        String rules=TextMentions.canonicalize(current.rules());int next=current.revision()+1;var now=OffsetDateTime.now();
+        jdbc.update("INSERT INTO universal_dictionary_recovery(id,source_revision,recovered_revision,original_rules,stored_hash,observed_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?)",UUID.randomUUID().toString(),current.revision(),next,current.rules(),current.storedHash(),current.observedHash(),actor,now);
+        jdbc.update("INSERT INTO universal_dictionary_revision(revision,rules_text,rules_hash,actor,created_at) VALUES(?,?,?,?,?)",next,rules,CanonicalJson.hash(rules),actor,now);
+        jdbc.update("UPDATE universal_dictionary_state SET revision=? WHERE id=1",next);
+    }
     @SuppressWarnings("unchecked")
     private String definition(WorkspaceResultsService.Snapshot frame,String key){return CanonicalJson.hash(((List<Map<String,Object>>)frame.logical().get("dictionary")).stream().filter(q->key.equals(q.get("question_id"))).findFirst().orElseThrow(()->new IllegalArgumentException("Pregunta fuera de esta vista.")));}
     public Saved get(WorkspaceResultsService.Snapshot frame,String key){definition(frame,key);return selected(frame.logical(),key);}

@@ -14,6 +14,7 @@ public class DictionaryController {
     private final bo.edu.umss.mercado.reporting.ReportService reports;
     public DictionaryController(TextDictionaryService dictionaries,bo.edu.umss.mercado.reporting.ReportService reports){this.dictionaries=dictionaries;this.reports=reports;}
     @GetMapping String page(@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String questionId,@RequestParam(defaultValue="false") boolean sensitiveAcknowledged,Model model,HttpServletResponse response){
+        if(dictionaries.recovery()!=null)return recoveryPage(model,response);
         response.setHeader("Cache-Control","no-store");model.addAttribute("dictionary",dictionaries.global());model.addAttribute("dictionaryOnly",true);model.addAttribute("dictionaryAction","/admin/diccionario/guardar");model.addAttribute("slug","");model.addAttribute("answers",Map.of("label","Alimentar diccionario global"));
         if(!analysisId.isBlank()){
             var logical=reports.dictionaryLogical(analysisId,questionId,sensitiveAcknowledged);var context=reports.dictionaryContext(analysisId,questionId,sensitiveAcknowledged);var view=dictionaries.editor(logical,questionId,"");
@@ -22,6 +23,17 @@ public class DictionaryController {
             model.addAttribute("analysisId",analysisId);model.addAttribute("questionId",questionId);model.addAttribute("sensitiveAcknowledged",sensitiveAcknowledged);
         }
         return "text-suggestions";
+    }
+    @GetMapping("/recuperar")
+    String recoveryPage(Model model,HttpServletResponse response){
+        response.setHeader("Cache-Control","no-store");var recovery=dictionaries.recovery();
+        if(recovery==null)return "redirect:/admin/diccionario";
+        model.addAttribute("recovery",recovery);return "dictionary-recovery";
+    }
+    @PostMapping("/recuperar")
+    String recover(@RequestParam String snapshot,@RequestParam(defaultValue="false") boolean confirmed,Principal actor,Model model,HttpServletResponse response){
+        try{dictionaries.recover(snapshot,confirmed,actor.getName());return "redirect:/admin/diccionario";}
+        catch(IllegalArgumentException|IllegalStateException ex){response.setStatus(ex instanceof IllegalStateException?409:400);model.addAttribute("error",ex.getMessage());return recoveryPage(model,response);}
     }
     @PostMapping("/{operation}") @ResponseBody
     Map<String,Object> action(@PathVariable String operation,@RequestParam(defaultValue="") String rules,@RequestParam(defaultValue="") String incoming,@RequestParam(defaultValue="0") int expectedRevision,@RequestParam(defaultValue="false") boolean reviewed,@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String questionId,@RequestParam(defaultValue="false") boolean sensitiveAcknowledged,@RequestParam(defaultValue="GLOBAL") String dictionaryScope,@RequestParam(defaultValue="0") int expectedContextRevision,Principal actor,HttpServletResponse response){

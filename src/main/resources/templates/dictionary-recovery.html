@@ -1,0 +1,16 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Recuperar diccionario')}"></head><body>
+<header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido">
+<h1>Se ha alterado el diccionario</h1>
+<p>El contenido de la base de datos no coincide con su huella guardada. ¿Quieres aceptar el contenido actual y continuar?</p>
+<p>Al confirmar se validarán las reglas y se creará una nueva revisión con huella válida. Se conservarán la revisión anterior, el contenido alterado y un registro de tu confirmación. Esto no restaura el contenido previo a la alteración ni modifica reportes ya generados.</p>
+<p role="alert" th:if="${error}" th:text="${error}"></p>
+<p th:text="${'Revisión alterada: ' + recovery.revision}"></p>
+<details><summary>Revisar contenido actual</summary><pre th:text="${recovery.rules}"></pre></details>
+<form th:action="@{/admin/diccionario/recuperar}" method="post" class="data-form">
+<input type="hidden" name="snapshot" th:value="${recovery.snapshot}">
+<label><input type="checkbox" name="confirmed" value="true" required> Sí, acepto el contenido actual y quiero crear una nueva revisión para continuar.</label>
+<button type="submit" class="button button-primary">Aceptar y recuperar diccionario</button>
+<a th:href="@{/admin}" class="button button-outline">Volver sin aceptar</a>
+</form></main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>
