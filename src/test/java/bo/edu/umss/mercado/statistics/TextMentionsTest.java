@@ -5,6 +5,14 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class TextMentionsTest {
+    @Test void suggestionsUseTheSameNormalizationAsThemeValidation(){
+        var terms=TextDictionaryService.extract(List.of("Maestría", "maestria-", "MAESTRIA", "maestria-; maestria"));
+        assertThat(terms).singleElement().satisfies(term->{
+            assertThat(term.get("term")).isEqualTo("maestria");
+            assertThat(term.get("count")).isEqualTo(4);
+            assertThat(term.get("base")).isEqualTo(4);
+        });
+    }
     @Test void bareNumbersNeedPrivateContextAndProgramNamesAreNotPersonalNames(){
         String rules=TextMentions.canonicalize("2 años=2 años|2");
         assertThat(TextMentions.count(List.of("2 materias","2 años"),TextDictionaryService.globalRules(rules)).get("matched")).isEqualTo(1);
