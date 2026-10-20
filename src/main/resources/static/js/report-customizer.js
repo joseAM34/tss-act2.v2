@@ -3,6 +3,7 @@
   const root=document.querySelector('[data-report-customizer]');if(!root)return;
   const $=id=>document.getElementById(id),bootstrap=JSON.parse($('custom-bootstrap').value),config=bootstrap.configuration;
   const templateEditor=bootstrap.templateEditor||{},editingTemplate=!!templateEditor.editing;
+  const PREVIEW_TIMEOUT_MS=90000;
   const form=$('custom-form'),csrf=form.querySelector('[name=_csrf]');
   let dictionaryOpened=false;let screen='',question=null,cross=null,advancedIndex=null,timer,sequence=0,controller,latest=null,expectedHash='',generating=false,applying=false;
   let disposers=[];
@@ -111,8 +112,8 @@
   }
   async function refresh(){
     clearTimeout(timer);if(generating||applying)return;const token=++sequence;controller?.abort();controller=new AbortController();expectedHash='';$('custom-generate').disabled=true;
-    status('Actualizando vista previa…');
-    const requestController=controller,timeout=setTimeout(()=>requestController.abort(),20000);
+    status('Preparando la vista previa. Puede tardar hasta 90 segundos…');
+    const requestController=controller,timeout=setTimeout(()=>requestController.abort(),PREVIEW_TIMEOUT_MS);
     try{
       const currentScope=scope();if(cacheScope!==currentScope){previewCache.clear();cacheScope=currentScope;}
       const key=JSON.stringify([config,cross]);
@@ -174,7 +175,7 @@
   async function previewPair(){
     if(pair.length!==2){$('new-cross-status').textContent='Selecciona dos preguntas compatibles.';return;}
     const token=++pairSequence;pairController?.abort();pairController=new AbortController();$('new-cross-status').textContent='Calculando desde el conjunto congelado…';
-    const requestController=pairController,timeout=setTimeout(()=>requestController.abort(),20000);
+    const requestController=pairController,timeout=setTimeout(()=>requestController.abort(),PREVIEW_TIMEOUT_MS);
     try{
       const result=await post('/admin/reportes/personalizar/cruces/vista-previa',{analysisId:config.analysisId,row:pair[0],column:pair[1],representations:pairRepresentations},pairController.signal);
       if(token!==pairSequence)return;pairPreview=result;pairHash=result.hash;$('new-cross-status').textContent='Cruce verificado. Revisa su tabla y diagnóstico antes de añadirlo.';drawNewCross();renderCandidates();

@@ -1,6 +1,6 @@
 # Lecturas agrupadas en reportes
 
-El aviso «La consulta tardó demasiado» procede del límite de 20 segundos de la vista previa en `report-customizer.js`; por sí solo no demuestra que PostgreSQL esté desconectado. El tiempo incluye consultas, verificación de fuentes, análisis y representación HTML. `/healthz` verifica únicamente que se pueda ejecutar `SELECT 1`, sin revelar credenciales ni datos del estudio.
+El aviso «La consulta tardó demasiado» procedía del límite de 20 segundos de la vista previa en `report-customizer.js`; por sí solo no demuestra que PostgreSQL esté desconectado. A petición del usuario, la espera se amplía a **90 segundos** para la vista previa de reportes/plantillas y la preparación de cruces dentro de ese editor. El tiempo incluye consultas, verificación de fuentes, análisis y representación HTML. `/healthz` verifica únicamente que se pueda ejecutar `SELECT 1`, sin revelar credenciales ni datos del estudio.
 
 Se identificaron y corrigieron lecturas repetidas en el análisis de respuestas abiertas:
 
@@ -9,7 +9,7 @@ Se identificaron y corrigieron lecturas repetidas en el análisis de respuestas 
 - `ReportTextProjection` utiliza esas capturas verificadas y un índice de miembros; conserva las advertencias y restricciones sensibles y compara cada captura utilizada con su huella congelada.
 - `TextDictionaryService.selections` consulta los contextos en lote y obtiene el diccionario global una sola vez por selección, manteniendo las sustituciones privadas por pregunta y el filtro de alias numéricos globales.
 
-Los ámbitos de lectura se liberan en `finally`, incluso ante errores; no hay caché permanente entre solicitudes ni cambios de definición, corte, origen, respuestas o reglas estadísticas. No se aumentó el límite de espera para ocultar demoras. La vista previa ofrece **Volver a intentar**, manteniendo la misma configuración y el mismo corte.
+Los ámbitos de lectura se liberan en `finally`, incluso ante errores; no hay caché permanente entre solicitudes ni cambios de definición, corte, origen, respuestas o reglas estadísticas. La espera ampliada acompaña estas optimizaciones; no corrige un 502 de infraestructura. La vista previa ofrece **Volver a intentar**, manteniendo la misma configuración y el mismo corte. Cambiar opciones sigue cancelando una petición anterior y salir de la página cancela la carga pendiente.
 
 ## Verificación local
 
