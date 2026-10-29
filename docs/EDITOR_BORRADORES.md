@@ -15,9 +15,13 @@ Este incremento implementa la etapa 2 del [plan](ENCUESTAS_DINAMICAS_PLAN.md): c
 5. Duplicar un borrador o crear una copia editable de titulados/empleadores. La copia es otra encuesta y no copia respuestas ni aprobación institucional.
 6. Consultar los borradores después de reiniciar con la misma base.
 
-Tipos disponibles: selección única, selección múltiple, desplegable, texto corto, texto largo, entero no negativo, correo, teléfono y enlace web. Para las opciones se usa una línea por opción, por ejemplo `SI | Sí`; el primer dato es su código estable y el segundo es el texto mostrado.
+Tipos disponibles: selección única, selección múltiple, desplegable, texto corto, texto largo, entero no negativo, correo, teléfono y enlace web.
+
+Actualización 2026-10-27: las opciones se editan como casillas de texto con botones «Añadir respuesta» y «Quitar», hasta 100 opciones. El editor conserva los códigos existentes al cambiar textos y genera códigos internos para las nuevas opciones. Los cambios se aplican al guardar la pregunta; el servidor sigue comprobando límites y condiciones dependientes. Al cambiar a un tipo sin opciones, estas no se envían; antes de guardar se pueden recuperar volviendo al tipo de selección. Sin JavaScript se conserva el campo de una línea por opción, por ejemplo `SI | Sí` (código estable y texto mostrado). Verificación: 28 pruebas de integración del editor y tres pruebas JavaScript de añadir/quitar, códigos, cambio de tipo y límite de opciones.
 
 Una condición puede activar una pregunta con uno o varios códigos de una pregunta de selección anterior. No se permite eliminar su control, moverlo detrás de la dependiente o cambiar sus opciones de forma que deje una condición inválida. Las reglas entre campos específicas de titulados todavía no se convierten a un lenguaje declarativo general; las encuestas actuales siguen usando su validador original.
+
+Los límites de selecciones aparecen solo para selección múltiple y el rango de valores solo para número entero. Con JavaScript activo, los campos que no corresponden se ocultan y deshabilitan para no enviarlos ni bloquear el guardado; sus valores se conservan mientras se cambia de tipo en el editor. La condición de aparición sigue disponible para cualquier tipo de pregunta, porque depende de una pregunta anterior. Una cuarta prueba JavaScript verifica visibilidad, deshabilitación y conservación de los valores al cambiar entre todos los tipos.
 
 No hay botones que aparenten publicar o generar reportes. Los nuevos borradores no aparecen como encuestas públicas y no ingresan al pipeline estadístico.
 
