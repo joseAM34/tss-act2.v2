@@ -1,0 +1,17 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="details(result)" class="chi-square-details" th:with="d=${T(bo.edu.umss.mercado.statistics.ChiSquareDetails).describe(result.table)}">
+  <h3>Hipótesis y detalle de chi-cuadrado de Pearson</h3>
+  <p th:text="${'Variables: ' + result.row_label + ' × ' + result.column_label}"></p>
+  <p th:text="${d.h0}"></p><p th:text="${d.h1}"></p>
+  <p th:text="${'Regla de decisión, solo si la prueba es aplicable: rechazar H₀ si p < α. Nivel α registrado: ' + result.table.alpha + '. La independencia de las observaciones es un supuesto previo distinto de H₀.'}"></p>
+  <h4>Frecuencias esperadas bajo H₀</h4><p th:text="${d.expected_formula}"></p>
+  <div class="table-scroll"><table><caption>Tabla de frecuencias esperadas; no son datos observados</caption><thead><tr><th>Filas / columnas</th><th th:each="c : ${result.column_options}" th:text="${c.label}"></th><th>Total fila</th></tr></thead><tbody><tr th:each="r,ri : ${result.row_options}"><th scope="row" th:text="${r.label}"></th><td th:each="c,ci : ${result.column_options}" th:text="${result.table.expected[ri.index][ci.index] == null ? 'Sin base' : #numbers.formatDecimal(result.table.expected[ri.index][ci.index],1,'NONE',2,'POINT')}"></td><td th:text="${result.table.row_totals[ri.index]}"></td></tr><tr><th>Total columna</th><td th:each="c,ci : ${result.column_options}" th:text="${result.table.column_totals[ci.index]}"></td><td th:text="${result.table.n}"></td></tr></tbody></table></div>
+  <h4>Cálculo por celda</h4><p th:text="${d.contribution_formula}"></p><p th:text="${d.residual_formula}"></p>
+  <p>gl = (filas activas − 1) × (columnas activas − 1). V de Cramér = √[χ² / (n × min(filas activas − 1, columnas activas − 1))]. Las categorías con total cero se conservan en las tablas y se retiran de la prueba.</p>
+  <div class="table-scroll"><table><caption>Observadas, esperadas, aportes y residuos de Pearson</caption><thead><tr><th>Fila</th><th>Columna</th><th>O</th><th>E</th><th>O − E</th><th>(O − E)² / E</th><th>Residuo de Pearson</th></tr></thead><tbody><tr th:each="cell : ${d.cells}"><th scope="row" th:text="${result.row_options[cell.row].label}"></th><td th:text="${result.column_options[cell.column].label}"></td><td th:text="${cell.observed}"></td><td th:text="${cell.expected == null ? 'Sin base' : #numbers.formatDecimal(cell.expected,1,'NONE',2,'POINT')}"></td><td th:text="${cell.difference == null ? 'Sin base' : #numbers.formatDecimal(cell.difference,1,'NONE',2,'POINT')}"></td><td th:text="${cell.contribution == null ? 'No calculable' : #numbers.formatDecimal(cell.contribution,1,'NONE',2,'POINT')}"></td><td th:text="${cell.pearson_residual == null ? 'No calculable' : #numbers.formatDecimal(cell.pearson_residual,1,'NONE',2,'POINT')}"></td></tr></tbody></table></div>
+  <p th:text="${'Suma diagnóstica de aportes calculables: ' + (d.diagnostic_sum == null ? 'Sin base' : #numbers.formatDecimal(d.diagnostic_sum,1,'NONE',2,'POINT')) + ' · Celdas calculables: ' + d.calculated_cells + ' · No calculables: ' + d.uncalculated_cells}"></p>
+  <p>Se usan los valores completos para calcular; el redondeo a dos decimales es solo de presentación. La suma visible de aportes redondeados puede diferir del total.</p>
+  <p th:text="${d.notes}"></p>
+  <p><strong th:text="${d.decision}"></strong></p>
+</section>
+</body></html>

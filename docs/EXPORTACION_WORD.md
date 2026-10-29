@@ -1,5 +1,9 @@
 # Exportación Word de reportes
 
+Formato acordado el 29 de octubre de 2026: texto y tablas en Arial 11; todos los títulos en Arial 12 y negrita, también en la vista del reporte y su PDF. Los datos numéricos de las tablas Word se redondean a un máximo de dos decimales; las tablas HTML/PDF muestran dos decimales en medidas y porcentajes y conservan los conteos enteros. El redondeo es de presentación: no modifica fuentes congeladas, cálculos ni datos incorporados de los gráficos. Portada, logotipo, índice, encabezado institucional y saltos por sección quedan para una definición posterior.
+
+El editor conserva hasta ocho vistas renderizadas en memoria de la página y seis respuestas de vista previa verificadas. Navegar entre preguntas o pantallas no vacía esas cachés. Reutiliza los nodos y gráficos cuando coinciden el HTML y sus datos asociados; los cambios de configuración siguen verificándose en el servidor. Volver del diccionario abierto desde el editor, reintentar o cambiar la confirmación de datos sensibles descarta las cachés. No se guardan datos en almacenamiento del navegador ni se precalculan todas las combinaciones. Al salir se liberan los gráficos; generar el reporte conserva la verificación del backend.
+
 La descarga **Word editable (.docx)** está disponible en cada reporte generado, junto a PDF, Excel y CSV. Requiere ADMIN y utiliza `ReportService.get`: verifica el reporte guardado y sus fuentes congeladas, sin consultar respuestas nuevas ni el diccionario actual. No cambia el reporte ni su plantilla. La respuesta HTTP usa `no-store`.
 
 El archivo contiene títulos, párrafos, tablas de Word y gráficos nativos OOXML, sin capturas de pantalla. Cada gráfico incorpora una hoja Excel dentro del documento con sus datos: se puede utilizar **Editar datos** en Word. No hay llamadas externas, dependencias nuevas, macros ni vínculos a archivos externos. La edición posterior del documento es independiente de la aplicación.

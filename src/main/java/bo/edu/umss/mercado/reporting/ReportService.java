@@ -82,7 +82,10 @@ public class ReportService {
     }
     @SuppressWarnings("unchecked")
     private String generate(Revision template, String analysisId, List<String> crossIds, String comment, String actor) {
-        return persist(build(template,analysisId,crossIds,comment,actor),actor);
+        var content=build(template,analysisId,crossIds,comment,actor);
+        content.put("descriptive_profile",bo.edu.umss.mercado.statistics.DescriptiveProfile.PROTOCOL);
+        content.put("display_result",profileAnalysis(analyses.get(analysisId)).get("result"));
+        return persist(content,actor);
     }
     @SuppressWarnings("unchecked")
     private Map<String,Object> build(Revision template,String analysisId,List<String> crossIds,String comment,String actor) {
@@ -110,6 +113,7 @@ public class ReportService {
     private String persist(Map<String,Object> content,String actor) {
         String revisionId=(String)content.get("template_revision_id");
         String analysisId=(String)((Map<?,?>)content.get("analysis")).get("id");
+        if(jdbc.queryForList("SELECT id FROM survey_general_analysis WHERE id=? FOR UPDATE",analysisId).isEmpty())throw new IllegalArgumentException("El análisis ya no está disponible. Vuelve a Resultados para preparar otro reporte.");
         var crossIds=((List<Map<String,Object>>)content.get("crosses")).stream().map(c->(String)c.get("id")).toList();
         String id = UUID.randomUUID().toString();
         jdbc.update("INSERT INTO generated_report (id, template_revision_id, analysis_id, actor, created_at, content_json, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -125,10 +129,17 @@ public class ReportService {
         return enriched;
     }
     @SuppressWarnings("unchecked")
+    private Map<String,Object> profileAnalysis(Map<String,Object> analysis){
+        var bundle=preparation.bundle((String)analysis.get("preparation_id"));var enriched=new LinkedHashMap<>(analysis);
+        @SuppressWarnings("unchecked") var result=(Map<String,Object>)analysis.get("result");
+        @SuppressWarnings("unchecked") var logical=(Map<String,Object>)bundle.get("logical");
+        enriched.put("result",bo.edu.umss.mercado.statistics.DescriptiveProfile.enrich(result,logical));return enriched;
+    }
+    @SuppressWarnings("unchecked")
     public Map<String,Object> advancedData(String analysisId){
         var analysis=analyses.get(analysisId);
         var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
-        var dictionary=textDictionary.global();analysis=enrichedAnalysis(analysis);
+        var dictionary=textDictionary.global();analysis=profileAnalysis(enrichedAnalysis(analysis));
         return map("result",textProjection.enrich((Map<String,Object>)analysis.get("result"),logical,dictionary.rules(),dictionary.revision(),Set.of(),Set.of(),textDictionary.selections(logical),false),"options",ReportAdvancedProjection.options(logical));
     }
     @Transactional(readOnly=true)
@@ -146,6 +157,7 @@ public class ReportService {
     public Map<String,Object> preview(ReportCustomization.Configuration config,String actor) {
         if(config==null)throw new IllegalArgumentException("Configuración vacía.");
         var analysis=analyses.get(config.analysisId());if(ReportCustomization.advanced(config))analysis=enrichedAnalysis(analysis);
+        analysis=profileAnalysis(analysis);
         var dictionary=textDictionary.global();
         @SuppressWarnings("unchecked") var textLogical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
         analysis=new LinkedHashMap<>(analysis);
@@ -159,7 +171,7 @@ public class ReportService {
         var content=build(new Revision(null,null,0,actor,"",CanonicalJson.hash(definition),definition),config.analysisId(),config.crossIds(),config.comment(),actor);
         content.put("format","REPORTE_HTML_V3");content.put("presentation",config);content.put("display_result",ReportCustomization.display(config,analysis));
         content.put("text_dictionary",map("revision",dictionary.revision(),"rules",dictionary.rules(),"hash",CanonicalJson.hash(dictionary.rules())));
-        content.put("text_projection_version",3);content.put("text_dictionaries",textSelections);
+        content.put("text_projection_version",3);content.put("text_dictionaries",textSelections);content.put("descriptive_profile",bo.edu.umss.mercado.statistics.DescriptiveProfile.PROTOCOL);
         if(config.crossSettings()!=null){
             content.put("format","REPORTE_HTML_V4");
             @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
@@ -210,6 +222,10 @@ public class ReportService {
             boolean advanced="REPORTE_HTML_V6".equals(content.get("format"));
             if(advanced!=ReportCustomization.advanced(config))throw corrupt();
             if(advanced)analysis=enrichedAnalysis(analysis);
+            if(content.containsKey("descriptive_profile")){
+                if(!bo.edu.umss.mercado.statistics.DescriptiveProfile.PROTOCOL.equals(content.get("descriptive_profile")))throw corrupt();
+                analysis=profileAnalysis(analysis);
+            }
             if(content.get("text_dictionary") instanceof Map<?,?> dictionary){
                 String rules=(String)dictionary.get("rules");if(!CanonicalJson.hash(rules).equals(dictionary.get("hash")))throw corrupt();
                 var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
@@ -226,6 +242,9 @@ public class ReportService {
                 if((config.crossSettings()==null && "REPORTE_HTML_V4".equals(content.get("format"))) || !CanonicalJson.hash(ReportCustomization.displayCrosses(config,(List<Map<String,Object>>)content.get("crosses"))).equals(CanonicalJson.hash(content.get("display_crosses"))))throw corrupt();
                 if(config.crossSettings()!=null)for(var c:config.crossSettings())if(!analysis.get("preparation_id").equals(crosses.get(c.id()).get("preparation_id")))throw corrupt();
             }
+        }
+        if(Set.of("REPORTE_HTML_V1","REPORTE_HTML_V2").contains(content.get("format"))&&content.containsKey("descriptive_profile")){
+            if(!bo.edu.umss.mercado.statistics.DescriptiveProfile.PROTOCOL.equals(content.get("descriptive_profile"))||!CanonicalJson.hash(profileAnalysis(analysis).get("result")).equals(CanonicalJson.hash(content.get("display_result"))))throw corrupt();
         }
         var crossSnapshots = (List<Map<String,Object>>)content.get("crosses");
         var crossIds = jdbc.queryForList("SELECT cross_id FROM generated_report_cross WHERE report_id = ? ORDER BY position",String.class,id);

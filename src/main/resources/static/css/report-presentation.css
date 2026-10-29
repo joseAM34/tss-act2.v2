@@ -15,3 +15,8 @@ body.report-guides :is([data-report-customizer],[data-report-url]) .stat-help{di
 @media print{[data-report-url]{max-width:186mm;margin:0 auto} [data-report-url] table{font-size:9pt} [data-report-url] table :is(th,td){padding:4px 6px} [data-report-url] thead{display:table-header-group} [data-report-url] tr{break-inside:avoid} [data-report-url] .table-scroll{overflow:visible} [data-report-url] .review-card{padding:8px;margin-block:8px} [data-report-url] h2,[data-report-url] h3{break-after:avoid} .report-guide-toggle{display:none}}
 
 @media screen{[data-report-url]{max-width:8.5in;background:#fff;padding-inline:22px}#full-preview{max-width:8.5in;box-sizing:border-box}}
+
+/* Shared document typography for the preview and browser PDF. */
+:is([data-report-customizer],[data-report-url]) .report-document,
+:is([data-report-customizer],[data-report-url]) .report-document :is(p,table,caption,th,td,li,dl,dt,dd,summary,span,a,strong,code){font-family:Arial,sans-serif;font-size:11pt}
+:is([data-report-customizer],[data-report-url]) .report-document :is(h1,h2,h3,h4,h5,h6){font-family:Arial,sans-serif;font-size:12pt;font-weight:700}

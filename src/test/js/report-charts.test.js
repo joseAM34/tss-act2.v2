@@ -2,6 +2,12 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const options=require('../../main/resources/static/js/report-charts.js');
 const categorical={numeric:null,distribution:[{label:'Sí',count:7},{label:'No sabe',count:0},{label:'No',count:3}]};
+test('polígono y ojiva conservan coordenadas y acumulados calculados por el backend',()=>{
+  const v={unit:'meses',quality:{intervals:[{lower:0,upper:2,midpoint:1,count:3,cumulative:3},{lower:2,upper:4,midpoint:3,count:2,cumulative:5}]}};
+  const polygon=options.variable(v,'polygon'),ogive=options.variable(v,'ogive');
+  assert.deepEqual(polygon.series[0].data,[[1,3],[3,2]]);assert.deepEqual(ogive.series[0].data,[[0,0],[2,3],[4,5]]);
+  assert.equal(polygon.xAxis.type,'value');assert.equal(ogive.series[0].smooth,false);
+});
 test('una plantilla sin menciones en su nueva fuente muestra ausencia sin fabricar sectores',()=>{
   const v={text_counts:{distribution:[{label:'ia',count:0}]}};
   for(const style of ['text-bars','text-pie','text-donut']){const chart=options.variable(v,style);assert.deepEqual(chart.series,[]);assert.match(chart.title.text,/Sin coincidencias/);}

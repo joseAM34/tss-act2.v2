@@ -35,6 +35,7 @@ class SurveyWorkspaceIntegrationTest {
     @Autowired GenericPreparationService preparation;
     @Autowired GenericAnalysisService analyses;
     @Autowired ReportService reports;
+    @Autowired bo.edu.umss.mercado.reporting.AnalysisDeletionService analysisDeletion;
     @Autowired bo.edu.umss.mercado.importing.CsvImportService imports;
     @Autowired JdbcTemplate jdbc;
     @Autowired MockMvc mvc;
@@ -136,6 +137,38 @@ class SurveyWorkspaceIntegrationTest {
     String prepare(String version) {
         String cfg=preparation.configure(version,0,List.of(new GenericPreparationService.Field("opcion","NOMINAL","")),"workspace-admin");
         return preparation.prepare(version,cfg,"NO_DECLARADO","BORRADOR",null,null,"workspace-admin");
+    }
+    @Test void deletingOneAnalysisRemovesItsReportsAndKeepsSourcesAndOtherAnalyses() throws Exception {
+        String p=prepare(first),a=analyses.create(p,"workspace-admin"),otherAnalysis=analyses.create(p,"workspace-admin");
+        String template=reports.createTemplate(new ReportService.Template("Reporte","",List.of("CONTEXTO"),false),"workspace-admin");
+        String revision=reports.latest(template).id();
+        String report=reports.generate(revision,a,List.of(),"","workspace-admin"),kept=reports.generate(revision,otherAnalysis,List.of(),"","workspace-admin");
+        String url="/admin/espacio/"+slug+"/reportes/analisis/"+a+"/eliminar";
+        mvc.perform(get("/admin/espacio/"+slug+"/reportes").param("version","v1")).andExpect(status().isOk()).andExpect(content().string(containsString(url)));
+        mvc.perform(get(url).param("version","v1")).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andExpect(content().string(containsString("1 reportes guardados asociados")));
+        var state=analysisDeletion.state(spaces.open(slug,"v1"),a);
+        mvc.perform(post(url).with(csrf()).param("version","v1").param("expectedHash",state.hash()).param("confirm","true")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/admin/espacio/"+slug+"/reportes?version=v1"));
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_general_analysis WHERE id=?",Integer.class,a)).isZero();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM generated_report WHERE id=?",Integer.class,report)).isZero();
+        assertThat(reports.get(kept)).isNotEmpty();assertThat(analyses.get(otherAnalysis)).isNotEmpty();
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_preparation_run WHERE id=?",Integer.class,p)).isEqualTo(1);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_response WHERE id=?",Integer.class,firstResponse)).isEqualTo(1);
+        assertThat(reports.latest(template).id()).isEqualTo(revision);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_management_event WHERE state_json LIKE ?",Integer.class,"%"+a+"%")).isEqualTo(1);
+    }
+    @Test void analysisDeletionRequiresAdminCsrfConfirmationExactVersionAndCurrentReportList() throws Exception {
+        String a=analyses.create(prepare(first),"workspace-admin"),url="/admin/espacio/"+slug+"/reportes/analisis/"+a+"/eliminar";
+        String hash=analysisDeletion.state(spaces.open(slug,"v1"),a).hash();
+        mvc.perform(get(url).param("version","v1").with(anonymous())).andExpect(status().is3xxRedirection());
+        mvc.perform(get(url).param("version","v1").with(user("reader").roles("USER"))).andExpect(status().isForbidden());
+        mvc.perform(post(url).param("version","v1").param("expectedHash",hash).param("confirm","true")).andExpect(status().isForbidden());
+        mvc.perform(post(url).with(csrf()).param("version","v1").param("expectedHash",hash)).andExpect(status().isBadRequest());
+        mvc.perform(get(url).param("version","v2")).andExpect(status().isNotFound());
+        mvc.perform(post(url).with(csrf()).param("version","v2").param("expectedHash",hash).param("confirm","true")).andExpect(status().isNotFound());
+        String template=reports.createTemplate(new ReportService.Template("Reporte nuevo","",List.of("CONTEXTO"),false),"workspace-admin");
+        reports.generate(reports.latest(template).id(),a,List.of(),"","workspace-admin");
+        mvc.perform(post(url).with(csrf()).param("version","v1").param("expectedHash",hash).param("confirm","true")).andExpect(status().isConflict());
+        assertThat(analyses.get(a)).isNotEmpty();
     }
     @Test void savedResultsAndReportsBelongToExactVersionAndContextFollowsTools() throws Exception {
         String p=prepare(first),p2=prepare(second),a=analyses.create(p,"workspace-admin"),a2=analyses.create(p2,"workspace-admin");

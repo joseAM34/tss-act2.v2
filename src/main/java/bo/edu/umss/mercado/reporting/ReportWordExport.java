@@ -26,7 +26,7 @@ public final class ReportWordExport {
                 case "DESCRIPTIVOS"->{
                     doc.heading("Resultados descriptivos",2);
                     for(var variable:maps(result.get("variables")))variable(doc,variable,yes(template.get("charts")));
-                    for(var stratum:maps(result.get("strata"))){doc.heading("Resultados separados por origen: "+s(stratum.get("origin")),2);doc.paragraph("Envíos: "+s(stratum.get("submission_count")));for(var v:maps(stratum.get("variables"))){doc.heading(v.get("label"),3);base(doc,v);distribution(doc,v);}}
+                    for(var stratum:maps(result.get("strata"))){doc.heading("Resultados separados por origen: "+s(stratum.get("origin")),2);doc.paragraph("Envíos: "+s(stratum.get("submission_count")));for(var v:maps(stratum.get("variables"))){doc.heading(v.get("label"),3);base(doc,v);distribution(doc,v);profile(doc,v);}}
                     for(var advanced:maps(content.get("advanced_charts")))advanced(doc,advanced,yes(template.get("charts")));
                 }
                 case "CRUCES"->{doc.heading("Cruces seleccionados",2);for(var cross:maps(content.getOrDefault("display_crosses",content.get("crosses"))))cross(doc,cross,yes(template.get("charts")));}
@@ -54,13 +54,20 @@ public final class ReportWordExport {
         if(yes(v.get("coverage_only")))doc.paragraph("La cobertura indica qué envíos contienen respuesta; no describe el contenido de los textos.");
         if("checkbox".equals(v.get("type")))doc.paragraph("Selección múltiple: un envío puede aportar varias menciones; los porcentajes sobre envíos pueden sumar más de 100%.");
         // Equivalent tables remain available, like the expandable tables in the HTML report.
-        distribution(doc,v);if(v.get("report_comment")!=null)doc.paragraph(v.get("report_comment"));
+        distribution(doc,v);profile(doc,v);if(v.get("report_comment")!=null)doc.paragraph(v.get("report_comment"));
         var reps=graphs(v,"columns");boolean mentions=yes(v.get("report_text_table"))||reps.stream().anyMatch(r->r.startsWith("text-"));
         if(yes(v.get("sensitive_text"))&&(yes(v.get("report_text_content"))||mentions))doc.paragraph("ADVERTENCIA: datos sensibles o identificativos incluidos mediante confirmación administrativa explícita. Limita la distribución de este documento.");
         if(yes(v.get("report_text_content"))&&v.get("text_content") instanceof List<?> texts){doc.heading("Respuestas escritas",4);var rows=new ArrayList<List<?>>();rows.add(row("Respuesta"));for(Object t:texts)rows.add(row(t));doc.table(rows);}
         if(mentions&&v.get("text_counts") instanceof Map<?,?>){var counts=map(v.get("text_counts"));doc.heading("Coincidencias en respuestas abiertas",4);doc.paragraph("Diccionario: "+s(counts.get("dictionary_scope"))+" · Revisión: "+s(counts.get("dictionary_revision"))+" · Base: "+s(counts.get("base"))+" respuestas con valor.");doc.paragraph("Cada tema cuenta una vez por respuesta. Los compuestos tienen prioridad. Una respuesta puede mencionar varios temas. Circular y anillo distribuyen menciones de temas; no porcentajes de envíos.");var rows=new ArrayList<List<?>>();rows.add(row("Tema","Envíos","Base"));for(var o:maps(counts.get("distribution")))if(positive(o.get("count")))rows.add(row(o.get("label"),o.get("count"),o.get("base")));doc.table(rows);if(rows.size()==1)doc.paragraph("Sin coincidencias para esta fuente.");}
         // The snapshot may contain unselected enriched texts: never iterate those unless selected above.
         for(String rep:reps){
+            if(rep.equals("polygon")||rep.equals("ogive")){
+                if(charts){var bins=maps(map(v.get("quality")).get("intervals"));var xs=new ArrayList<Object>();var ys=new ArrayList<Object>();
+                    if(rep.equals("ogive")&&!bins.isEmpty()){xs.add(bins.getFirst().get("lower"));ys.add(0);}
+                    for(var b:bins){xs.add(b.get(rep.equals("polygon")?"midpoint":"upper"));ys.add(b.get(rep.equals("polygon")?"count":"cumulative"));}
+                    doc.heading(ReportCustomization.label(rep),4);doc.chart(s(v.get("label"))+" ("+s(v.get("unit"))+")","scatterLine",xs,List.of(new WordDocument.Series(rep.equals("polygon")?"Frecuencia":"Frecuencia acumulada",ys)));}
+                continue;
+            }
             if(rep.equals("box")){var box=map(map(v.get("advanced")).get("box"));doc.heading("Caja: resumen editable",4);doc.paragraph("Word conserva los cinco valores en una tabla editable; no se exporta una imagen ni un diagrama de caja nativo.");doc.paragraph(box.get("method"));var rows=new ArrayList<List<?>>();rows.add(row("Medida","Valor"));var values=list(box.get("values"));var labels=List.of("Mínimo","Q1","Mediana","Q3","Máximo");for(int i=0;i<values.size();i++)rows.add(row(labels.get(i),values.get(i)));doc.table(rows);continue;}
             if(!charts)continue;
             var labels=new ArrayList<Object>();var values=new ArrayList<Object>();String kind=rep.startsWith("text-")?rep.substring(5):rep;
@@ -73,15 +80,35 @@ public final class ReportWordExport {
         }
     }
     private static boolean positive(Object o){return o instanceof Number n&&n.doubleValue()>0;}
+    private static void profile(WordDocument doc,Map<String,Object> v){
+        if(!(v.get("quality") instanceof Map<?,?>))return;var profile=map(v.get("quality"));doc.heading("Análisis descriptivo y validación",4);doc.paragraph(profile.get("method"));
+        var measures=new ArrayList<List<?>>();measures.add(row("Medida","Resultado"));for(var m:maps(profile.get("measures")))measures.add(row(m.get("label"),m.get("value")));doc.table(measures);
+        if(!"NUMERIC".equals(profile.get("kind"))){var frequencies=new ArrayList<List<?>>();frequencies.add(row("Opción","fi","Base envíos","hi por envío","% por envío","Base menciones","hi por mención"));for(var f:maps(profile.get("categorical")))frequencies.add(row(f.get("label"),f.get("count"),f.get("base"),f.get("relative"),f.get("percentage"),f.get("mention_base"),f.get("mention_relative")));doc.table(frequencies);return;}
+        doc.paragraph("Unidad: "+s(v.get("unit"))+" · Base numérica: "+s(profile.get("n")));doc.paragraph(profile.get("cv_reason"));
+        var frequencies=new ArrayList<List<?>>();frequencies.add(row("Valor","fi","hi = fi/n","%","Fi","% acumulado"));for(var f:maps(profile.get("frequencies")))frequencies.add(row(f.get("value"),f.get("count"),f.get("relative"),f.get("percentage"),f.get("cumulative"),f.get("cumulative_percent")));doc.heading("Frecuencias de valores observados",4);doc.table(frequencies);
+        var intervals=new ArrayList<List<?>>();intervals.add(row("Inferior incluido","Superior","Superior incluido","Marca de clase","fi","hi","%","Fi","% acumulado"));for(var b:maps(profile.get("intervals")))intervals.add(row(b.get("lower"),b.get("upper"),b.get("closed_upper"),b.get("midpoint"),b.get("count"),b.get("relative"),b.get("percentage"),b.get("cumulative"),b.get("cumulative_percent")));doc.heading("Intervalos de histograma, polígono y ojiva",4);doc.table(intervals);
+        doc.paragraph("Porcentajes sobre n; redondeo de presentación a dos decimales. La suma visible de frecuencias relativas puede diferir de 1.");
+        var outliers=maps(profile.get("outliers"));if(!outliers.isEmpty()){doc.heading("Valores fuera de 1,5·RIC; se conservan en los cálculos",4);var rows=new ArrayList<List<?>>();rows.add(row("Valor","Frecuencia"));for(var o:outliers)rows.add(row(o.get("value"),o.get("count")));doc.table(rows);}
+    }
     private static void cross(WordDocument doc,Map<String,Object> saved,boolean charts)throws IOException{
         var c=map(saved.get("result"));var table=map(c.get("table"));String title=Objects.toString(saved.get("display_title"),s(c.get("row_label"))+" × "+s(c.get("column_label")));
         doc.heading(title,3);if(saved.get("report_comment")!=null)doc.paragraph(saved.get("report_comment"));doc.paragraph("Total: "+s(c.get("total_submissions"))+" · Pares con valor: "+s(table.get("n"))+" · Excluidos: "+s(c.get("excluded_pairs")));
+        var detail=bo.edu.umss.mercado.statistics.ChiSquareDetails.describe(table);
+        doc.heading("Hipótesis de chi-cuadrado de Pearson",4);doc.paragraph(detail.get("h0"));doc.paragraph(detail.get("h1"));
+        doc.paragraph("Solo si la prueba es aplicable: rechazar H₀ si p < α. Alpha registrado: "+s(table.get("alpha"))+". La independencia de las observaciones es un supuesto previo distinto de H₀.");
+        doc.paragraph(detail.get("expected_formula"));
         var columns=maps(c.get("column_options"));var rows=maps(c.get("row_options"));
         for(String metric:List.of("observed","row_percentages","column_percentages","total_percentages","expected")){
             doc.heading(switch(metric){case "observed"->"Conteos observados";case "row_percentages"->"% sobre total de cada fila";case "column_percentages"->"% sobre total de cada columna";case "total_percentages"->"% sobre pares con valor";default->"Frecuencias esperadas (diagnóstico)";},4);
             doc.table(matrix(rows,columns,list(table.get(metric))));
         }
         doc.paragraph("Totales de fila: "+s(table.get("row_totals"))+" · Totales de columna: "+s(table.get("column_totals")));
+        doc.heading("Aportes por celda y residuos de Pearson",4);doc.paragraph(detail.get("contribution_formula"));doc.paragraph(detail.get("residual_formula"));
+        doc.paragraph("gl = (filas activas − 1) × (columnas activas − 1). V de Cramér = √[χ² / (n × min(filas activas − 1, columnas activas − 1))]. Las categorías con total cero se retiran de la prueba y permanecen en las tablas.");
+        var diagnostics=new ArrayList<List<?>>();diagnostics.add(row("Fila","Columna","O","E","O − E","(O − E)² / E","Residuo de Pearson"));
+        for(var cell:maps(detail.get("cells")))diagnostics.add(row(rows.get(((Number)cell.get("row")).intValue()).get("label"),columns.get(((Number)cell.get("column")).intValue()).get("label"),cell.get("observed"),cell.get("expected"),cell.get("difference"),cell.get("contribution"),cell.get("pearson_residual")));doc.table(diagnostics);
+        doc.table(List.of(row("Detalle","Valor"),row("Suma diagnóstica de aportes calculables",detail.get("diagnostic_sum")),row("Celdas calculables",detail.get("calculated_cells")),row("Celdas no calculables",detail.get("uncalculated_cells"))));
+        doc.paragraph(detail.get("notes"));doc.paragraph("Redondeo a dos decimales solo de presentación; la suma de aportes redondeados puede diferir del total.");doc.paragraph(detail.get("decision"));
         doc.paragraph("Aplicabilidad: "+s(table.get("status"))+" · Motivo: "+s(table.get("reason"))+" · Alpha: "+s(table.get("alpha")));
         for(String metric:List.of("min_expected","below_five_count","chi_square","df","p","cramers_v","reject_h0"))doc.paragraph(metric+": "+s(table.get(metric)));
         if(table.get("p")==null)doc.paragraph("Prueba no ejecutada; la ausencia de p no significa ausencia de asociación.");

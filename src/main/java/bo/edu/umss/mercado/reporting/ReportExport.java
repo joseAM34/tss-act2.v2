@@ -27,7 +27,8 @@ public final class ReportExport {
         for (Object section:(List<?>)template.get("sections")) {
             if (section.equals("DESCRIPTIVOS")) for (var v:list(result.get("variables"))) {
                 String q=v.get("label").toString();
-                for (var e:v.entrySet()) if (!Set.of("numeric","distribution","advanced").contains(e.getKey())) add(rows,"descriptivos",q,"","",e.getKey(),e.getValue());
+                for (var e:v.entrySet()) if (!Set.of("numeric","distribution","advanced","quality").contains(e.getKey())) add(rows,"descriptivos",q,"","",e.getKey(),e.getValue());
+                if(v.get("quality")!=null)flatten(rows,"descriptivos",q,"","","quality",v.get("quality"));
                 if(v.get("advanced") instanceof Map<?,?> advanced && v.get("report_graphs") instanceof List<?> graphs){
                     for(String kind:List.of("histogram","box","time"))if(graphs.contains(kind)||kind.equals("time")&&(graphs.contains("line")||graphs.contains("area")))flatten(rows,"descriptivos",q,"","",kind,advanced.get(kind));
                 }
@@ -42,6 +43,9 @@ public final class ReportExport {
                 flatten(rows,"cruce",q,"","","especificacion",cross.get("spec"));
                 for (String k:List.of("protocol","row_question","column_question","scope","total_submissions","excluded_pairs","multiplicity","pair_states")) flatten(rows,"cruce",q,"","",k,c.get(k));
                 var table=map(c.get("table")); var rowOptions=list(c.get("row_options")); var colOptions=list(c.get("column_options"));
+                var detail=bo.edu.umss.mercado.statistics.ChiSquareDetails.describe(table);
+                for(String key:List.of("protocol","h0","h1","expected_formula","contribution_formula","residual_formula","notes","decision","diagnostic_sum","calculated_cells","uncalculated_cells","test_executed"))add(rows,"detalle_chi_cuadrado",q,"","",key,detail.get(key));
+                for(var cell:list(detail.get("cells")))for(String key:List.of("observed","expected","difference","contribution","pearson_residual"))add(rows,"detalle_chi_cuadrado",q,rowOptions.get(((Number)cell.get("row")).intValue()).get("label").toString(),colOptions.get(((Number)cell.get("column")).intValue()).get("label").toString(),key,cell.get(key));
                 Set<String> matrices=Set.of("observed","expected","row_percentages","column_percentages","total_percentages");
                 for (var e:table.entrySet()) {
                     if (matrices.contains(e.getKey())) {

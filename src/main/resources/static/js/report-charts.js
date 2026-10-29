@@ -1,7 +1,11 @@
 'use strict';
 const ReportChartOptions={
-  labels:{'text-bars':'Barras de coincidencias','text-pie':'Circular de coincidencias','text-donut':'Anillo de coincidencias',columns:'Columnas verticales',bars:'Barras horizontales',pie:'Circular',donut:'Anillo',heat:'Mapa de calor',grouped:'Barras agrupadas',stacked:'Barras apiladas',histogram:'Histograma',box:'Caja',line:'Envíos con valor por mes de recepción',area:'Envíos con valor por mes de recepción'},
+  labels:{'text-bars':'Barras de coincidencias','text-pie':'Circular de coincidencias','text-donut':'Anillo de coincidencias',columns:'Columnas verticales',bars:'Barras horizontales',pie:'Circular',donut:'Anillo',heat:'Mapa de calor',grouped:'Barras agrupadas',stacked:'Barras apiladas',polygon:'Polígono de frecuencias',ogive:'Ojiva: frecuencia acumulada',histogram:'Histograma',box:'Caja',line:'Envíos con valor por mes de recepción',area:'Envíos con valor por mes de recepción'},
   variable(v,style){
+    if(style==='polygon'||style==='ogive'){
+      const bins=v.quality.intervals,points=style==='polygon'?bins.map(b=>[b.midpoint,b.count]):bins.length?[[bins[0].lower,0],...bins.map(b=>[b.upper,b.cumulative])]:[];
+      return {animation:false,aria:{enabled:true},tooltip:{trigger:'axis',renderMode:'richText',valueFormatter:value=>Array.isArray(value)?Number(value[0]).toFixed(2)+'; '+value[1]:value},grid:{containLabel:true,left:20,right:20,bottom:65},xAxis:{type:'value',name:v.unit,axisLabel:{formatter:value=>Number(value).toFixed(2)}},yAxis:{type:'value',name:style==='polygon'?'Frecuencia (fi)':'Frecuencia acumulada (Fi)',minInterval:1,min:0},series:[{type:'line',smooth:false,connectNulls:false,data:points}]};
+    }
     if(style.startsWith('text-')){const distribution=v.text_counts.distribution.filter(row=>row.count>0);if(!distribution.length)return {animation:false,title:{text:'Sin coincidencias para esta fuente',left:'center',top:'center',textStyle:{fontSize:14}},series:[]};return this.variable({distribution},style.slice(5));}
     if(['histogram','box','line','area'].includes(style)){
       const base={animation:false,aria:{enabled:true},tooltip:{trigger:'axis',renderMode:'richText',...(style==='box'?{valueFormatter:value=>Array.isArray(value)?value.map(n=>Number(n).toFixed(2)).join(', '):Number(value).toFixed(2)}:{})},grid:{containLabel:true,left:20,right:20,bottom:80}};
@@ -50,5 +54,7 @@ if(typeof window!=='undefined')window.ReportCharts=(main,content,report)=>{
  });
  if(report&&window.ReportDownloads)window.ReportDownloads.attach(main,report,exports);
  const resize=()=>charts.forEach(c=>c.resize());window.addEventListener('resize',resize);
- return ()=>{window.removeEventListener('resize',resize);charts.forEach(c=>c.dispose());};
+ const dispose=()=>{window.removeEventListener('resize',resize);charts.forEach(c=>c.dispose());};
+ dispose.resize=resize;
+ return dispose;
 };

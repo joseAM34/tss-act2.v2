@@ -48,6 +48,96 @@ class WorkspaceResultsIntegrationTest {
     @Autowired TextDictionaryService dictionaries;
     @org.springframework.test.context.bean.override.mockito.MockitoBean WikidataTerms wikidataRemote;
     @Autowired ReportPresentationTemplates presentations;
+    @Autowired ResponseTableExport responseExport;
+    @Test void chiSquareHypothesesExpectedTablesAndCellDiagnosticsAppearInScreensAndExports()throws Exception {
+        String v=publish();for(int r=0;r<2;r++)for(int c=0;c<2;c++)for(int i=0;i<(r==c?10:20);i++){
+            var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("q1",r==0?"SI":"NO_SABE");values.set("q2",c==0?"SI":"NO_SABE");
+            var validation=validator.validate(publications.get(v).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(v,UUID.randomUUID().toString(),validation);
+        }
+        String prepared=preparation.prepare(v,preparation.configuration(v).id(),"NO_DECLARADO","BORRADOR",null,null,ACTOR);
+        String cross=crosses.create(prepared,new GenericCrossService.Spec("q1","q2",.05,true,"Envíos ficticios de prueba","Independencia documentada solo en fixture sintética",false),ACTOR);
+        String before=CanonicalJson.hash(crosses.get(cross));
+        mvc.perform(get("/admin/cruces-generales/"+cross)).andExpect(status().isOk()).andExpect(content().string(containsString("H₀:"))).andExpect(content().string(containsString("H₁:"))).andExpect(content().string(containsString("Tabla de frecuencias esperadas"))).andExpect(content().string(containsString("Residuo de Pearson"))).andExpect(content().string(containsString("Se rechaza H₀")));
+        String analysis=analyses.create(prepared,ACTOR);var config=ReportCustomization.defaults(analyses.get(analysis),List.of(cross));
+        var preview=reports.preview(config,ACTOR);String id=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);var report=reports.get(id);
+        mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("H₀:"))).andExpect(content().string(containsString("Suma diagnóstica de aportes")));
+        mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(config))).andExpect(status().isOk()).andExpect(content().string(containsString("Hipótesis y detalle")));
+        var csv=new String(ReportExport.csv(ReportExport.rows(report)),java.nio.charset.StandardCharsets.UTF_8);assertThat(csv).contains("detalle_chi_cuadrado","pearson_residual","H₀:","H₁:");
+        var word=ReportWordExport.docx(report);try(var zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(word))){String document="";for(java.util.zip.ZipEntry entry;(entry=zip.getNextEntry())!=null;)if(entry.getName().equals("word/document.xml"))document=new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);assertThat(document).contains("H₀:","H₁:","Residuo de Pearson","Suma diagnóstica");}
+        String blocked=crosses.create(prepared,new GenericCrossService.Spec("q1","q2",.05,false,"","",false),ACTOR);
+        mvc.perform(get("/admin/cruces-generales/"+blocked)).andExpect(status().isOk()).andExpect(content().string(containsString("no se emite una decisión")));
+        assertThat(CanonicalJson.hash(crosses.get(cross))).isEqualTo(before);
+    }
+    @Test void descriptiveProfilesReachResultsNewReportsAndExportsWithoutRewritingHistoricalReports()throws Exception {
+        String v=publish();for(int value:List.of(0,2,4,6,8))response(v,"SI",value);
+        var frame=results.load(slug(v),List.of(v),"","",ACTOR);String analysisId=results.materialize(frame,ACTOR);
+        String oldId=reports.generateDirect(analysisId,"Reporte anterior",List.of(),"",ACTOR);
+        // A historical V2 report predates the optional, versioned descriptive projection.
+        var oldContent=new LinkedHashMap<>((Map<String,Object>)reports.get(oldId).get("content"));oldContent.remove("descriptive_profile");oldContent.remove("display_result");
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(oldContent),CanonicalJson.hash(oldContent),oldId);
+        String oldHash=(String)reports.get(oldId).get("logical_hash");
+        var session=new MockHttpSession();var loaded=load(v,session,false);var loadedResult=(Map<String,Object>)loaded.get("result");var variables=(List<Map<String,Object>>)loadedResult.get("variables");
+        assertThat(variables.stream().filter(q->q.get("question_id").equals("duracion")).findFirst().orElseThrow()).containsKey("quality");
+        var defaults=ReportCustomization.defaults(analyses.get(analysisId),List.of());
+        var questions=defaults.questions().stream().map(q->new ReportCustomization.Question(q.id(),true,q.title(),"",q.id().equals("duracion")?List.of("table","polygon","ogive"):List.of("table"))).toList();
+        var config=new ReportCustomization.Configuration(analysisId,"Perfil descriptivo","",true,true,true,"",questions,List.of());
+        var preview=reports.preview(config,ACTOR);assertThat(preview).containsEntry("descriptive_profile",DescriptiveProfile.PROTOCOL);
+        String reportId=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);var report=reports.get(reportId);
+        mvc.perform(get("/admin/reportes/"+reportId)).andExpect(status().isOk()).andExpect(content().string(containsString("Percentil 90 (tipo 7)"))).andExpect(content().string(containsString("Ojiva")));
+        assertThat(new String(ReportExport.csv(ReportExport.rows(report)),java.nio.charset.StandardCharsets.UTF_8)).contains("quality","Percentil 90");
+        byte[] word=ReportWordExport.docx(report);var parts=new HashMap<String,String>();try(var zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(word))){for(java.util.zip.ZipEntry entry;(entry=zip.getNextEntry())!=null;)if(entry.getName().endsWith(".xml"))parts.put(entry.getName(),new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}
+        assertThat(parts.get("word/document.xml")).contains("Percentil 90","fi/n");assertThat(parts.values().stream().filter(xml->xml.contains("scatterStyle val=\"lineMarker\""))).hasSize(2);
+        response(v,"NO_SABE",100);assertThat(reports.get(oldId).get("logical_hash")).isEqualTo(oldHash);assertThat(reports.get(oldId).get("content")).isEqualTo(oldContent);
+        var tampered=new LinkedHashMap<>((Map<String,Object>)report.get("content"));tampered.put("descriptive_profile","VERSION_DESCONOCIDA");jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(tampered),CanonicalJson.hash(tampered),reportId);assertThatThrownBy(()->reports.get(reportId)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void responseDownloadsUseTheLoadedCutWithAllQuestionsAndProtectAccess()throws Exception {
+        String v=publish(),id=response(v,"SI",12);var session=new MockHttpSession();String frame=(String)load(v,session,false).get("frameId");
+        mvc.perform(get("/admin/espacio/"+slug(v)+"/resultados").param("version",publications.get(v).code())).andExpect(status().isOk()).andExpect(content().string(containsString("Descargar respuestas Excel"))).andExpect(content().string(containsString("data-results-export")));
+        response(v,"NO_SABE",6);
+        String endpoint=path(v)+"/respuestas.";
+        mvc.perform(post(endpoint+"csv").session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",frame)).andExpect(status().isBadRequest());
+        mvc.perform(post(endpoint+"csv").with(csrf()).with(user("reader").roles("USER")).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint+"csv").with(csrf()).with(anonymous()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().is3xxRedirection());
+        mvc.perform(post(endpoint+"csv").with(csrf()).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isConflict());
+        String other=publish();
+        mvc.perform(post(path(other)+"/respuestas.csv").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isConflict());
+        byte[] csv=mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andExpect(header().string("Content-Disposition",containsString(".csv"))).andReturn().getResponse().getContentAsByteArray();
+        var table=bo.edu.umss.mercado.importing.CsvFile.parse(csv,"COMA");assertThat(table).hasSize(2);
+        assertThat(table.getFirst()).contains("Pregunta 1","Pregunta 2","Duración","Correo de contacto","Estado: Pregunta 1");
+        assertThat(table.get(1)).contains("Sí","No sabe","12","contacto-privado@example.test",id,"CON_VALOR");
+        byte[] xlsx=mvc.perform(post(endpoint+"xlsx").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).andReturn().getResponse().getContentAsByteArray();
+        assertThat(bo.edu.umss.mercado.importing.XlsxFile.open(xlsx).table(1)).isEqualTo(table);
+        String updated=(String)load(v,session,true).get("frameId");
+        byte[] refreshed=mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",updated).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        assertThat(bo.edu.umss.mercado.importing.CsvFile.parse(refreshed,"COMA")).hasSize(3);
+    }
+    @Test void rawResponseExportPreservesOpenTextsMultipleAnswersAndDistinctMissingStates()throws Exception {
+        String v=drafts.create("Exportación ficticia","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();
+        drafts.question(v,1,section,new Question("filtro","Datos","Filtro","radio",true,List.of(new Question.Option("SI","Sí"),new Question.Option("NO","No")),null,null,0,1,"",null,null),true,ACTOR);
+        drafts.question(v,2,section,new Question("texto","Datos","Comentario","textarea",false,List.of(),"filtro","SI",0,1,"",null,null),true,ACTOR);
+        drafts.question(v,3,section,new Question("multiple","Datos","Selecciones","checkbox",false,List.of(new Question.Option("A","Categoría, A"),new Question.Option("B","Categoría B")),null,null,0,2,"",null,null),true,ACTOR);publications.publish(v,4,ACTOR);
+        String original="=1+1\nTexto, con \"comillas\"";
+        for(String filter:List.of("SI","NO")){var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("filtro",filter);if(filter.equals("SI")){values.set("texto",original);values.add("multiple","A");values.add("multiple","B");}var validation=validator.validate(publications.get(v).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(v,UUID.randomUUID().toString(),validation);}
+        var snapshot=results.load(slug(v),List.of(v),"","",ACTOR);var rows=responseExport.rows(snapshot,true);
+        int text=rows.getFirst().indexOf("Comentario"),multi=rows.getFirst().indexOf("Selecciones");
+        assertThat(rows.stream().skip(1).map(r->r.get(text)).toList()).contains(original,"");
+        assertThat(rows.stream().skip(1).map(r->r.get(multi)).toList()).contains("Categoría, A | Categoría B","");
+        assertThat(rows.stream().skip(1).flatMap(Collection::stream).toList()).contains("NO_APLICA","SIN_RESPUESTA");
+        var xlsx=bo.edu.umss.mercado.importing.XlsxFile.open(ReportExport.xlsx(rows)).table(1);assertThat(xlsx.stream().skip(1).map(r->r.get(text)).toList()).contains(original);
+        var csv=bo.edu.umss.mercado.importing.CsvFile.parse(ReportExport.csv(rows),"COMA");assertThat(csv.stream().skip(1).map(r->r.get(text)).toList()).contains("'"+original);
+        var empty=results.load(slug(v),List.of(v),"2100-01-01","2100-01-02",ACTOR);assertThat(responseExport.rows(empty,true)).hasSize(1);
+    }
+    @Test void responseExportKeepsVersionsAndDoesNotTreatAnAbsentQuestionAsAnUnansweredOne(){
+        String first=publish();response(first,"SI",5);
+        String second=publications.successor(first,ACTOR);drafts.removeQuestion(second,0,"contacto",ACTOR);publications.publish(second,1,ACTOR);
+        var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("q1","NO_SABE");
+        var validation=validator.validate(publications.get(second).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(second,UUID.randomUUID().toString(),validation);
+        var rows=responseExport.rows(results.load(slug(first),List.of(first,second),"","",ACTOR),true);assertThat(rows).hasSize(3);
+        int state=rows.getFirst().indexOf("Estado: Correo de contacto"),version=rows.getFirst().indexOf("Versión del instrumento");
+        assertThat(rows.stream().skip(1).filter(r->r.get(version).equals("v1")).findFirst().orElseThrow().get(state)).isEqualTo("CON_VALOR");
+        assertThat(rows.stream().skip(1).filter(r->r.get(version).equals("v2")).findFirst().orElseThrow().get(state)).isEqualTo("NO_PERTENECE_VERSION");
+    }
     @Test void privateDictionaryIsSharedByResultsAndReportsButIsolatedFromOtherQuestions() throws Exception {
         String v=drafts.create("Contextos ficticios","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();
         drafts.question(v,1,section,new Question("programa","Datos","INDIQUE EL NOMBRE DEL PROGRAMA","text",false,List.of(),null,null,0,1,"",null,null),true,ACTOR);

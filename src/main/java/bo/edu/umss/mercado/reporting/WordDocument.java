@@ -18,7 +18,8 @@ final class WordDocument {
         body.append("<w:p><w:pPr>");
         if(level>0)body.append("<w:keepNext/><w:outlineLvl w:val=\"").append(level-1).append("\"/>");
         body.append("<w:spacing w:after=\"120\"/></w:pPr><w:r><w:rPr>");
-        if(bold)body.append("<w:b/><w:sz w:val=\"").append(level==1?32:26).append("\"/>");
+        body.append("<w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:cs=\"Arial\"/><w:sz w:val=\"").append(level>0?24:22).append("\"/><w:szCs w:val=\"").append(level>0?24:22).append("\"/>");
+        if(bold)body.append("<w:b/>");
         body.append("</w:rPr>").append(text(text)).append("</w:r></w:p>");
     }
     private static String text(Object value){
@@ -40,7 +41,9 @@ final class WordDocument {
                 Object value=c<rows.get(r).size()?rows.get(r).get(c):"";String color=r==0?"E7EEE9":"FFFFFF";
                 if(heat&&r>0&&c>0&&value instanceof Number n&&max>0){int v=(int)(255-155*n.doubleValue()/max);color=String.format(Locale.ROOT,"%02X%02XFF",v,v);}
                 body.append("<w:tc><w:tcPr><w:tcW w:w=\"").append(width).append("\" w:type=\"dxa\"/><w:shd w:fill=\"").append(color).append("\"/></w:tcPr><w:p><w:r>");
-                if(r==0)body.append("<w:rPr><w:b/></w:rPr>");body.append(text(value)).append("</w:r></w:p></w:tc>");
+                body.append("<w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:cs=\"Arial\"/><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/>");
+                if(r==0)body.append("<w:b/>");
+                body.append("</w:rPr>").append(text(tableValue(value))).append("</w:r></w:p></w:tc>");
             }
             body.append("</w:tr>");
         }
@@ -50,7 +53,7 @@ final class WordDocument {
     void chart(String title,String kind,List<?> labels,List<Series> series)throws IOException{
         if(labels.isEmpty()||series.isEmpty()||series.stream().flatMap(s->s.values().stream()).noneMatch(Number.class::isInstance)){paragraph("Sin datos suficientes para representar: "+title);return;}
         int id=++charts;String name="chart"+id;
-        var workbook=new ArrayList<List<Object>>();var headers=new ArrayList<Object>();headers.add(kind.equals("scatter")?"X":"Categoría");series.forEach(s->headers.add(s.name()));workbook.add(headers);
+        var workbook=new ArrayList<List<Object>>();var headers=new ArrayList<Object>();headers.add(kind.startsWith("scatter")?"X":"Categoría");series.forEach(s->headers.add(s.name()));workbook.add(headers);
         for(int i=0;i<labels.size();i++){var row=new ArrayList<Object>();row.add(labels.get(i)==null?"":labels.get(i));for(var s:series)row.add(i<s.values().size()&&s.values().get(i)!=null?s.values().get(i):"");workbook.add(row);}
         parts.put("word/embeddings/"+name+".xlsx",ReportExport.xlsx(workbook));
         parts.put("word/charts/"+name+".xml",bytes(chartXml(title,kind,labels,series)));
@@ -58,13 +61,13 @@ final class WordDocument {
         body.append("<w:p><w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"5943600\" cy=\"3657600\"/><wp:docPr id=\"").append(id).append("\" name=\"").append(x(title)).append("\"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:chart r:id=\"chart").append(id).append("\"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>");
     }
     private static String chartXml(String title,String kind,List<?> labels,List<Series> series){
-        boolean pie=kind.equals("pie")||kind.equals("donut"),scatter=kind.equals("scatter"),radar=kind.equals("radar");
+        boolean pie=kind.equals("pie")||kind.equals("donut"),scatter=kind.equals("scatter")||kind.equals("scatterLine"),radar=kind.equals("radar");
         String tag=pie?(kind.equals("pie")?"pieChart":"doughnutChart"):scatter?"scatterChart":radar?"radarChart":kind.equals("line")?"lineChart":kind.equals("area")?"areaChart":"barChart";
         var out=new StringBuilder("<c:chartSpace xmlns:c=\"http://schemas.openxmlformats.org/drawingml/2006/chart\" xmlns:a=\"http://schemas.openxmlformats.org/drawingml/2006/main\" xmlns:r=\""+R.substring(0,R.length()-1)+"\"><c:lang val=\"es-BO\"/><c:chart><c:title><c:tx><c:rich><a:bodyPr/><a:lstStyle/><a:p><a:r><a:t>");
         out.append(x(title)).append("</a:t></a:r></a:p></c:rich></c:tx><c:overlay val=\"0\"/></c:title><c:autoTitleDeleted val=\"0\"/><c:plotArea><c:layout/><c:").append(tag).append('>');
         if(tag.equals("barChart"))out.append("<c:barDir val=\"").append(kind.equals("bars")?"bar":"col").append("\"/><c:grouping val=\"").append(kind.equals("stacked")?"stacked":"clustered").append("\"/>");
         if(tag.equals("lineChart")||tag.equals("areaChart"))out.append("<c:grouping val=\"standard\"/>");
-        if(scatter)out.append("<c:scatterStyle val=\"marker\"/>");if(radar)out.append("<c:radarStyle val=\"marker\"/>");
+        if(scatter)out.append("<c:scatterStyle val=\"").append(kind.equals("scatterLine")?"lineMarker":"marker").append("\"/>");if(radar)out.append("<c:radarStyle val=\"marker\"/>");
         out.append("<c:varyColors val=\"").append(series.size()==1&&!scatter&&!radar?1:0).append("\"/>");
         for(int s=0;s<(pie?1:series.size());s++){
             var item=series.get(s);out.append("<c:ser><c:idx val=\"").append(s).append("\"/><c:order val=\"").append(s).append("\"/><c:tx><c:strRef><c:f>'Resultados'!$").append(ReportExport.column(s+2)).append("$1</c:f><c:strCache><c:ptCount val=\"1\"/><c:pt idx=\"0\"><c:v>").append(x(item.name())).append("</c:v></c:pt></c:strCache></c:strRef></c:tx>");
@@ -96,6 +99,13 @@ final class WordDocument {
         for(int i=1;i<=charts;i++){relationships.append("<Relationship Id=\"chart").append(i).append("\" Type=\"").append(R).append("chart\" Target=\"charts/chart").append(i).append(".xml\"/>");types.append("<Override PartName=\"/word/charts/chart").append(i).append(".xml\" ContentType=\"application/vnd.openxmlformats-officedocument.drawingml.chart+xml\"/>");}
         parts.put("word/_rels/document.xml.rels",bytes(rels(relationships.toString())));parts.put("_rels/.rels",bytes(rels("<Relationship Id=\"rId1\" Type=\""+R+"officeDocument\" Target=\"word/document.xml\"/>")));parts.put("[Content_Types].xml",bytes(types.append("</Types>").toString()));
         var bytes=new ByteArrayOutputStream();try(var zip=new ZipOutputStream(bytes,StandardCharsets.UTF_8)){for(var part:parts.entrySet()){var entry=new ZipEntry(part.getKey());entry.setTime(0);zip.putNextEntry(entry);zip.write(part.getValue());zip.closeEntry();}}return bytes.toByteArray();
+    }
+    private static Object tableValue(Object value){
+        if(value instanceof Number number){
+            try{return new java.math.BigDecimal(number.toString()).setScale(2,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
+            catch(NumberFormatException ignored){return value;}
+        }
+        return value;
     }
     private static String rels(String relationships){return "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">"+relationships+"</Relationships>";}
     private static byte[] bytes(String xml){return ("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"+xml).getBytes(StandardCharsets.UTF_8);}

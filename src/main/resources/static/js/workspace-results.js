@@ -2,20 +2,20 @@
 function createResultsCoordinator(){let generation=0;return {start:()=>++generation,current:token=>token===generation,invalidate:()=>++generation};}
 function resultRepresentations(v){const advanced=v.advanced||{},single=['radio','select','coverage'].includes(v.type)&&!v.numeric;return [
   ['table','▦ Tabla',true],['columns','▥ Columnas',true],['bars','☰ Barras',true],['pie','◕ Circular',single],['donut','◎ Anillo',single],
-  ['histogram','▥ Histograma',!!advanced.histogram],['box','⊞ Caja',!!advanced.box],['line','⌁ Líneas',!!advanced.time],['area','◩ Áreas',!!advanced.time]
+  ['polygon','Polígono de frecuencias',!!v.quality?.intervals?.length],['ogive','Ojiva',!!v.quality?.intervals?.length],['histogram','▥ Histograma',!!advanced.histogram],['box','⊞ Caja',!!advanced.box],['line','⌁ Líneas',!!advanced.time],['area','◩ Áreas',!!advanced.time]
 ];}
 function textRepresentationAvailability(data){const locked=!!data?.sensitive&&!data.sensitiveAcknowledged,mentions=!locked&&!!data?.groupable&&data.dictionaryRevision>0&&!!data.keywords?.distribution?.some(r=>r.count>0);return {texts:!locked&&!!data&&data.base>0,matches:mentions,'match-chart':mentions,'match-pie':mentions,'match-donut':mentions};}
 if(typeof module!=='undefined')module.exports={createResultsCoordinator,resultRepresentations,textRepresentationAvailability};
 if(typeof document!=='undefined')(()=>{
   const root=document.querySelector('[data-results-root]');if(!root)return;
   const content=root.querySelector('[data-results-content]'),status=root.querySelector('[data-results-status]'),refresh=root.querySelector('[data-results-refresh]');
-  const report=root.querySelector('[data-results-report]'),save=root.querySelector('[data-results-save]');
+  const report=root.querySelector('[data-results-report]'),save=root.querySelector('[data-results-save]'),exportForm=root.querySelector('[data-results-export]');
   const coordinator=createResultsCoordinator(),charts=new Map(),prefs=new Map();let controller,frameId='',busy=false;
   const scope='workspace-results:'+JSON.stringify([root.dataset.resultsRoot,root.dataset.resultsVersion,root.dataset.resultsVersions,root.dataset.resultsFrom,root.dataset.resultsUntil,root.dataset.resultsCut,root.dataset.resultsAllVersions]);
   try{Object.entries(JSON.parse(sessionStorage.getItem(scope)||'{}')).forEach(([key,values])=>{if(Array.isArray(values))prefs.set(key,new Set(values));});}catch{}
   const serialize=()=>JSON.stringify(Object.fromEntries([...prefs].map(([id,values])=>[id,[...values]])));
   const persist=()=>{try{sessionStorage.setItem(scope,serialize());}catch{};report.elements.representations.value=serialize();};
-  const buttons=()=>{report.querySelector('button').disabled=busy||!frameId||![...prefs.values()].some(values=>values.size>0);if(save)save.querySelector('button').disabled=busy||!frameId;};
+  const buttons=()=>{report.querySelector('button').disabled=busy||!frameId||![...prefs.values()].some(values=>values.size>0);if(save)save.querySelector('button').disabled=busy||!frameId;exportForm?.querySelectorAll('[data-response-export]').forEach(button=>button.disabled=busy||!frameId);};
   const dispose=()=>{observer?.disconnect();charts.forEach(chart=>chart.dispose());charts.clear();};
   function drawChart(element){if(charts.has(element)||!element.isConnected)return;const {variable,style}=element._resultChart;if(!window.echarts||typeof ReportChartOptions==='undefined'){element.textContent='No se pudo dibujar esta gráfica. Consulta su tabla.';return;}
     try{element.replaceChildren();const chart=echarts.init(element);chart.setOption(ReportChartOptions.variable(variable,style));charts.set(element,chart);}catch{element.textContent='No se pudo dibujar esta gráfica. Consulta su tabla.';}
@@ -75,7 +75,7 @@ if(typeof document!=='undefined')(()=>{
     url.searchParams.set('from',root.dataset.resultsFrom||'');url.searchParams.set('until',root.dataset.resultsUntil||'');url.searchParams.set('cutId',root.dataset.resultsCut||'');
     try{
       const response=await fetch(url,{credentials:'same-origin',cache:'no-store',signal:request.signal,headers:{Accept:'application/json'}});const payload=await response.json();if(!response.ok)throw Error(payload.message||'No se pudieron cargar los datos.');if(!coordinator.current(token))return;
-      dispose();content.innerHTML=payload.html;frameId=payload.frameId;report.elements.frameId.value=frameId;if(save)save.elements.frameId.value=frameId;
+      dispose();content.innerHTML=payload.html;frameId=payload.frameId;report.elements.frameId.value=frameId;if(save)save.elements.frameId.value=frameId;if(exportForm)exportForm.elements.frameId.value=frameId;
       const ids=new Set(payload.result.variables.map(v=>v.question_id));for(const id of prefs.keys())if(!ids.has(id))prefs.delete(id);
       content.querySelectorAll('[data-result-question]').forEach(section=>drawQuestion(section,payload.result.variables[Number(section.dataset.variableIndex)]));
       status.textContent='Datos cargados al '+new Date(payload.cutoff).toLocaleString('es-BO',{timeZone:'America/La_Paz'})+' · Hora de Bolivia. Se conservan hasta pulsar Actualizar todos.';

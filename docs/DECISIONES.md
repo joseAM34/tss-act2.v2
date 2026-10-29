@@ -1,5 +1,23 @@
 # Decisiones del proyecto
 
+## 2026-10-29 — Hipótesis y detalle visible de chi-cuadrado
+
+El usuario autorizó mostrar hipótesis, frecuencias esperadas separadas, aportes y residuos de Pearson por celda y fórmulas explicadas. Se presenta el detalle derivado de cruces verificados, sin modificar sus resultados ni huellas históricas. Se distingue suma diagnóstica de prueba ejecutada y no se concluye asociación cuando la prueba está bloqueada. Incluido en pantallas y exportaciones de reportes, con fórmulas, límites y verificación descritos en [CHI_CUADRADO_DETALLE.md](CHI_CUADRADO_DETALLE.md).
+
+## 2026-10-29 — Perfil descriptivo para respuestas compatibles
+
+El usuario autorizó aplicar los descriptivos compatibles del ejemplo de calidad y validación a las respuestas. Se añade `PERFIL_DESCRIPTIVO_V1` como proyección calculada en el backend desde el conjunto verificado, con frecuencias, medidas numéricas, intervalos, P90, posibles atípicos, polígono y ojiva. Las categorías no reciben puntajes y el CV exige condiciones de aplicabilidad. Resultados y los reportes nuevos muestran las medidas y conservan los estratos; los históricos mantienen sus contratos y huellas. No se adopta automáticamente el muestreo, las conclusiones ni los números inconsistentes del ejemplo. Convenciones, exportaciones y verificación: [PERFIL_DESCRIPTIVO.md](PERFIL_DESCRIPTIVO.md).
+
+## 2026-10-29 — Exportar respuestas originales desde Resultados
+
+El usuario solicitó CSV y Excel con la estructura de preguntas por columnas y envíos por filas de su ejemplo de Google Forms. Se incorpora una descarga administrativa explícita, separada de las matrices ordinarias, que conserva todas las preguntas y respuestas originales del total o corte cargado, incluyendo textos y etiquetas de opciones. Mantiene estados en columnas separadas, miembros y huellas, versiones incompatibles sin fusionar, recepción identificada como tal y acceso ADMIN con CSRF y confirmación de contenido personal. No se guarda el Excel privado ni datos de campo en el historial. Alcance y límites de reimportación: [EXPORTACION_RESPUESTAS.md](EXPORTACION_RESPUESTAS.md).
+
+## 2026-10-29 — Eliminar análisis acumulados de reportes
+
+El usuario autorizó quitar las entradas acumuladas de «Crear desde un análisis». Cada entrada ofrece Eliminar y una confirmación que informa cuántos reportes guardados asociados se borrarán definitivamente. La operación exige ADMIN, CSRF, confirmación explícita y pertenencia a la encuesta y versión seleccionadas. Conserva respuestas originales, conjuntos preparados, cortes, cruces y plantillas; registra la eliminación en la auditoría existente. La confirmación incluye una huella del análisis y de sus reportes: si se genera otro reporte antes de confirmar, se exige revisar el estado nuevo. La generación y la eliminación coordinan el bloqueo del análisis. No se elimina ninguna entrada automáticamente ni se modifica el esquema.
+
+Verificación: 18 de 19 pruebas de `SurveyWorkspaceIntegrationTest` y `ReportTemplateManagementIntegrationTest` pasaron, incluidas las nuevas de eliminación, autorización, CSRF, versión, conservación de fuentes y confirmación desactualizada. La prueba `reportTemplateReturnsToSurveyAndSavesRevisionWithoutChangingData` espera el campo anterior `workspaceVersionId`, mientras el selector de fuentes existente usa `versionId`; ese flujo no se modificó en este incremento.
+
 ## 2026-10-19 — Lecturas agrupadas para la vista previa de reportes
 
 Ante el aviso de tiempo de espera se agrupan las lecturas de capturas, procedencia y diccionarios, manteniendo miembros y huellas del corte y las verificaciones de integridad. Los ámbitos de lectura no sobreviven a la operación. Se añade reintento explícito sobre la misma configuración. Mediciones locales, pruebas y límites: [RENDIMIENTO_REPORTES.md](RENDIMIENTO_REPORTES.md).
