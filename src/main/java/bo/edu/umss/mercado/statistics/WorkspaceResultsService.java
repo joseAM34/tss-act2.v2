@@ -28,6 +28,19 @@ public class WorkspaceResultsService {
     private static Map<String,Object> map(Object... pairs){var m=new LinkedHashMap<String,Object>();for(int i=0;i<pairs.length;i+=2)m.put((String)pairs[i],pairs[i+1]);return m;}
     private static final List<Question.Option> COVERAGE=List.of(new Question.Option("CON_VALOR","Con respuesta"),new Question.Option("SIN_RESPUESTA","Sin respuesta"),new Question.Option("NO_APLICA","No aplica"));
     private static final ZoneId ZONE=ZoneId.of("America/La_Paz");
+    @SuppressWarnings("unchecked")
+    @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
+    public Map<String,Object> presentation(Snapshot snapshot,String actor){
+        actor(actor);var output=new LinkedHashMap<>(snapshot.result());var variables=new ArrayList<Map<String,Object>>();
+        for(var original:(List<Map<String,Object>>)snapshot.result().get("variables")){
+            var variable=new LinkedHashMap<>(original);variables.add(variable);String key=(String)variable.get("question_id");
+            if(!Set.of("text","textarea").contains(variable.getOrDefault("original_type",""))||TextFieldPolicy.sensitive(variable.get("original_type"),variable.get("label")))continue;
+            var saved=dictionaries.numericEditor(snapshot.logical(),key);
+            if(!Boolean.TRUE.equals(((Map<?,?>)saved.get("definition")).get("enabled")))continue;
+            var derived=(Map<String,Object>)questionAnswers(snapshot,key,actor,false).get("numericVariable");if(!derived.isEmpty()){var advanced=new LinkedHashMap<>((Map<String,Object>)variable.getOrDefault("advanced",Map.of()));advanced.putAll((Map<String,Object>)derived.get("advanced"));variable.putAll(derived);variable.put("advanced",advanced);}
+        }
+        output.put("variables",variables);return output;
+    }
 
     /** Consulta individual administrativa, separada de las matrices y exportaciones ordinarias. */
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -67,7 +80,9 @@ public class WorkspaceResultsService {
         }
         var distribution=frequencies.entrySet().stream().sorted(Map.Entry.<String,Integer>comparingByValue().reversed()).map(e->map("label",e.getKey(),"count",e.getValue())).toList();
         var texts=rows.stream().filter(r->"CON_VALOR".equals(r.get("state"))).map(r->r.get("value").toString()).toList();
-        return map("label",question.get("label"),"rows",locked?List.of():rows,"sensitive",sensitive,"sensitiveAcknowledged",sensitiveAcknowledged,"dictionaryRevision",dictionaries.get(snapshot,questionId).revision(),"dictionaryScope",dictionaries.scope(snapshot.logical(),questionId),"freeText",freeText,"groupable",groupable,"distribution",distribution,"base",texts.size(),"keywords",groupable?TextMentions.count(texts,keywordRules):Map.of());
+        var numeric=dictionaries.numericEditor(snapshot.logical(),questionId);
+        var numericVariable=groupable&&!sensitive?NumericNormalization.project((Map<String,Object>)numeric.get("definition"),texts,question.get("label").toString()):Map.of();
+        return map("numericVariable",numericVariable,"numericDictionary",groupable&&!sensitive?numeric:Map.of(),"label",question.get("label"),"rows",locked?List.of():rows,"sensitive",sensitive,"sensitiveAcknowledged",sensitiveAcknowledged,"dictionaryRevision",dictionaries.get(snapshot,questionId).revision(),"dictionaryScope",dictionaries.scope(snapshot.logical(),questionId),"freeText",freeText,"groupable",groupable,"distribution",distribution,"base",texts.size(),"keywords",groupable?TextMentions.count(texts,keywordRules):Map.of());
     }
 
     @Transactional(readOnly=true,isolation=Isolation.REPEATABLE_READ)
@@ -132,7 +147,7 @@ public class WorkspaceResultsService {
         logical.put("definition_hash",versions.size()==1?CanonicalJson.hash(anchor.content().definition()):CanonicalJson.hash(sourceVersions));
         logical.put("instrument_status",versions.size()==1?sourceVersions.getFirst().get("instrument_status"):"POR_VERSION");
         logical=CanonicalJson.read(CanonicalJson.json(logical),Map.class);
-        var result=ReportAdvancedProjection.enrich(analyses.calculate(logical),logical,cutoff.toInstant().toString());
+        var result=ReportAdvancedProjection.enrich(analyses.calculate(logical),logical,cutoff.toInstant().toString(),true);
         return new Snapshot(UUID.randomUUID().toString(),anchor.surveyId(),slug,cutoff.toInstant().toString(),List.copyOf(ids),from,until,allVersions,logical,result);
     }
     private List<Question> dependencies(Question question,SurveyDefinition definition){var result=new ArrayList<Question>();var next=question;var visited=new HashSet<String>();while(next.dependsOn()!=null&&visited.add(next.dependsOn())){String id=next.dependsOn();next=definition.questions().stream().filter(q->q.id().equals(id)).findFirst().orElseThrow(WorkspaceResultsService::corrupt);result.add(next);}return result;}
@@ -166,7 +181,7 @@ public class WorkspaceResultsService {
     @SuppressWarnings("unchecked")
     public Cut cut(String slug,String id){var rows=jdbc.queryForList("SELECT c.* FROM survey_result_cut c JOIN survey s ON s.id=c.survey_id WHERE c.id=? AND s.slug=?",id,slug);if(rows.isEmpty())throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Corte no encontrado en esta encuesta.");var row=rows.getFirst();var snapshot=CanonicalJson.read((String)row.get("snapshot_json"),Snapshot.class);if(!CanonicalJson.hash(snapshot).equals(row.get("snapshot_hash"))||!snapshot.surveyId().equals(row.get("survey_id"))||!snapshot.id().equals(row.get("preparation_id")))throw corrupt();
         var prepared=preparation.bundle(snapshot.id());var source=new LinkedHashMap<>((Map<String,Object>)prepared.get("logical"));source.put("config_revision",snapshot.logical().get("config_revision"));
-        if(!CanonicalJson.hash(source).equals(CanonicalJson.hash(snapshot.logical()))||!snapshot.cutoff().equals(prepared.get("cutoff_utc"))||!CanonicalJson.hash(ReportAdvancedProjection.enrich(analyses.calculate(snapshot.logical()),snapshot.logical(),snapshot.cutoff())).equals(CanonicalJson.hash(snapshot.result())))throw corrupt();
+        if(!CanonicalJson.hash(source).equals(CanonicalJson.hash(snapshot.logical()))||!snapshot.cutoff().equals(prepared.get("cutoff_utc"))||!CanonicalJson.hash(ReportAdvancedProjection.enrich(analyses.calculate(snapshot.logical()),snapshot.logical(),snapshot.cutoff(),snapshot.result().containsKey("univariate_projection_version"))).equals(CanonicalJson.hash(snapshot.result())))throw corrupt();
         return new Cut(id,(String)row.get("name"),row.get("created_at").toString(),snapshot);}
     public List<Map<String,Object>> cuts(String slug){return jdbc.query("SELECT c.id,c.name,c.created_at,c.snapshot_json FROM survey_result_cut c JOIN survey s ON s.id=c.survey_id WHERE s.slug=? ORDER BY c.created_at DESC,c.id DESC",(rs,n)->map("id",rs.getString(1),"name",rs.getString(2),"created_at",rs.getObject(3,OffsetDateTime.class).toInstant().toString(),"versions",CanonicalJson.read(rs.getString(4),Snapshot.class).logical().get("instrument_version")),slug);}
     public CutState cutState(String slug,String id){var cut=cut(slug,id);String p=cut.snapshot().id();var a=jdbc.queryForList("SELECT id,result_hash FROM survey_general_analysis WHERE preparation_id=? ORDER BY id",p);var c=jdbc.queryForList("SELECT id,result_hash FROM survey_general_cross WHERE preparation_id=? ORDER BY id",p);var r=jdbc.queryForList("SELECT id,content_hash FROM generated_report WHERE analysis_id IN (SELECT id FROM survey_general_analysis WHERE preparation_id=?) ORDER BY id",p);return new CutState(a.size(),c.size(),r.size(),CanonicalJson.hash(map("snapshot",cut.snapshot(),"analyses",a,"crosses",c,"reports",r)));}

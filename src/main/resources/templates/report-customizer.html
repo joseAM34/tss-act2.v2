@@ -2,15 +2,16 @@
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Personalizar reporte</title>
 <link rel="stylesheet" th:href="@{/css/app.css}"><link rel="stylesheet" th:href="@{/css/survey-editor.css}"><link rel="stylesheet" th:href="@{/css/report-customizer.css}">
-<script defer th:src="@{/vendor/echarts-6.0.0.min.js}"></script><script defer th:src="@{/js/report-charts.js}"></script><script defer th:src="@{/js/report-customizer.js}"></script><link rel="stylesheet" th:href="@{/css/report-presentation.css}"><script defer th:src="@{/js/report-guides.js}"></script></head>
+<script defer th:src="@{/vendor/echarts-6.0.0.min.js}"></script><script defer th:src="@{/js/report-charts.js}"></script><script defer th:src="@{/js/report-draft.js}"></script><script defer th:src="@{/js/report-customizer.js}"></script><link rel="stylesheet" th:href="@{/css/report-presentation.css}"><script defer th:src="@{/js/report-guides.js}"></script></head>
 <body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
-<main class="container page-main draft-editor" id="contenido" data-report-customizer>
+<main class="container page-main draft-editor" id="contenido" data-report-customizer th:attr="data-draft-owner=${reportDraftOwner},data-recovery-only=${localRecoveryOnly == true}">
 <a class="back-link" th:href="${workspace != null ? workspace.link('reportes') : '/admin/reportes'}">← Reportes</a>
 <div class="custom-heading"><h1 id="custom-heading" tabindex="-1">Generar reporte</h1><a href="#reporte" id="custom-back" hidden>← Volver al reporte</a></div>
 <p th:text="${analysis.result.title + ' · ' + analysis.result.instrument_version + ' · ' + analysis.result.origin + ' · ' + analysis.result.submission_count + ' envíos'}"></p>
 <p th:text="${'Corte congelado: ' + sourceCutoff + ' · Recepción: ' + (analysis.result.from_date == null ? 'sin inicio' : analysis.result.from_date) + ' a ' + (analysis.result.until_date == null ? 'sin final' : analysis.result.until_date) + ' · America/La_Paz'}"></p>
 <p id="custom-status" role="status">Preparando vista previa…</p><div th:if="${error != null}" class="alert alert-error" th:text="${error}"></div>
 <button type="button" id="custom-retry" class="button button-outline" hidden>Volver a intentar la vista previa</button>
+<aside class="review-card" aria-label="Respaldo local de personalización"><p id="custom-draft-status" role="status">Preparando respaldo local…</p><p class="field-hint">La copia dura siete días en este navegador e incluye tus textos y elecciones. No guarda respuestas de encuestados ni sustituye guardar el reporte o la plantilla.</p><button type="button" id="custom-draft-discard" class="button button-outline">Descartar cambios locales y reiniciar</button></aside>
 <textarea id="custom-bootstrap" hidden th:text="${customBootstrap}" aria-label="Configuración inicial"></textarea>
 <form id="custom-form" th:action="@{/admin/reportes/personalizar/generar}" method="post" class="data-form">
 <section data-custom-screen="reporte"><div class="custom-columns"><section class="review-card"><h2 th:text="${templateEditState != null and templateEditState.editing ? 'Presentación de la plantilla' : 'Datos del reporte'}"></h2>

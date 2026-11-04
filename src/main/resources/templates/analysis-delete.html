@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Eliminar análisis del reporte')}"></head>
+<body><header th:replace="~{fragments/layout :: header('admin')}"></header><div th:replace="~{fragments/layout :: adminBar}"></div>
+<main class="container page-main" id="contenido">
+  <a class="back-link" th:href="${workspace.link('reportes')}">← Volver a reportes</a>
+  <h1>Eliminar análisis del reporte</h1>
+  <section class="review-card">
+    <p>Esta acción elimina definitivamente la entrada de «Crear desde un análisis».</p>
+    <p>Referencia: <code th:text="${deletion.id}"></code></p>
+    <p><strong th:text="${deletion.reports + ' reportes guardados asociados también se eliminarán.'}"></strong></p>
+    <p>Se conservan las respuestas originales, el conjunto preparado, los cortes de datos, los cruces y las plantillas. Los archivos que ya descargaste permanecen en tu equipo.</p>
+    <form th:action="@{/admin/espacio/{slug}/reportes/analisis/{id}/eliminar(slug=${workspace.slug},id=${deletion.id})}" method="post">
+      <input type="hidden" name="version" th:value="${workspace.selected.code}">
+      <input type="hidden" name="expectedHash" th:value="${deletion.hash}">
+      <label class="draft-checkbox"><input type="checkbox" name="confirm" value="true" required> Confirmo eliminar este análisis y sus reportes asociados.</label>
+      <div class="draft-actions"><button class="button button-outline" type="submit">Eliminar definitivamente</button><a class="button button-primary" th:href="${workspace.link('reportes')}">Cancelar</a></div>
+    </form>
+  </section>
+</main><footer th:replace="~{fragments/layout :: footer}"></footer></body></html>

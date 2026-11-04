@@ -48,6 +48,149 @@ class WorkspaceResultsIntegrationTest {
     @Autowired TextDictionaryService dictionaries;
     @org.springframework.test.context.bean.override.mockito.MockitoBean WikidataTerms wikidataRemote;
     @Autowired ReportPresentationTemplates presentations;
+    @Test void dictionaryModesAreExclusiveInBothManagersAndCanBeChanged() throws Exception {
+        String v=drafts.create("Modos ficticios","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();drafts.question(v,1,section,new Question("duracion","Datos","Duración profesional","text",false,List.of(),null,null,0,1,"",null,null),true,ACTOR);publications.publish(v,2,ACTOR);
+        var frame=results.load(slug(v),List.of(v),"","",ACTOR);var logical=frame.logical();
+        dictionaries.saveGlobal(0,"dos años=dos años",ACTOR);
+        assertThat(dictionaries.numericEditor(logical,"duracion").get("activeMode")).isEqualTo("NONE");
+        dictionaries.saveScoped(logical,"duracion","PRIVATE",0,0,"dos años=dos años",ACTOR);
+        assertThatThrownBy(()->dictionaries.saveNumeric(logical,"duracion",0,true,"años","2=dos años",ACTOR)).isInstanceOf(IllegalStateException.class).hasMessageContaining("agrupación");
+        dictionaries.deactivateTerms(logical,"duracion",1,ACTOR);
+        dictionaries.saveNumeric(logical,"duracion",0,true,"años","2=dos años",ACTOR);
+        assertThat(dictionaries.numericEditor(logical,"duracion").get("activeMode")).isEqualTo("NUMERIC");
+        assertThatThrownBy(()->dictionaries.saveScoped(logical,"duracion","PRIVATE",2,2,"dos años=dos años",ACTOR)).isInstanceOf(IllegalStateException.class).hasMessageContaining("cuantificables");
+        assertThat(dictionaries.get(frame,"duracion").rules()).isEmpty();
+        dictionaries.saveNumeric(logical,"duracion",1,false,"años","2=dos años",ACTOR);
+        assertThat(dictionaries.numericEditor(logical,"duracion").get("activeMode")).isEqualTo("NONE");
+        dictionaries.saveScoped(logical,"duracion","PRIVATE",2,2,"dos años=dos años",ACTOR);
+        String analysis=results.materialize(frame,ACTOR);
+        mvc.perform(post("/admin/diccionario/numerico/guardar").with(csrf()).param("analysisId",analysis).param("questionId","duracion").param("revision","2").param("enabled","true").param("rules","2=dos años").param("reviewed","true")).andExpect(status().isConflict());
+        mvc.perform(post("/admin/diccionario/desactivar").with(csrf()).param("analysisId",analysis).param("questionId","duracion").param("expectedContextRevision","3").param("reviewed","true")).andExpect(status().isOk());
+        mvc.perform(post("/admin/diccionario/numerico/guardar").with(csrf()).param("analysisId",analysis).param("questionId","duracion").param("revision","2").param("enabled","true").param("rules","2=dos años").param("reviewed","true")).andExpect(status().isOk());
+        mvc.perform(get("/admin/diccionario").param("analysisId",analysis).param("questionId","duracion")).andExpect(status().isOk()).andExpect(content().string(containsString("data-initial-dictionary-mode=\"NUMERIC\""))).andExpect(content().string(containsString("data-numeric-editor")));
+        mvc.perform(post("/admin/diccionario/numerico/guardar").param("analysisId",analysis).param("questionId","duracion")).andExpect(status().isForbidden());
+        assertThat(dictionaries.global().rules()).isEqualTo("dos anos=dos anos");
+    }
+    @Test void numericEquivalencesAreReviewedRevisionedAndFrozenInReports() throws Exception {
+        String v=drafts.create("Duraciones ficticias","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();
+        drafts.question(v,1,section,new Question("experiencia","Datos","Años de experiencia","text",false,List.of(),null,null,0,1,"",null,null),true,ACTOR);publications.publish(v,2,ACTOR);
+        for(String text:List.of("1 año","18 meses","1,5 años","2 a 5 años")){var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("experiencia",text);responses.savePublished(v,UUID.randomUUID().toString(),validator.validate(publications.get(v).content().definition(),values));}
+        var session=new MockHttpSession();var payload=load(v,session,false);String frameId=(String)payload.get("frameId");String endpoint=path(v)+"/sugerencias/numerico/";
+        mvc.perform(post(endpoint+"guardar").session(session).param("frameId",frameId).param("questionId","experiencia")).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint+"guardar").with(csrf()).session(session).param("frameId",frameId).param("questionId","experiencia").param("enabled","true").param("rules","1=1 año")).andExpect(status().isBadRequest());
+        mvc.perform(post(endpoint+"guardar").with(csrf()).session(session).param("frameId",frameId).param("questionId","experiencia").param("enabled","true").param("rules","1=1 año\n1.5=18 meses|1,5 años").param("reviewed","true")).andExpect(status().isOk());
+        var answer=json(mvc.perform(get(path(v)+"/respuestas-pregunta").session(session).param("frameId",frameId).param("questionId","experiencia")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString());
+        assertThat(((Map<?,?>)answer.get("numericVariable")).get("converted")).isEqualTo(3);assertThat(answer.get("numericHtml").toString()).contains("Varianza muestral","Frecuencia acumulada");
+        var browser=java.nio.file.Path.of(".codex-tmp/numeric-dictionary-browser");java.nio.file.Files.createDirectories(browser);
+        java.nio.file.Files.writeString(browser.resolve("answers.json"),CanonicalJson.json(answer));java.nio.file.Files.writeString(browser.resolve("data.json"),CanonicalJson.json(payload));
+        java.nio.file.Files.writeString(browser.resolve("results.html"),mvc.perform(get(path(v)).session(session).param("version",publications.get(v).code())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        java.nio.file.Files.writeString(browser.resolve("manager.html"),mvc.perform(get(path(v)+"/sugerencias").session(session).param("frameId",frameId).param("questionId","experiencia")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        var frame=results.load(slug(v),List.of(v),"","",ACTOR);String analysis=results.materialize(frame,ACTOR);var defaults=ReportCustomization.defaults(analyses.get(analysis),List.of());
+        var qs=defaults.questions().stream().map(q->new ReportCustomization.Question(q.id(),true,q.title(),"",List.of("table","histogram","polygon","ogive","box"))).toList();var config=new ReportCustomization.Configuration(analysis,"Duraciones","",true,true,true,"",qs,List.of());
+        var preview=reports.preview(config,ACTOR);String report=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);
+        dictionaries.saveNumeric(frame.logical(),"experiencia",1,true,"años","",ACTOR);
+        assertThat((Map<?,?>)results.questionAnswers(frame,"experiencia",ACTOR).get("numericVariable")).isEmpty();
+        assertThat(CanonicalJson.json(reports.get(report))).contains("1.5","numeric_normalization");
+        assertThatThrownBy(()->dictionaries.saveNumeric(frame.logical(),"experiencia",1,true,"años","1=1 año",ACTOR)).isInstanceOf(IllegalStateException.class);
+        assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM numeric_dictionary_revision WHERE survey_id=?",Integer.class,frame.surveyId())).isEqualTo(2);
+        dictionaries.saveNumeric(frame.logical(),"experiencia",2,true,"años","1=1 año",ACTOR);
+        mvc.perform(post(path(v)+"/sugerencias/guardar").with(csrf()).session(session).param("frameId",frameId).param("questionId","experiencia").param("dictionaryScope","PRIVATE").param("clearNumeric","true").param("expectedRevision","1").param("expectedContextRevision","1").param("numericRevision","3").param("term","true")).andExpect(status().isOk());
+        assertThat(((Map<?,?>)dictionaries.numericEditor(frame.logical(),"experiencia").get("definition")).get("enabled")).isEqualTo(false);
+        assertThat(dictionaries.scope(frame.logical(),"experiencia")).isEqualTo("PRIVATE");
+        assertThat(dictionaries.get(frame,"experiencia").rules()).isEmpty();
+
+    }
+
+    @Autowired ResponseTableExport responseExport;
+    @Test void chiSquareHypothesesExpectedTablesAndCellDiagnosticsAppearInScreensAndExports()throws Exception {
+        String v=publish();for(int r=0;r<2;r++)for(int c=0;c<2;c++)for(int i=0;i<(r==c?10:20);i++){
+            var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("q1",r==0?"SI":"NO_SABE");values.set("q2",c==0?"SI":"NO_SABE");
+            var validation=validator.validate(publications.get(v).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(v,UUID.randomUUID().toString(),validation);
+        }
+        String prepared=preparation.prepare(v,preparation.configuration(v).id(),"NO_DECLARADO","BORRADOR",null,null,ACTOR);
+        String cross=crosses.create(prepared,new GenericCrossService.Spec("q1","q2",.05,true,"Envíos ficticios de prueba","Independencia documentada solo en fixture sintética",false),ACTOR);
+        String before=CanonicalJson.hash(crosses.get(cross));
+        mvc.perform(get("/admin/cruces-generales/"+cross)).andExpect(status().isOk()).andExpect(content().string(containsString("H₀:"))).andExpect(content().string(containsString("H₁:"))).andExpect(content().string(containsString("Tabla de frecuencias esperadas"))).andExpect(content().string(containsString("Residuo de Pearson"))).andExpect(content().string(containsString("Se rechaza H₀")));
+        String analysis=analyses.create(prepared,ACTOR);var config=ReportCustomization.defaults(analyses.get(analysis),List.of(cross));
+        var preview=reports.preview(config,ACTOR);String id=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);var report=reports.get(id);
+        mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("H₀:"))).andExpect(content().string(containsString("Suma diagnóstica de aportes")));
+        mvc.perform(post("/admin/reportes/personalizar/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(config))).andExpect(status().isOk()).andExpect(content().string(containsString("Hipótesis y detalle")));
+        var csv=new String(ReportExport.csv(ReportExport.rows(report)),java.nio.charset.StandardCharsets.UTF_8);assertThat(csv).contains("detalle_chi_cuadrado","pearson_residual","H₀:","H₁:");
+        var word=ReportWordExport.docx(report);try(var zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(word))){String document="";for(java.util.zip.ZipEntry entry;(entry=zip.getNextEntry())!=null;)if(entry.getName().equals("word/document.xml"))document=new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);assertThat(document).contains("H₀:","H₁:","Residuo de Pearson","Suma diagnóstica");}
+        String blocked=crosses.create(prepared,new GenericCrossService.Spec("q1","q2",.05,false,"","",false),ACTOR);
+        mvc.perform(get("/admin/cruces-generales/"+blocked)).andExpect(status().isOk()).andExpect(content().string(containsString("no se emite una decisión")));
+        assertThat(CanonicalJson.hash(crosses.get(cross))).isEqualTo(before);
+    }
+    @Test void descriptiveProfilesReachResultsNewReportsAndExportsWithoutRewritingHistoricalReports()throws Exception {
+        String v=publish();for(int value:List.of(0,2,4,6,8))response(v,"SI",value);
+        var frame=results.load(slug(v),List.of(v),"","",ACTOR);String analysisId=results.materialize(frame,ACTOR);
+        String oldId=reports.generateDirect(analysisId,"Reporte anterior",List.of(),"",ACTOR);
+        // A historical V2 report predates the optional, versioned descriptive projection.
+        var oldContent=new LinkedHashMap<>((Map<String,Object>)reports.get(oldId).get("content"));oldContent.remove("descriptive_profile");oldContent.remove("display_result");
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(oldContent),CanonicalJson.hash(oldContent),oldId);
+        String oldHash=(String)reports.get(oldId).get("logical_hash");
+        var session=new MockHttpSession();var loaded=load(v,session,false);var loadedResult=(Map<String,Object>)loaded.get("result");var variables=(List<Map<String,Object>>)loadedResult.get("variables");
+        assertThat(variables.stream().filter(q->q.get("question_id").equals("duracion")).findFirst().orElseThrow()).containsKey("quality");
+        var defaults=ReportCustomization.defaults(analyses.get(analysisId),List.of());
+        var questions=defaults.questions().stream().map(q->new ReportCustomization.Question(q.id(),true,q.title(),"",q.id().equals("duracion")?List.of("table","polygon","ogive"):List.of("table"))).toList();
+        var config=new ReportCustomization.Configuration(analysisId,"Perfil descriptivo","",true,true,true,"",questions,List.of());
+        var preview=reports.preview(config,ACTOR);assertThat(preview).containsEntry("descriptive_profile",DescriptiveProfile.PROTOCOL);
+        String reportId=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);var report=reports.get(reportId);
+        mvc.perform(get("/admin/reportes/"+reportId)).andExpect(status().isOk()).andExpect(content().string(containsString("Percentil 90 (tipo 7)"))).andExpect(content().string(containsString("Ojiva")));
+        assertThat(new String(ReportExport.csv(ReportExport.rows(report)),java.nio.charset.StandardCharsets.UTF_8)).contains("quality","Percentil 90");
+        byte[] word=ReportWordExport.docx(report);var parts=new HashMap<String,String>();try(var zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(word))){for(java.util.zip.ZipEntry entry;(entry=zip.getNextEntry())!=null;)if(entry.getName().endsWith(".xml"))parts.put(entry.getName(),new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8));}
+        assertThat(parts.get("word/document.xml")).contains("Percentil 90","fi/n");assertThat(parts.values().stream().filter(xml->xml.contains("scatterStyle val=\"lineMarker\""))).hasSize(2);
+        response(v,"NO_SABE",100);assertThat(reports.get(oldId).get("logical_hash")).isEqualTo(oldHash);assertThat(reports.get(oldId).get("content")).isEqualTo(oldContent);
+        var tampered=new LinkedHashMap<>((Map<String,Object>)report.get("content"));tampered.put("descriptive_profile","VERSION_DESCONOCIDA");jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(tampered),CanonicalJson.hash(tampered),reportId);assertThatThrownBy(()->reports.get(reportId)).isInstanceOf(IllegalStateException.class);
+    }
+    @Test void responseDownloadsUseTheLoadedCutWithAllQuestionsAndProtectAccess()throws Exception {
+        String v=publish(),id=response(v,"SI",12);var session=new MockHttpSession();String frame=(String)load(v,session,false).get("frameId");
+        mvc.perform(get("/admin/espacio/"+slug(v)+"/resultados").param("version",publications.get(v).code())).andExpect(status().isOk()).andExpect(content().string(containsString("Descargar respuestas Excel"))).andExpect(content().string(containsString("data-results-export")));
+        response(v,"NO_SABE",6);
+        String endpoint=path(v)+"/respuestas.";
+        mvc.perform(post(endpoint+"csv").session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",frame)).andExpect(status().isBadRequest());
+        mvc.perform(post(endpoint+"csv").with(csrf()).with(user("reader").roles("USER")).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isForbidden());
+        mvc.perform(post(endpoint+"csv").with(csrf()).with(anonymous()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().is3xxRedirection());
+        mvc.perform(post(endpoint+"csv").with(csrf()).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isConflict());
+        String other=publish();
+        mvc.perform(post(path(other)+"/respuestas.csv").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isConflict());
+        byte[] csv=mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andExpect(header().string("Content-Disposition",containsString(".csv"))).andReturn().getResponse().getContentAsByteArray();
+        var table=bo.edu.umss.mercado.importing.CsvFile.parse(csv,"COMA");assertThat(table).hasSize(2);
+        assertThat(table.getFirst()).contains("Pregunta 1","Pregunta 2","Duración","Correo de contacto","Estado: Pregunta 1");
+        assertThat(table.get(1)).contains("Sí","No sabe","12","contacto-privado@example.test",id,"CON_VALOR");
+        byte[] xlsx=mvc.perform(post(endpoint+"xlsx").with(csrf()).session(session).param("frameId",frame).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andExpect(content().contentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")).andReturn().getResponse().getContentAsByteArray();
+        assertThat(bo.edu.umss.mercado.importing.XlsxFile.open(xlsx).table(1)).isEqualTo(table);
+        String updated=(String)load(v,session,true).get("frameId");
+        byte[] refreshed=mvc.perform(post(endpoint+"csv").with(csrf()).session(session).param("frameId",updated).param("sensitiveAcknowledged","true")).andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        assertThat(bo.edu.umss.mercado.importing.CsvFile.parse(refreshed,"COMA")).hasSize(3);
+    }
+    @Test void rawResponseExportPreservesOpenTextsMultipleAnswersAndDistinctMissingStates()throws Exception {
+        String v=drafts.create("Exportación ficticia","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();
+        drafts.question(v,1,section,new Question("filtro","Datos","Filtro","radio",true,List.of(new Question.Option("SI","Sí"),new Question.Option("NO","No")),null,null,0,1,"",null,null),true,ACTOR);
+        drafts.question(v,2,section,new Question("texto","Datos","Comentario","textarea",false,List.of(),"filtro","SI",0,1,"",null,null),true,ACTOR);
+        drafts.question(v,3,section,new Question("multiple","Datos","Selecciones","checkbox",false,List.of(new Question.Option("A","Categoría, A"),new Question.Option("B","Categoría B")),null,null,0,2,"",null,null),true,ACTOR);publications.publish(v,4,ACTOR);
+        String original="=1+1\nTexto, con \"comillas\"";
+        for(String filter:List.of("SI","NO")){var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("filtro",filter);if(filter.equals("SI")){values.set("texto",original);values.add("multiple","A");values.add("multiple","B");}var validation=validator.validate(publications.get(v).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(v,UUID.randomUUID().toString(),validation);}
+        var snapshot=results.load(slug(v),List.of(v),"","",ACTOR);var rows=responseExport.rows(snapshot,true);
+        int text=rows.getFirst().indexOf("Comentario"),multi=rows.getFirst().indexOf("Selecciones");
+        assertThat(rows.stream().skip(1).map(r->r.get(text)).toList()).contains(original,"");
+        assertThat(rows.stream().skip(1).map(r->r.get(multi)).toList()).contains("Categoría, A | Categoría B","");
+        assertThat(rows.stream().skip(1).flatMap(Collection::stream).toList()).contains("NO_APLICA","SIN_RESPUESTA");
+        var xlsx=bo.edu.umss.mercado.importing.XlsxFile.open(ReportExport.xlsx(rows)).table(1);assertThat(xlsx.stream().skip(1).map(r->r.get(text)).toList()).contains(original);
+        var csv=bo.edu.umss.mercado.importing.CsvFile.parse(ReportExport.csv(rows),"COMA");assertThat(csv.stream().skip(1).map(r->r.get(text)).toList()).contains("'"+original);
+        var empty=results.load(slug(v),List.of(v),"2100-01-01","2100-01-02",ACTOR);assertThat(responseExport.rows(empty,true)).hasSize(1);
+    }
+    @Test void responseExportKeepsVersionsAndDoesNotTreatAnAbsentQuestionAsAnUnansweredOne(){
+        String first=publish();response(first,"SI",5);
+        String second=publications.successor(first,ACTOR);drafts.removeQuestion(second,0,"contacto",ACTOR);publications.publish(second,1,ACTOR);
+        var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("q1","NO_SABE");
+        var validation=validator.validate(publications.get(second).content().definition(),values);assertThat(validation.valid()).isTrue();responses.savePublished(second,UUID.randomUUID().toString(),validation);
+        var rows=responseExport.rows(results.load(slug(first),List.of(first,second),"","",ACTOR),true);assertThat(rows).hasSize(3);
+        int state=rows.getFirst().indexOf("Estado: Correo de contacto"),version=rows.getFirst().indexOf("Versión del instrumento");
+        assertThat(rows.stream().skip(1).filter(r->r.get(version).equals("v1")).findFirst().orElseThrow().get(state)).isEqualTo("CON_VALOR");
+        assertThat(rows.stream().skip(1).filter(r->r.get(version).equals("v2")).findFirst().orElseThrow().get(state)).isEqualTo("NO_PERTENECE_VERSION");
+    }
     @Test void privateDictionaryIsSharedByResultsAndReportsButIsolatedFromOtherQuestions() throws Exception {
         String v=drafts.create("Contextos ficticios","Prueba",ACTOR);drafts.section(v,0,null,"Datos",ACTOR);String section=drafts.get(v).sections().getFirst().id();
         drafts.question(v,1,section,new Question("programa","Datos","INDIQUE EL NOMBRE DEL PROGRAMA","text",false,List.of(),null,null,0,1,"",null,null),true,ACTOR);
@@ -120,11 +263,37 @@ class WorkspaceResultsIntegrationTest {
         drafts.question(v,3,section,new Question("duracion","Datos","Duración","number",false,List.of(),null,null,0,1,"",0,100),true,ACTOR);
         drafts.question(v,4,section,new Question("contacto","Datos","Correo de contacto","email",false,List.of(),null,null,0,1,"",null,null),true,ACTOR);publications.publish(v,5,ACTOR);configure(v,"meses");return v;}
     void configure(String v,String unit){preparation.configure(v,0,List.of(new GenericPreparationService.Field("q1","NOMINAL",""),new GenericPreparationService.Field("q2","NOMINAL",""),new GenericPreparationService.Field("duracion","MAGNITUD_ENTERA",unit),new GenericPreparationService.Field("contacto","EXCLUIR","")),ACTOR);}
+    @Test @SuppressWarnings("unchecked") void detailedUnivariateResultsReportsAndExportsKeepFrozenValuesAndLegacyReports()throws Exception{
+        String v=publish();for(int n:List.of(1,2,2,5))response(v,"SI",n);
+        var frame=results.load(slug(v),List.of(v),"","",ACTOR);String cut=results.save(frame,"Corte univariado ficticio",ACTOR);
+        var variable=((List<Map<String,Object>>)frame.result().get("variables")).stream().filter(q->q.get("question_id").equals("duracion")).findFirst().orElseThrow();
+        assertThat(((Map<?,?>)variable.get("univariate")).get("modes")).isEqualTo(List.of(2.));
+        String analysis=results.materialize(frame,ACTOR);var defaults=ReportCustomization.defaults(analyses.get(analysis),List.of());
+        var questions=defaults.questions().stream().map(q->new ReportCustomization.Question(q.id(),q.id().equals("duracion"),q.title(),"",q.id().equals("duracion")?List.of("table","histogram","polygon","ogive"):List.of())).toList();
+        var config=new ReportCustomization.Configuration(analysis,defaults.title(),"",true,true,true,"",questions,List.of());
+        var preview=reports.preview(config,ACTOR);String id=reports.generateCustomized(config,CanonicalJson.hash(preview),ACTOR);
+        mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andExpect(content().string(containsString("Percentil 90"))).andExpect(content().string(containsString("data-representation=\"ogive\"")));
+        var report=reports.get(id);assertThat(ReportExport.rows(report).stream().anyMatch(row->row.get(4).equals("univariate.measures[10].key")&&row.get(5).equals("p90"))).isTrue();
+        var word=ReportWordExport.docx(report);try(var zip=new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(word))){String document="";for(java.util.zip.ZipEntry e;(e=zip.getNextEntry())!=null;)if(e.getName().equals("word/document.xml"))document=new String(zip.readAllBytes(),java.nio.charset.StandardCharsets.UTF_8);assertThat(document).contains("Percentil 90","Ojiva","Marca de clase");}
+        response(v,"SI",99);assertThat(CanonicalJson.hash(reports.get(id).get("content"))).isEqualTo(CanonicalJson.hash(report.get("content")));assertThat(results.cut(slug(v),cut).snapshot().result().get("submission_count")).isEqualTo(4);
+        // Reconstruct the prior projection contract to exercise verification of an existing V6 report.
+        var legacyQuestions=questions.stream().map(q->new ReportCustomization.Question(q.id(),q.included(),q.title(),q.comment(),q.included()?List.of("table","histogram"):List.of())).toList();
+        var legacyConfig=new ReportCustomization.Configuration(analysis,defaults.title(),"",true,true,true,"",legacyQuestions,List.of());var legacy=reports.preview(legacyConfig,ACTOR);String legacyId=reports.generateCustomized(legacyConfig,CanonicalJson.hash(legacy),ACTOR);
+        legacy.remove("univariate_projection_version");var display=(Map<String,Object>)legacy.get("display_result");display.remove("univariate_projection_version");for(var q:(List<Map<String,Object>>)display.get("variables"))q.remove("univariate");
+        jdbc.update("UPDATE generated_report SET content_json=?,content_hash=? WHERE id=?",CanonicalJson.json(legacy),CanonicalJson.hash(legacy),legacyId);
+        assertThat(CanonicalJson.hash(reports.get(legacyId).get("content"))).isEqualTo(CanonicalJson.hash(legacy));
+        var dir=java.nio.file.Path.of(".codex-tmp/univariate-browser");java.nio.file.Files.createDirectories(dir);
+        var payload=load(v,new MockHttpSession(),false);java.nio.file.Files.writeString(dir.resolve("results.json"),CanonicalJson.json(payload));
+        java.nio.file.Files.writeString(dir.resolve("report.html"),mvc.perform(get("/admin/reportes/"+id)).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));
+        java.nio.file.Files.writeString(dir.resolve("report.json"),CanonicalJson.json(report));java.nio.file.Files.write(dir.resolve("report.docx"),word);
+    }
     String response(String v,String answer,int number){var values=new LinkedMultiValueMap<String,String>();values.set("consent","SI");values.set("q1",answer);values.set("q2","NO_SABE");values.set("duracion",String.valueOf(number));values.set("contacto","contacto-privado@example.test");var validation=validator.validate(publications.get(v).content().definition(),values);assertThat(validation.valid()).isTrue();return responses.savePublished(v,UUID.randomUUID().toString(),validation);}
     String slug(String v){return publications.get(v).slug();}
     String path(String v){return "/admin/espacio/"+slug(v)+"/resultados";}
     @Test void manualDictionaryFeedValidatesBeforeSavingAndIsAvailableFromAdminFooter()throws Exception{
-        mvc.perform(get("/admin/diccionario")).andExpect(status().isOk()).andExpect(content().string(containsString("Generar prompt"))).andExpect(content().string(containsString("name=\"_csrf\""))).andExpect(content().string(containsString("Alimentar diccionario")));
+        mvc.perform(get("/admin/diccionario")).andExpect(status().isOk()).andExpect(content().string(containsString("Generar prompt"))).andExpect(content().string(containsString("name=\"_csrf\""))).andExpect(content().string(containsString("Alimentar diccionario")))
+            .andExpect(content().string(containsString("Generar prompt numérico"))).andExpect(content().string(containsString("data-numeric-source-unit")))
+            .andExpect(content().string(containsString("/js/numeric-prompt.js"))).andExpect(content().string(org.hamcrest.Matchers.not(containsString("data-numeric-current"))));
         mvc.perform(get("/admin/diccionario").with(anonymous())).andExpect(status().is3xxRedirection());
         mvc.perform(post("/admin/diccionario/alimentar").with(csrf()).param("incoming","Formato inválido")).andExpect(status().isBadRequest());assertThat(dictionaries.global().revision()).isZero();
         var preview=json(mvc.perform(post("/admin/diccionario/alimentar").with(csrf()).param("incoming","Inteligencia Artificial=IA|inteligencia artificial")).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8));String rules=preview.get("rules").toString();assertThat(preview.get("groupsAfter")).isEqualTo(1);assertThat(dictionaries.global().revision()).isZero();
@@ -212,7 +381,7 @@ class WorkspaceResultsIntegrationTest {
         String v=publish();response(v,"SI",2);var session=new MockHttpSession();
         var dir=java.nio.file.Path.of(".codex-tmp/workspace-results-browser");java.nio.file.Files.createDirectories(dir);
         var before=load(v,session,false);
-        assertThat(before.get("html").toString()).contains("<th>Mínimo</th><td>2.00</td>","<th>Media</th><td>2.00</td>");
+        assertThat(before.get("html").toString()).contains("<th scope=\"row\">Mínimo</th>","<th scope=\"row\">Media</th>","<td>2.00</td>","Varianza muestral","Frecuencia absoluta (fi)","Marca de clase","Medidas de tendencia central","Medidas de dispersión","Medidas de posición","<th>Fórmula</th>","<th>Resultado</th>","Frecuencia relativa (hi)","Frecuencia acumulada (Fi)","Base de cálculo (n)").doesNotContain("<th>Interpretación</th>","Base menciones","Total de selecciones (m)");
         String page=mvc.perform(get("/admin/espacio/"+slug(v)+"/resultados").session(session).param("version",publications.get(v).code())).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         java.nio.file.Files.writeString(dir.resolve("total.html"),page);
         java.nio.file.Files.writeString(dir.resolve("before.json"),CanonicalJson.json(before));response(v,"NO_SABE",6);

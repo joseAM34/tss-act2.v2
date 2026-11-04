@@ -2,6 +2,10 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const {createResultsCoordinator,resultRepresentations}=require('../../main/resources/static/js/workspace-results.js');
 const {textRepresentationAvailability}=require('../../main/resources/static/js/workspace-results.js');
+test('polígono y ojiva se habilitan solo con la distribución numérica preparada',()=>{
+  const enabled=v=>resultRepresentations(v).filter(([id])=>['polygon','ogive'].includes(id)).map(([, ,active])=>active);
+  assert.deepEqual(enabled({type:'radio'}),[false,false]);assert.deepEqual(enabled({numeric:{n:0},univariate:{intervals:[]}}),[false,false]);assert.deepEqual(enabled({numeric:{n:2},univariate:{intervals:[{count:2}]}}),[true,true]);
+});
 test('textos y coincidencias sensibles requieren confirmación incluso si hay menciones',()=>{
   const data={sensitive:true,sensitiveAcknowledged:false,groupable:true,dictionaryRevision:1,base:2,keywords:{distribution:[{count:2}]}};
   assert.deepEqual(textRepresentationAvailability(data),{texts:false,matches:false,'match-chart':false,'match-pie':false,'match-donut':false});

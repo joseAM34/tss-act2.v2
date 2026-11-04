@@ -54,7 +54,7 @@ class ReportReadPerformanceIntegrationTest {
         var logical=Map.<String,Object>of("survey_id",survey,"dictionary",dictionary);
         dictionaries.saveGlobal(0,"inteligencia artificial=ia|inteligencia artificial\ndos años=2|dos años","admin");dictionaries.saveScoped(logical,"q0","PRIVATE",0,0,"dos años=2|dos años","admin");
         var expected=new LinkedHashMap<String,Map<String,Object>>();for(var q:dictionary){String key=(String)q.get("question_id");var editor=dictionaries.editor(logical,key,"");String rules=(String)editor.get("rules");if("GLOBAL".equals(editor.get("dictionaryScope")))rules=TextDictionaryService.globalRules(rules);expected.put(key,Map.of("scope",editor.get("dictionaryScope"),"revision",editor.get("revision"),"rules",rules,"hash",CanonicalJson.hash(rules)));}
-        clearInvocations(jdbc);assertThat(dictionaries.selections(logical)).isEqualTo(expected);assertThat(listQueries()).isEqualTo(2);
+        clearInvocations(jdbc);assertThat(dictionaries.selections(logical)).isEqualTo(expected);assertThat(listQueries()).isEqualTo(3);
         assertThat(dictionaries.selections(logical).get("q0").get("scope")).isEqualTo("PRIVATE");
         assertThat(dictionaries.selections(logical).get("q0").get("rules").toString()).contains("|2").doesNotContain("inteligencia artificial");
     }

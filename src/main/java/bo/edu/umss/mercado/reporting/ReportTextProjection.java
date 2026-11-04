@@ -57,6 +57,12 @@ public class ReportTextProjection {
             if(selection!=null&&!bo.edu.umss.mercado.data.CanonicalJson.hash(applied).equals(selection.get("hash")))throw new IllegalStateException("El diccionario del reporte no coincide con su huella.");
             var counts=new LinkedHashMap<>(TextMentions.count(texts,applied));counts.put("dictionary_revision",selection==null?revision:selection.get("revision"));if(selection!=null)counts.put("dictionary_scope",selection.get("scope"));
             variable.put("text_counts",counts);
+            if(selection!=null&&selection.get("numeric") instanceof Map<?,?> numericSelection){
+                var definition=(Map<String,Object>)numericSelection.get("definition");
+                if(!bo.edu.umss.mercado.data.CanonicalJson.hash(bo.edu.umss.mercado.data.CanonicalJson.json(definition)).equals(numericSelection.get("hash")))throw new IllegalStateException("Las equivalencias numéricas del reporte no coinciden con su huella.");
+                var derived=bo.edu.umss.mercado.statistics.NumericNormalization.project(definition,texts,q.get("label").toString());
+                if(!derived.isEmpty()){var advanced=new LinkedHashMap<>((Map<String,Object>)variable.getOrDefault("advanced",Map.of()));advanced.putAll((Map<String,Object>)derived.get("advanced"));variable.putAll(derived);variable.put("advanced",advanced);variable.put("numeric_normalization",numericSelection);}
+            }
             if(originalQuestions.contains(key))variable.put("text_content",List.copyOf(texts));
         }
         output.put("variables",variables);return output;

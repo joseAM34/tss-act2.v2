@@ -6,6 +6,35 @@ El usuario eligió **Render Free para el monolito Java 21 con Docker** y **Neon 
 
 ## Qué se publica
 
+### Dependencias incluidas y preparación local
+
+El JAR ejecutable incluye las bibliotecas Java de ejecución, plantillas, estilos, scripts y ECharts con sus avisos. La imagen final incorpora ese JAR y Java; iniciar el contenedor no ejecuta Maven ni descarga paquetes. La construcción inicial sí requiere acceso a los repositorios de Maven y a las imágenes base. Las consultas externas del diccionario están desactivadas en el controlador; no son necesarias para el uso del sistema. La conexión a PostgreSQL remoto sigue siendo necesaria.
+
+Para preparar las dependencias en un equipo, desde la raíz:
+
+```powershell
+.\mvnw.cmd -B -DskipTests dependency:go-offline package
+```
+
+Si este equipo Windows presenta `PKIX path building failed` por inspección HTTPS, se puede usar su almacén de confianza para ese comando, sin desactivar TLS ni modificar variables de entorno:
+
+```powershell
+.\mvnw.cmd "-Djavax.net.ssl.trustStoreType=Windows-ROOT" -U -B -DskipTests dependency:go-offline package
+```
+
+Después se puede comprobar el empaquetado sin acceso de Maven a internet y revisar su contenido:
+
+```powershell
+.\mvnw.cmd -o -DskipTests package
+.\scripts\verificar-paquete-local.ps1
+```
+
+`-DskipTests` omite las pruebas en estos comandos de preparación; no sustituye las verificaciones previas al despliegue. La caché `.m2` pertenece al equipo y no se sube a Git. Docker prepara sus propias dependencias durante la construcción y no depende de la caché de la máquina del desarrollador. Al cambiar código o dependencias hay que reconstruir y desplegar la imagen. El verificador inspecciona el JAR sin iniciar la aplicación ni conectarse a una base de datos.
+
+Si Windows bloquea scripts locales por su política de ejecución, el verificador se puede ejecutar con una excepción limitada al proceso: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verificar-paquete-local.ps1`. No cambia la política persistente del equipo.
+
+Verificación local del 2026-10-27: preparación y `package` en modo Maven sin conexión completados; JAR de 34,24 MiB con 71 bibliotecas y recursos locales verificados. No se ejecutó la suite en esta comprobación de empaquetado. No se reconstruyó la imagen: el motor Docker Desktop estaba detenido. Sin conexión a la base, commit, push ni despliegue.
+
 Render construye el `Dockerfile` de la raíz y ejecuta el JAR con el perfil `prod`. Backend, encuestas, panel, plantillas y ECharts permanecen en una sola aplicación. Render recomienda Docker para aplicaciones JVM. [Docker en Render](https://render.com/docs/docker).
 
 PostgreSQL conserva administrador, respuestas, revisiones, conjuntos y análisis. H2 y los archivos locales de desarrollo quedan separados; no se copian automáticamente a la base remota. El sistema de archivos de Render es efímero, por lo que la persistencia del proyecto debe residir en PostgreSQL. [Persistencia y planes gratuitos de Render](https://render.com/docs/free).

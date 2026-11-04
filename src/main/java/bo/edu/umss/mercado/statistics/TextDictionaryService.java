@@ -44,34 +44,84 @@ public class TextDictionaryService {
     private Saved privateSaved(List<Map<String,Object>> rows){return rows.stream().filter(r->"PRIVATE".equals(r.get("dictionary_scope"))).findFirst().map(this::verified).orElse(new Saved(0,""));}
     private Saved verified(Map<String,Object> row){String rules=(String)row.get("rules_text");if(!CanonicalJson.hash(rules).equals(row.get("rules_hash")))throw new IllegalStateException("El diccionario privado no coincide con su huella.");return new Saved(((Number)row.get("revision")).intValue(),rules);}
     public String scope(Map<String,Object> logical,String key){var rows=history(logical,key);return rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope");}
-    public Saved selected(Map<String,Object> logical,String key){var view=editor(logical,key,"");String rules=(String)view.get("rules");return new Saved(((Number)view.get("revision")).intValue(),"GLOBAL".equals(view.get("dictionaryScope"))?globalRules(rules):rules);}
-    public Map<String,Object> editor(Map<String,Object> logical,String key,String requested){var rows=history(logical,key);String mode=requested==null||requested.isBlank()?(rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope")):requested;checkScope(mode);var saved=mode.equals("PRIVATE")?privateSaved(rows):global();return Map.of("rules",saved.rules(),"revision",saved.revision(),"dictionaryScope",mode,"contextRevision",rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue());}
+    public Saved selected(Map<String,Object> logical,String key){var view=editor(logical,key,"");String rules="NUMERIC".equals(view.get("activeMode"))?"":(String)view.get("rules");return new Saved(((Number)view.get("revision")).intValue(),"GLOBAL".equals(view.get("dictionaryScope"))?globalRules(rules):rules);}
+    public Map<String,Object> editor(Map<String,Object> logical,String key,String requested){var rows=history(logical,key);String mode=requested==null||requested.isBlank()?(rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope")):requested;checkScope(mode);var saved=mode.equals("PRIVATE")?privateSaved(rows):global();return Map.of("rules",saved.rules(),"revision",saved.revision(),"dictionaryScope",mode,"contextRevision",rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue(),"activeMode",numericEditor(logical,key).get("activeMode"));}
     private static void checkScope(String scope){if(!Set.of("GLOBAL","PRIVATE").contains(scope))throw new IllegalArgumentException("Elige diccionario global o privado.");}
     @Transactional
     public Map<String,Object> saveScoped(Map<String,Object> logical,String key,String mode,int expected,int contextRevision,String rules,String actor){
         checkScope(mode);if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
         var q=question(logical,key);jdbc.queryForList("SELECT id FROM survey WHERE id=? FOR UPDATE",logical.get("survey_id"));var rows=history(logical,key);int current=rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue();
         if(current!=contextRevision)throw new IllegalStateException("La elección del diccionario cambió. Recarga antes de guardar.");
+        if(!TextMentions.parse(rules).isEmpty()&&numericActive(numericEditor(logical,key)))throw new IllegalStateException("Esta pregunta usa datos cuantificables. Desactiva o vacía sus equivalencias numéricas y guarda antes de registrar términos.");
         if(mode.equals("GLOBAL"))saveGlobal(expected,rules,actor);else if(privateSaved(rows).revision()!=expected)throw new IllegalStateException("El diccionario privado cambió. Recarga antes de guardar.");
         rules=TextMentions.canonicalize(rules);jdbc.update("INSERT INTO scoped_text_dictionary_revision(context_key,revision,survey_id,question_key,definition_hash,dictionary_scope,rules_text,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",context(logical,key),current+1,logical.get("survey_id"),key,CanonicalJson.hash(q),mode,rules,CanonicalJson.hash(rules),actor,OffsetDateTime.now());return editor(logical,key,mode);
     }
     @SuppressWarnings("unchecked")
     public Map<String,Map<String,Object>> selections(Map<String,Object> logical){
         var contexts=new LinkedHashMap<String,String>();for(var q:(List<Map<String,Object>>)logical.get("dictionary"))if(Set.of("text","textarea","email","tel").contains(q.getOrDefault("original_type",""))){String key=(String)q.get("question_id");contexts.put(key,context(logical,key));}
-        var histories=new HashMap<String,List<Map<String,Object>>>();var keys=new ArrayList<>(new LinkedHashSet<>(contexts.values()));
+        var histories=new HashMap<String,List<Map<String,Object>>>();var numericHistories=new HashMap<String,Map<String,Object>>();var keys=new ArrayList<>(new LinkedHashSet<>(contexts.values()));
         for(int start=0;start<keys.size();start+=200){var batch=keys.subList(start,Math.min(start+200,keys.size()));String placeholders=String.join(",",Collections.nCopies(batch.size(),"?"));
-            for(var row:jdbc.queryForList("SELECT * FROM scoped_text_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))histories.computeIfAbsent((String)row.get("context_key"),k->new ArrayList<>()).add(row);}
+            for(var row:jdbc.queryForList("SELECT * FROM scoped_text_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))histories.computeIfAbsent((String)row.get("context_key"),k->new ArrayList<>()).add(row);
+            for(var row:jdbc.queryForList("SELECT * FROM numeric_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))numericHistories.putIfAbsent((String)row.get("context_key"),row);}
         Saved global=null;String appliedGlobal=null;var selected=new LinkedHashMap<String,Map<String,Object>>();
         for(var entry:contexts.entrySet()){
             var rows=histories.getOrDefault(entry.getValue(),List.of());String mode=rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope");checkScope(mode);
             Saved saved;String rules;
             if("PRIVATE".equals(mode)){saved=privateSaved(rows);rules=saved.rules();}
             else{if(global==null){global=global();appliedGlobal=globalRules(global.rules());}saved=global;rules=appliedGlobal;}
-            selected.put(entry.getKey(),Map.of("scope",mode,"revision",saved.revision(),"rules",rules,"hash",CanonicalJson.hash(rules)));
+            var selection=new LinkedHashMap<String,Object>(Map.of("scope",mode,"revision",saved.revision(),"rules",rules,"hash",CanonicalJson.hash(rules)));
+            var numeric=numericView(numericHistories.get(entry.getValue()));if(numericActive(numeric)){selection.put("rules","");selection.put("hash",CanonicalJson.hash(""));}if(((Number)numeric.get("revision")).intValue()>0)selection.put("numeric",numeric);
+            selected.put(entry.getKey(),selection);
         }
         return selected;
     }
     public static String globalRules(String rules){return TextMentions.parse(rules).stream().map(t->{var aliases=t.aliases().stream().filter(a->!TextMentions.normalize(a).matches("[0-9 ]+")).toList();return aliases.isEmpty()?"":t.label()+"="+String.join("|",aliases);}).filter(s->!s.isBlank()).collect(java.util.stream.Collectors.joining("\n"));}
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> numericEditor(Map<String,Object> logical,String key){
+        var rows=jdbc.queryForList("SELECT * FROM numeric_dictionary_revision WHERE context_key=? ORDER BY revision DESC LIMIT 1",context(logical,key));
+        var saved=new LinkedHashMap<>(numericView(rows.isEmpty()?null:rows.getFirst()));var contexts=history(logical,key);
+        String active="NONE";if(numericActive(saved))active="NUMERIC";else if(!contexts.isEmpty()){
+            String scope=(String)contexts.getFirst().get("dictionary_scope");String terms=scope.equals("PRIVATE")?privateSaved(contexts).rules():globalRules(global().rules());if(!TextMentions.parse(terms).isEmpty())active="TERMS";
+        }
+        saved.put("termRevision",privateSaved(contexts).revision());saved.put("activeMode",active);saved.put("contextRevision",contexts.isEmpty()?0:contexts.getFirst().get("revision"));return saved;
+    }
+    public static boolean numericActive(Map<String,Object> saved){return saved.get("definition") instanceof Map<?,?> definition&&Boolean.TRUE.equals(definition.get("enabled"))&&definition.get("mappings") instanceof Map<?,?> mappings&&!mappings.isEmpty();}
+    @Transactional
+    public Map<String,Object> deactivateTerms(Map<String,Object> logical,String key,int expectedContext,String actor){
+        var rows=history(logical,key);return saveScoped(logical,key,"PRIVATE",privateSaved(rows).revision(),expectedContext,"",actor);
+    }
+    private Map<String,Object> numericView(Map<String,Object> row){
+        if(row==null)return Map.of("revision",0,"definition",NumericNormalization.definition(false,"años",""));
+        String json=(String)row.get("rules_json");
+        if(!CanonicalJson.hash(json).equals(row.get("rules_hash")))throw new IllegalStateException("Las equivalencias numéricas no coinciden con su huella.");
+        return Map.of("revision",row.get("revision"),"definition",CanonicalJson.read(json,Map.class),"hash",row.get("rules_hash"));
+    }
+    @Transactional
+    public Map<String,Object> saveNumeric(Map<String,Object> logical,String key,int expected,boolean enabled,String unit,String rules,String actor){
+        var q=question(logical,key);if(TextFieldPolicy.sensitive(q.get("original_type"),q.get("label"))||!Set.of("text","textarea").contains(q.get("original_type")))throw new IllegalArgumentException("Solo se pueden normalizar preguntas de texto no identificativas.");
+        if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
+        var definition=NumericNormalization.definition(enabled,unit,rules);
+        jdbc.queryForList("SELECT id FROM survey WHERE id=? FOR UPDATE",logical.get("survey_id"));
+        var previous=numericEditor(logical,key);
+        if(((Number)previous.get("revision")).intValue()!=expected)throw new IllegalStateException("Las equivalencias numéricas cambiaron. Recarga antes de guardar.");
+        if(enabled&&!((Map<?,?>)definition.get("mappings")).isEmpty()){
+            if("TERMS".equals(previous.get("activeMode")))throw new IllegalStateException("Esta pregunta usa agrupación de términos. Desactiva o vacía ese diccionario para la pregunta y guarda antes de registrar cantidades.");
+            var rows=history(logical,key);if(rows.isEmpty()||!"PRIVATE".equals(rows.getFirst().get("dictionary_scope"))||!privateSaved(rows).rules().isBlank()){
+                saveScoped(logical,key,"PRIVATE",privateSaved(rows).revision(),rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue(),"",actor);
+            }
+        }
+        if(((Number)previous.get("revision")).intValue()!=expected)throw new IllegalStateException("Las equivalencias numéricas cambiaron. Recarga antes de guardar.");
+        String json=CanonicalJson.json(definition);jdbc.update("INSERT INTO numeric_dictionary_revision(context_key,revision,survey_id,question_key,rules_json,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?)",context(logical,key),expected+1,logical.get("survey_id"),key,json,CanonicalJson.hash(json),actor,OffsetDateTime.now());return numericEditor(logical,key);
+    }
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> clearPrivate(Map<String,Object> logical,String key,int expected,int contextRevision,int numericRevision,String actor){
+        var saved=saveScoped(logical,key,"PRIVATE",expected,contextRevision,"",actor);
+        var numeric=numericEditor(logical,key);
+        if(((Number)numeric.get("revision")).intValue()!=numericRevision)throw new IllegalStateException("Las equivalencias numéricas cambiaron. Recarga antes de vaciar.");
+        if(numericRevision>0)saveNumeric(logical,key,numericRevision,false,(String)((Map<?,?>)numeric.get("definition")).get("unit"),"",actor);
+        return editor(logical,key,"PRIVATE");
+    }
     public Map<String,Object> scopedImport(Map<String,Object> logical,String key,String scope,String editor,String incoming){var view=editor(logical,key,scope);var result=new LinkedHashMap<>(importPreview(new Saved(((Number)view.get("revision")).intValue(),(String)view.get("rules")),editor,incoming));result.put("contextRevision",view.get("contextRevision"));result.put("dictionaryScope",scope);return result;}
     public Saved global(){var rows=jdbc.queryForList("SELECT revision,rules_text,rules_hash FROM universal_dictionary_revision ORDER BY revision DESC LIMIT 1");if(rows.isEmpty()){
         var legacy=jdbc.queryForList("SELECT d.rules_text,d.rules_hash FROM question_text_dictionary d WHERE d.revision=(SELECT MAX(x.revision) FROM question_text_dictionary x WHERE x.version_id=d.version_id AND x.question_key=d.question_key AND x.definition_hash=d.definition_hash) ORDER BY d.created_at,d.id");var rules=new ArrayList<String>();for(var row:legacy){String text=row.get("rules_text").toString();if(!CanonicalJson.hash(text).equals(row.get("rules_hash")))throw new IllegalStateException("Un diccionario anterior no coincide con su huella.");rules.add(text);}return new Saved(0,TextMentions.canonicalize(String.join("\n",rules)));}

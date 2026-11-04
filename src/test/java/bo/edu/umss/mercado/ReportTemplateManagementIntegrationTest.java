@@ -36,6 +36,22 @@ class ReportTemplateManagementIntegrationTest {
     Map<String,Object> bootstrap(MockHttpSession session,String url)throws Exception{return json(mvc.perform(get(url).session(session)).andExpect(status().isOk()).andExpect(view().name("report-customizer")).andReturn().getModelAndView().getModel().get("customBootstrap").toString());}
     ReportCustomization.Configuration configuration(Map<String,Object> bootstrap){return CanonicalJson.read(CanonicalJson.json(bootstrap.get("configuration")),ReportCustomization.Configuration.class);}
     String save(ReportCustomization.Configuration config,String id,String hash,String name)throws Exception {var preview=reports.preview(config,ACTOR);var body=Map.of("configuration",config,"expectedHash",CanonicalJson.hash(preview),"templateId",id,"templateHash",hash,"name",name);return (String)json(mvc.perform(post("/admin/plantillas-reportes/guardar").with(csrf()).contentType("application/json").content(CanonicalJson.json(body))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString()).get("id");}
+    @Test void localRecoveryReopensTheSameAnalysisWithoutServerSessionAndRequiresAdmin()throws Exception{
+        String v=publish();response(v);var session=new MockHttpSession();
+        var base=configuration(bootstrap(session,open(session,"","create","total",v,"")));
+        mvc.perform(get("/admin/reportes/recuperar").param("analysisId",base.analysisId()).param("editing","true").session(new MockHttpSession()))
+            .andExpect(status().isOk()).andExpect(view().name("report-customizer"))
+            .andExpect(model().attribute("localRecoveryOnly",true))
+            .andExpect(model().attribute("reportDraftOwner",CanonicalJson.hash(ACTOR)))
+            .andExpect(content().string(containsString("/js/report-draft.js")));
+        String id=save(base,"","","Plantilla ficticia"),hash=templates.stored(id).hash();
+        mvc.perform(get("/admin/reportes/recuperar").param("analysisId",base.analysisId()).param("editing","true").param("templateId",id).param("templateHash",hash))
+            .andExpect(status().isOk()).andExpect(model().attribute("templateEditState",Map.of("id",id,"hash",hash,"name","Plantilla ficticia","editing",true)));
+        mvc.perform(get("/admin/reportes/recuperar").param("analysisId",base.analysisId()).param("editing","true").param("templateId",id).param("templateHash","otra"))
+            .andExpect(status().isConflict());
+        mvc.perform(get("/admin/reportes/recuperar").with(anonymous()).param("analysisId",base.analysisId())).andExpect(status().is3xxRedirection());
+        mvc.perform(get("/admin/reportes/recuperar").with(user("lector").roles("USER")).param("analysisId",base.analysisId())).andExpect(status().isForbidden());
+    }
     @Test void templateUsesTotalsOrFrozenCutAndCanBeEditedDuplicatedAndDeletedWithoutChangingReports()throws Exception{
         String v=publish();var emptyFrame=results.load(publications.get(v).slug(),List.of(v),"","",ACTOR);String emptyCut=results.save(emptyFrame,"Corte vacío",ACTOR);response(v);response(v);dictionaries.saveGlobal(0,"inteligencia artificial=ia|inteligencia artificial",ACTOR);var version=publications.get(v);var frame=results.load(version.slug(),List.of(v),"","",ACTOR);String cut=results.save(frame,"Corte de dos envíos",ACTOR);response(v);
         mvc.perform(get("/admin/plantillas-reportes/nueva").with(anonymous())).andExpect(status().is3xxRedirection());mvc.perform(get("/admin/plantillas-reportes/nueva").with(user("viewer").roles("USER"))).andExpect(status().isForbidden());

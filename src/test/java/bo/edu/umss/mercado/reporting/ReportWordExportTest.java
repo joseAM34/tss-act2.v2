@@ -10,6 +10,33 @@ import org.junit.jupiter.api.Test;
 import static org.assertj.core.api.Assertions.*;
 
 class ReportWordExportTest {
+    @Test void categoryTablesUseDocumentTermsAndOnlyMultipleChoicesShowSelectionBases()throws Exception{
+        for(String type:List.of("radio","checkbox")){
+            var variable=m("label","Pregunta ficticia","type",type,"numeric",null,"distribution",List.of(m("label","Opción","count",13,"respondent_base",123,"respondent_percent",10.57,"mention_base",234,"mention_percent",5.56)));
+            var content=m("template",m("title","Prueba","sections",List.of("DESCRIPTIVOS"),"charts",false),"analysis",m("result",m("variables",List.of(variable))));
+            var parts=unzip(ReportWordExport.docx(m("content",content)));parseAll(parts);String document=xml(parts,"word/document.xml");
+            assertThat(document).contains("Frecuencia absoluta (fi)","Frecuencia relativa (hi)","Base de cálculo (n)","0.1057","10.57").doesNotContain("Base menciones");
+            if(type.equals("checkbox"))assertThat(document).contains("Total de selecciones (m)","0.0556");else assertThat(document).doesNotContain("Total de selecciones (m)","0.0556");
+        }
+    }
+    @Test void wideTablesUseLandscapeSectionsAndReturnToPortraitWithoutRotatingText()throws Exception{
+        var doc=new WordDocument();doc.heading("Inicio vertical",1);
+        doc.table(List.of(List.of("A","B","C","D","E"),List.of(1,2,3,4,5)));
+        doc.table(List.of(List.of("A","B","C","D","E","F"),List.of(1,2,3,4,5,6)));
+        doc.paragraph("De nuevo vertical");
+        var parts=unzip(doc.finish());parseAll(parts);String document=xml(parts,"word/document.xml");
+        assertThat(document).contains("w:w=\"16838\" w:h=\"11906\" w:orient=\"landscape\"");
+        assertThat(document).contains("<w:tblW w:w=\"14292\"").contains("<w:tblW w:w=\"9360\"");
+        assertThat(document.split("<w:sectPr>",-1)).hasSize(4);
+        assertThat(document.substring(document.lastIndexOf("<w:sectPr>"))).contains("w:orient=\"portrait\"");
+        assertThat(document).doesNotContain("<w:textDirection");
+    }
+    @Test void finalWideTableKeepsItsSectionWithoutAddingAnEmptyPortraitSection()throws Exception{
+        var doc=new WordDocument();doc.table(List.of(List.of("A","B","C","D","E","F")));
+        String document=xml(unzip(doc.finish()),"word/document.xml");
+        assertThat(document.split("<w:sectPr>",-1)).hasSize(2);
+        assertThat(document.substring(document.lastIndexOf("<w:sectPr>"))).contains("w:orient=\"landscape\"");
+    }
     static Map<String,Object> m(Object... pairs){var out=new LinkedHashMap<String,Object>();for(int i=0;i<pairs.length;i+=2)out.put(pairs[i].toString(),pairs[i+1]);return out;}
     static Map<String,byte[]> unzip(byte[] bytes)throws IOException{var out=new LinkedHashMap<String,byte[]>();try(var zip=new ZipInputStream(new ByteArrayInputStream(bytes))){for(ZipEntry e;(e=zip.getNextEntry())!=null;)out.put(e.getName(),zip.readAllBytes());}return out;}
     static String xml(Map<String,byte[]> parts,String name){return new String(parts.get(name),StandardCharsets.UTF_8);}

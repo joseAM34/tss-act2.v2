@@ -57,7 +57,7 @@ public class ReportController {
         } catch (IllegalArgumentException ex) { response.setStatus(400); model.addAttribute("error",ex.getMessage()); return editor(templateId,expectedRevision,d,model,response); }
     }
     @GetMapping("/nuevo")
-    String newReport(@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String templateRevisionId,@RequestParam(defaultValue="") String crossId,Model model,HttpServletResponse response) {
+    String newReport(@RequestParam(defaultValue="") String analysisId,@RequestParam(defaultValue="") String templateRevisionId,@RequestParam(defaultValue="") String crossId,Model model,HttpServletResponse response,Principal actor) {
         response.setHeader("Cache-Control","no-store"); model.addAttribute("analyses",analyses.recent());
         if(analysisId.isBlank()){model.addAllAttributes(templateLibrary.picker(templateRevisionId.isBlank()?"":"legacy-"+reports.revision(templateRevisionId).templateId(),templateRevisionId.isBlank()?"report":"use",""));return "report-template-source";}
         if(!templateRevisionId.isBlank()){var legacy=reports.revision(templateRevisionId).definition();var base=ReportCustomization.defaults(analyses.get(analysisId),List.of());model.addAttribute("customConfiguration",new ReportCustomization.Configuration(analysisId,legacy.title(),legacy.introduction(),legacy.sections().contains("CONTEXTO"),true,legacy.charts(),Objects.toString(model.getAttribute("comment"),""),base.questions(),List.of()));templateRevisionId="";}
@@ -94,10 +94,26 @@ public class ReportController {
             model.addAttribute("crosses",available);
             var advancedData=reports.advancedData(analysisId);
             model.addAttribute("presentationTemplates",presentations.recent());
+            model.addAttribute("reportDraftOwner",CanonicalJson.hash(actor.getName()));
             model.addAttribute("customBootstrap",CanonicalJson.json(Map.of("templateEditor",model.getAttribute("templateEditState")==null?Map.of():model.getAttribute("templateEditState"),"advancedOptions",advancedData.get("options"),"configuration",config,"result",advancedData.get("result"),"crosses",model.getAttribute("crosses"),"cutoff",model.getAttribute("sourceCutoff"),"crossChoices",composer.choices(analysisId))));
             return "report-customizer";
         }
         return "report-generator";
+    }
+    @GetMapping("/recuperar")
+    String recover(@RequestParam String analysisId,@RequestParam(defaultValue="false") boolean editing,
+                   @RequestParam(defaultValue="") String templateId,@RequestParam(defaultValue="") String templateHash,
+                   Model model,HttpServletResponse response,Principal actor) {
+        response.setHeader("Cache-Control","no-store");
+        String name="";
+        if(!templateId.isBlank()) {
+            var stored=presentations.stored(templateId);
+            if(!editing || !stored.hash().equals(templateHash))throw new ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,"La plantilla cambió. La copia local se conserva; vuelve a elegir la fuente antes de continuar.");
+            name=stored.name();
+        }
+        model.addAttribute("templateEditState",Map.of("id",templateId,"hash",templateHash,"name",name,"editing",editing));
+        model.addAttribute("localRecoveryOnly",true);
+        return newReport(analysisId,"","",model,response,actor);
     }
     private org.thymeleaf.context.WebContext webContext(jakarta.servlet.http.HttpServletRequest request,HttpServletResponse response,Map<String,Object> variables) {
         var application=org.thymeleaf.web.servlet.JakartaServletWebApplication.buildApplication(request.getServletContext());
@@ -148,7 +164,7 @@ public class ReportController {
                     @RequestParam(defaultValue="") String comment,Principal actor,Model model,HttpServletResponse response) {
         response.setHeader("Cache-Control","no-store");
         try { return "redirect:/admin/reportes/"+(templateRevisionId.isBlank()?reports.generateDirect(analysisId,title,crossIds,comment,actor.getName()):reports.generate(templateRevisionId,analysisId,crossIds,comment,actor.getName())); }
-        catch (IllegalArgumentException ex) { response.setStatus(400); model.addAttribute("error",ex.getMessage()); model.addAttribute("title",title); model.addAttribute("comment",comment); model.addAttribute("selectedCrossIds",crossIds); return newReport(analysisId,templateRevisionId,"",model,response); }
+        catch (IllegalArgumentException ex) { response.setStatus(400); model.addAttribute("error",ex.getMessage()); model.addAttribute("title",title); model.addAttribute("comment",comment); model.addAttribute("selectedCrossIds",crossIds); return newReport(analysisId,templateRevisionId,"",model,response,actor); }
     }
     @GetMapping("/{id}")
     String report(@PathVariable String id,Model model,HttpServletResponse response) {
@@ -156,13 +172,13 @@ public class ReportController {
     }
     @GetMapping("/{id}/nuevo")
     @SuppressWarnings("unchecked")
-    String another(@PathVariable String id,Model model,HttpServletResponse response) {
+    String another(@PathVariable String id,Model model,HttpServletResponse response,Principal actor) {
         var content=(Map<String,Object>)reports.get(id).get("content"); var analysis=(Map<String,Object>)content.get("analysis");
         model.addAttribute("comment",content.get("comment"));
         model.addAttribute("title",((Map<?,?>)content.get("template")).get("title"));
         if(content.get("presentation")!=null)model.addAttribute("customConfiguration",CanonicalJson.read(CanonicalJson.json(content.get("presentation")),ReportCustomization.Configuration.class));
         model.addAttribute("selectedCrossIds",((List<Map<String,Object>>)content.get("crosses")).stream().map(c -> c.get("id")).toList());
-        return newReport((String)analysis.get("id"),Objects.toString(content.get("template_revision_id"),""),"",model,response);
+        return newReport((String)analysis.get("id"),Objects.toString(content.get("template_revision_id"),""),"",model,response,actor);
     }
     @GetMapping("/{id}/contenido.json")
     void json(@PathVariable String id,HttpServletResponse response) throws IOException {

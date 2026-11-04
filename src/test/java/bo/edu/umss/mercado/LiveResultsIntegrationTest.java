@@ -73,7 +73,7 @@ class LiveResultsIntegrationTest {
         var saved=CanonicalJson.read(savedResponse,LiveResultsService.Saved.class);
         String form=mvc.perform(get("/admin/reportes/nuevo").param("analysisId",saved.analysisId()).param("crossId",saved.crossId()))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        assertThat(form).contains("sin plantilla","Corte congelado",frame.cutoff(),saved.crossId(),"report-customizer.js");
+        assertThat(form).contains("Datos del reporte","Corte congelado",frame.cutoff(),saved.crossId(),"report-customizer.js");
         var generated=mvc.perform(post("/admin/reportes").with(csrf()).param("analysisId",saved.analysisId()).param("crossIds",saved.crossId()))
                 .andExpect(status().is3xxRedirection()).andReturn();
         String json=mvc.perform(get(generated.getResponse().getRedirectedUrl()+"/contenido.json"))

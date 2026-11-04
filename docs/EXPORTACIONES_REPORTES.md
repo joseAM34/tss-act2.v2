@@ -1,5 +1,7 @@
 # Exportaciones del reporte — paso 6
 
+Actualización 2026-10-29: al imprimir o guardar PDF desde un reporte generado, las tablas de seis o más columnas (incluidos encabezados combinados y totales) utilizan páginas Carta horizontales; el contenido restante sigue vertical. `report-print.js` marca únicamente contenedores de tablas y las reglas de página se aplican solo en impresión, sin recalcular datos ni cambiar la pantalla. El encabezado de tabla se repite cuando ocupa varias páginas. La función también se prepara antes de Ctrl+P, sin depender de la consulta de gráficos. Dos pruebas JavaScript verifican la clasificación y una comprobación en Chrome genera un PDF sintético de seis páginas: vertical, cuatro horizontales y vertical, con el ancho de tabla dentro de su contenedor y sin cambios de ancho en pantalla. El PDF de prueba está en `.codex-tmp/report-landscape.pdf`, fuera del historial. La orientación automática depende del soporte de páginas CSS del navegador; se verificó en Chrome. Sin JavaScript se mantiene la impresión ordinaria y puede elegirse orientación manualmente.
+
 Implementado el 15 de octubre de 2026 para los reportes generales de versiones del editor. El reporte se genera en el backend a partir de un análisis y cruces del mismo conjunto congelado; sus descargas mantienen esas fuentes. Este incremento no añade exportaciones al dashboard original UMSS ni convierte el reporte en el documento institucional final.
 
 ## Recorrido

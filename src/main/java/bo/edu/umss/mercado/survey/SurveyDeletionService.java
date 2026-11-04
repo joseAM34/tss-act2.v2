@@ -146,6 +146,7 @@ public class SurveyDeletionService {
         add(tables, "survey_preparation_config", "version_id IN (" + VERSIONS + ")", "version_id, revision, id", id);
         add(tables, "survey_preparation_run", "version_id IN (" + VERSIONS + ")", "id", id);
         add(tables, "survey_result_cut", "survey_id = ?", "id", id);
+        add(tables,"numeric_dictionary_revision","survey_id = ?","context_key,revision",id);
         add(tables,"scoped_text_dictionary_revision","survey_id = ?","context_key,revision",id);
         add(tables, "question_text_dictionary", "version_id IN (" + VERSIONS + ")", "id", id);
         add(tables, "survey_general_analysis", "preparation_id IN (" + PREPARATIONS + ")", "id", id);
@@ -184,6 +185,7 @@ public class SurveyDeletionService {
         remove("survey_general_cross", "preparation_id IN (" + PREPARATIONS + ")", id);
         remove("survey_general_analysis", "preparation_id IN (" + PREPARATIONS + ")", id);
         remove("survey_result_cut", "survey_id = ?", id);
+        remove("numeric_dictionary_revision","survey_id = ?",id);
         remove("scoped_text_dictionary_revision","survey_id = ?",id);
         remove("question_text_dictionary", "version_id IN (" + VERSIONS + ")", id);
         remove("survey_preparation_run", "version_id IN (" + VERSIONS + ")", id);

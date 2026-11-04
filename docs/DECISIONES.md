@@ -1,5 +1,46 @@
 # Decisiones del proyecto
 
+## 2026-11-04 — Vocabulario de frecuencias del documento de referencia
+
+El usuario solicita utilizar términos que pueda reconocer en el documento. Se unifican frecuencia absoluta (fi), relativa (hi), acumulada (Fi) y porcentaje, con una explicación breve del denominador. Las columnas sobre selecciones se muestran únicamente en selección múltiple. Se conservan valores congelados, bases, estados y contratos de datos. Alcance y verificación: [TERMINOS_TABLAS.md](TERMINOS_TABLAS.md).
+
+## 2026-11-04 — Prompt específico para duraciones escritas
+
+El usuario solicita un apartado para generar prompts de coincidencias numéricas de respuestas textuales en años. Se incorpora un generador local con unidades de origen/destino, incorporación explícita de respuestas y salida propuesta en JSON, separado del diccionario temático. Este paso prepara la propuesta; todavía no importa conversiones ni modifica matrices, originales o estadísticas. Recorrido, límites y verificación: [PROMPT_NUMERICO.md](PROMPT_NUMERICO.md).
+
+## 2026-11-04 — Análisis univariado ampliado en Resultados e informes
+
+El usuario precisó que desea tablas separadas de tendencia central, dispersión y posición con fórmula y resultado, sin columna de interpretación. Se aplica a las magnitudes compatibles en Resultados y HTML/PDF/Word, usando los valores congelados; no modifica los resultados ni sus huellas.
+
+El usuario autorizó ampliar ambos recorridos a partir de su referencia de presentación. Se incorporan medidas, frecuencias exactas y agrupadas, acumulados, polígono y ojiva para magnitudes enteras con unidad declarada. El backend calcula la proyección desde fuentes congeladas; un marcador explícito conserva la verificación de reportes y cortes anteriores. No se aplica CV a años calendario ni se infiere representatividad o calidad. Alcance y convenciones: [UNIVARIADA_AMPLIADA.md](UNIVARIADA_AMPLIADA.md). Sin migraciones ni despliegue.
+
+## 2026-10-29 — Tablas anchas en páginas horizontales
+
+El usuario solicita orientación horizontal para tablas grandes exclusivamente en Word y PDF. Las tablas de seis o más columnas cambian de orientación en sus propias páginas/secciones; las tablas pequeñas y el contenido posterior conservan vertical. No se rota el texto ni se cambian datos o la pantalla. Implementación y verificación en [Word](EXPORTACION_WORD.md) y [PDF](EXPORTACIONES_REPORTES.md). Sin dependencias ni migraciones nuevas; sin push ni despliegue.
+
+## 2026-10-27 — Recuperación local del personalizador
+
+Ante la pérdida de edición por fallos del servidor, se incorpora [respaldo local de la personalización](RECUPERACION_REPORTES.md), separado por cuenta, análisis congelado y revisión de plantilla. Conserva configuración y textos administrativos, no respuestas ni resultados; el backend vuelve a verificar la vista previa antes de guardar o generar. La dirección de recuperación no depende de la sesión temporal de edición y mantiene ADMIN y comprobación de revisión. La copia caduca a los siete días y se elimina tras guardar correctamente o descartarla explícitamente. Sin cambios de esquema, push ni despliegue.
+
+
+## 2026-10-29 — Hipótesis y detalle visible de chi-cuadrado
+
+El usuario autorizó mostrar hipótesis, frecuencias esperadas separadas, aportes y residuos de Pearson por celda y fórmulas explicadas. Se presenta el detalle derivado de cruces verificados, sin modificar sus resultados ni huellas históricas. Se distingue suma diagnóstica de prueba ejecutada y no se concluye asociación cuando la prueba está bloqueada. Incluido en pantallas y exportaciones de reportes, con fórmulas, límites y verificación descritos en [CHI_CUADRADO_DETALLE.md](CHI_CUADRADO_DETALLE.md).
+
+## 2026-10-29 — Perfil descriptivo para respuestas compatibles
+
+El usuario autorizó aplicar los descriptivos compatibles del ejemplo de calidad y validación a las respuestas. Se añade `PERFIL_DESCRIPTIVO_V1` como proyección calculada en el backend desde el conjunto verificado, con frecuencias, medidas numéricas, intervalos, P90, posibles atípicos, polígono y ojiva. Las categorías no reciben puntajes y el CV exige condiciones de aplicabilidad. Resultados y los reportes nuevos muestran las medidas y conservan los estratos; los históricos mantienen sus contratos y huellas. No se adopta automáticamente el muestreo, las conclusiones ni los números inconsistentes del ejemplo. Convenciones, exportaciones y verificación: [PERFIL_DESCRIPTIVO.md](PERFIL_DESCRIPTIVO.md).
+
+## 2026-10-29 — Exportar respuestas originales desde Resultados
+
+El usuario solicitó CSV y Excel con la estructura de preguntas por columnas y envíos por filas de su ejemplo de Google Forms. Se incorpora una descarga administrativa explícita, separada de las matrices ordinarias, que conserva todas las preguntas y respuestas originales del total o corte cargado, incluyendo textos y etiquetas de opciones. Mantiene estados en columnas separadas, miembros y huellas, versiones incompatibles sin fusionar, recepción identificada como tal y acceso ADMIN con CSRF y confirmación de contenido personal. No se guarda el Excel privado ni datos de campo en el historial. Alcance y límites de reimportación: [EXPORTACION_RESPUESTAS.md](EXPORTACION_RESPUESTAS.md).
+
+## 2026-10-29 — Eliminar análisis acumulados de reportes
+
+El usuario autorizó quitar las entradas acumuladas de «Crear desde un análisis». Cada entrada ofrece Eliminar y una confirmación que informa cuántos reportes guardados asociados se borrarán definitivamente. La operación exige ADMIN, CSRF, confirmación explícita y pertenencia a la encuesta y versión seleccionadas. Conserva respuestas originales, conjuntos preparados, cortes, cruces y plantillas; registra la eliminación en la auditoría existente. La confirmación incluye una huella del análisis y de sus reportes: si se genera otro reporte antes de confirmar, se exige revisar el estado nuevo. La generación y la eliminación coordinan el bloqueo del análisis. No se elimina ninguna entrada automáticamente ni se modifica el esquema.
+
+Verificación: 18 de 19 pruebas de `SurveyWorkspaceIntegrationTest` y `ReportTemplateManagementIntegrationTest` pasaron, incluidas las nuevas de eliminación, autorización, CSRF, versión, conservación de fuentes y confirmación desactualizada. La prueba `reportTemplateReturnsToSurveyAndSavesRevisionWithoutChangingData` espera el campo anterior `workspaceVersionId`, mientras el selector de fuentes existente usa `versionId`; ese flujo no se modificó en este incremento.
+
 ## 2026-10-19 — Lecturas agrupadas para la vista previa de reportes
 
 Ante el aviso de tiempo de espera se agrupan las lecturas de capturas, procedencia y diccionarios, manteniendo miembros y huellas del corte y las verificaciones de integridad. Los ámbitos de lectura no sobreviven a la operación. Se añade reintento explícito sobre la misma configuración. Mediciones locales, pruebas y límites: [RENDIMIENTO_REPORTES.md](RENDIMIENTO_REPORTES.md).
@@ -337,3 +378,13 @@ Los cortes se delimitan por recepción inclusiva en hora de Bolivia y por una, v
 - 2026-10-19: el usuario autorizó diccionario global y diccionario privado por pregunta, comunes a Resultados y Reportes. El privado reemplaza al global en esa pregunta y conserva trazabilidad por encuesta/definición; no mezcla sus equivalencias con otras preguntas. Los alias solo numéricos se aplican únicamente en contexto privado. La elección se confirma al guardar y se congela en cada reporte. Se corrige el falso bloqueo de nombre del programa como campo identificativo.
 
 - 2026-10-19: el usuario autorizó unificar creación y uso de plantillas con el personalizador actual de reportes. Al usarlas se elige total de una versión o corte guardado. Se implementan edición, duplicación editable y eliminación de plantillas, conservando reportes ya generados. Las plantillas no trasladan datos ni autorizaciones sensibles. Las anteriores se adaptan al editor actual sin alterar sus revisiones históricas. Véase docs/PLANTILLAS_REPORTES.md.
+
+
+## 2026-11-04 — Eliminación de equivalencias y duraciones cuantificables
+
+El usuario autorizó botones para eliminar variantes/grupos o vaciar el diccionario privado desde su pregunta y el global desde el footer. Autorizó cantidades decimales, equivalencias completas revisadas con unidad y casilla de pregunta cuantificable, así como actualización individual de representaciones. La normalización numérica se mantiene separada de la temática; originales y reportes históricos se conservan. Los informes nuevos congelan las revisiones numéricas. Véase [DICCIONARIOS_Y_CANTIDADES.md](DICCIONARIOS_Y_CANTIDADES.md).
+
+
+## 2026-11-04 — Dos modos excluyentes de coincidencias por pregunta
+
+El usuario autorizó separar la herramienta en pestañas de agrupación de términos y datos cuantificables, cada una con prompt, registro y edición inferior. Registrar agrupaciones bloquea cantidades y viceversa. Cambiar exige desactivar o vaciar y guardar el modo actual; no se borran originales ni informes históricos. El servidor impide registros incompatibles y ambos gestores de pregunta, Resultados y Reportes, admiten cantidades. El global por defecto sin elección explícita para la pregunta no bloquea el primer registro numérico. Ver DICCIONARIOS_Y_CANTIDADES.md. Verificación final: 686 pruebas Java, 52 JavaScript y Chrome para pestañas, conservación de campos, registro, bloqueo mutuo, desactivación y refresco.

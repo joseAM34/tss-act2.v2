@@ -1,0 +1,18 @@
+<!DOCTYPE html><html lang="es" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="summary(v)" th:if="${v['univariate'] != null}" class="univariate-summary">
+  <p th:if="${v['converted'] != null}" th:text="${'Valores derivados de equivalencias revisadas · Convertidas: ' + v.converted + ' · Pendientes excluidas: ' + v.pending + '. Los originales se conservan; una respuesta sin equivalencia no cuenta como cero.'}"></p>
+  <p th:text="${'Análisis de una variable · Unidad: ' + v.univariate.unit + ' · Base numérica n = ' + v.univariate.n}"></p>
+  <section th:each="group : ${T(bo.edu.umss.mercado.reporting.UnivariatePresentation).groups(v.univariate)}"><h4 th:text="${group.title}"></h4><div class="table-scroll"><table><caption th:text="${group.title}"></caption><thead><tr><th>Medida</th><th>Fórmula</th><th>Resultado</th><th>Unidad</th></tr></thead><tbody>
+    <tr th:each="m : ${group.measures}"><th scope="row" th:text="${m.label}"></th><td th:text="${m.formula}"></td><td th:text="${m.display()}"></td><td th:text="${m.unit}"></td></tr>
+  </tbody></table></div></section>
+  <p class="field-hint" th:text="${T(bo.edu.umss.mercado.reporting.UnivariatePresentation).QUANTILES}"></p>
+  <p class="field-hint" th:text="${v.univariate.method}"></p>
+  <p class="field-hint" th:text="${T(bo.edu.umss.mercado.reporting.FrequencyPresentation).CUMULATIVE_HELP}"></p>
+  <details open><summary>Tabla de frecuencias por valor</summary><div class="table-scroll"><table><caption th:text="${'Valores observados · base n = ' + v.univariate.n}"></caption><thead><tr><th>Valor observado (xi)</th><th>Frecuencia absoluta (fi)</th><th>Frecuencia relativa (hi)</th><th>Porcentaje (%)</th><th>Frecuencia acumulada (Fi)</th><th>Porcentaje acumulado (%)</th></tr></thead><tbody>
+    <tr th:each="f : ${v.univariate.frequencies}"><td th:text="${f.value}"></td><td th:text="${f.count}"></td><td th:text="${#numbers.formatDecimal(f.relative,1,'NONE',4,'POINT')}"></td><td th:text="${#numbers.formatDecimal(f.percent,1,'NONE',2,'POINT')}"></td><td th:text="${f.cumulative}"></td><td th:text="${#numbers.formatDecimal(f.cumulative_percent,1,'NONE',2,'POINT')}"></td></tr>
+  </tbody><tfoot><tr><th>Total</th><td th:text="${v.univariate.n}"></td><td th:text="${v.univariate.n == 0 ? 'Sin base' : '1'}"></td><td th:text="${v.univariate.n == 0 ? 'Sin base' : '100'}"></td><td colspan="2">La acumulación sigue el orden numérico.</td></tr></tfoot></table></div></details>
+  <details open><summary>Tabla por intervalos</summary><p class="field-hint" th:text="${v.univariate.interval_method}"></p><div class="table-scroll"><table><caption th:text="${'Intervalos · base n = ' + v.univariate.n}"></caption><thead><tr><th>Intervalo</th><th>Marca de clase</th><th>Frecuencia absoluta (fi)</th><th>Frecuencia relativa (hi)</th><th>Porcentaje (%)</th><th>Frecuencia acumulada (Fi)</th><th>Porcentaje acumulado (%)</th></tr></thead><tbody>
+    <tr th:each="f : ${v.univariate.intervals}"><td th:text="${'[' + #numbers.formatDecimal(f.lower,1,'NONE',2,'POINT') + ', ' + #numbers.formatDecimal(f.upper,1,'NONE',2,'POINT') + (f.closed_upper ? ']' : ')')}"></td><td th:text="${#numbers.formatDecimal(f.midpoint,1,'NONE',2,'POINT')}"></td><td th:text="${f.count}"></td><td th:text="${#numbers.formatDecimal(f.relative,1,'NONE',4,'POINT')}"></td><td th:text="${#numbers.formatDecimal(f.percent,1,'NONE',2,'POINT')}"></td><td th:text="${f.cumulative}"></td><td th:text="${#numbers.formatDecimal(f.cumulative_percent,1,'NONE',2,'POINT')}"></td></tr>
+  </tbody></table></div></details>
+</section>
+</body></html>

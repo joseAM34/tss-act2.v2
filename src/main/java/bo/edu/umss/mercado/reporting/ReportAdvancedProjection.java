@@ -42,6 +42,16 @@ public final class ReportAdvancedProjection {
             v.put("advanced",advanced);variables.add(v);
         }enriched.put("variables",variables);return enriched;
     }
+    @SuppressWarnings("unchecked")
+    public static Map<String,Object> enrich(Map<String,Object> result,Map<String,Object> logical,String cutoff,boolean univariate){
+        var enriched=enrich(result,logical,cutoff);
+        if(univariate){
+            enriched.put("univariate_projection_version",1);
+            for(var v:(List<Map<String,Object>>)enriched.get("variables"))if(v.get("numeric")!=null)
+                v.put("univariate",UnivariateSummary.calculate(numbers(logical,(String)v.get("question_id")),Objects.toString(v.get("unit"),"unidad declarada")));
+        }
+        return enriched;
+    }
     public static Map<String,Object> histogram(List<Double> values){
         if(values.isEmpty())throw new IllegalArgumentException("El histograma requiere valores.");
         double min=Collections.min(values),max=Collections.max(values);int k=min==max?1:Math.min(20,(int)Math.ceil(1+Math.log(values.size())/Math.log(2)));double width=(max-min)/k;
