@@ -56,3 +56,12 @@ test('dispersión mantiene coordenadas agregadas y radar conserva cero sobre eje
   const scatter=options.advanced({type:'scatter',x_label:'Meses',x_unit:'meses',y_label:'Años',y_unit:'años',points:[[0,1,2],[3,2,1]]});assert.deepEqual(scatter.series[0].data,[[0,1,2],[3,2,1]]);assert.equal(scatter.series[0].type,'scatter');
   const radar=options.advanced({type:'radar',criteria:[{label:'A',percentage:0},{label:'B',percentage:50},{label:'C',percentage:100}]});assert.deepEqual(radar.series[0].data[0].value,[0,50,100]);assert(radar.radar.indicator.every(axis=>axis.min===0&&axis.max===100));
 });
+test('caja conserva precisión para nativos y extraídos y presenta dos decimales',()=>{
+ const values=[0,1.234567,2,3.456789,8];
+ for(const original_type of ['number','text']){
+  const result=options.variable({original_type,label:'Cantidad',unit:'Año',advanced:{box:{values}}},'box');
+  assert.deepEqual(result.series[0].data,[values]);
+  assert.equal(result.yAxis.axisLabel.formatter(1.234567),'1.23');
+  assert.equal(result.tooltip.valueFormatter(values),'0.00, 1.23, 2.00, 3.46, 8.00');
+ }
+});

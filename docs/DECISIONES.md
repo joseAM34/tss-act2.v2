@@ -388,3 +388,31 @@ El usuario autorizó botones para eliminar variantes/grupos o vaciar el dicciona
 ## 2026-11-04 — Dos modos excluyentes de coincidencias por pregunta
 
 El usuario autorizó separar la herramienta en pestañas de agrupación de términos y datos cuantificables, cada una con prompt, registro y edición inferior. Registrar agrupaciones bloquea cantidades y viceversa. Cambiar exige desactivar o vaciar y guardar el modo actual; no se borran originales ni informes históricos. El servidor impide registros incompatibles y ambos gestores de pregunta, Resultados y Reportes, admiten cantidades. El global por defecto sin elección explícita para la pregunta no bloquea el primer registro numérico. Ver DICCIONARIOS_Y_CANTIDADES.md. Verificación final: 686 pruebas Java, 52 JavaScript y Chrome para pestañas, conservación de campos, registro, bloqueo mutuo, desactivación y refresco.
+
+
+## 2026-11-09 — Diccionarios cuantificables compartidos por contexto temporal
+
+El usuario autorizó crear varios diccionarios compartidos sin grupos predefinidos, con nombre y unidad principal explícita. El alcance se elige sobre ambas pestañas. Términos conserva su global único y privados; cantidades permite privados o grupos compartidos creados desde el gestor. El prompt incluye pregunta, nombre del diccionario, unidad principal y muestras. Las cantidades sin unidad se interpretan en la principal; años↔meses y días↔horas↔minutos↔segundos admiten conversión, mientras días↔meses/años y rangos/imprecisiones quedan pendientes. Se mantienen revisiones, bloqueos entre modos e informes históricos congelados. Ver [DICCIONARIOS_CUANTIFICABLES_COMPARTIDOS.md](DICCIONARIOS_CUANTIFICABLES_COMPARTIDOS.md).
+
+
+## 2026-11-09 — Cuantificables con contexto y proporciones libres
+
+El usuario autorizó quitar las listas de unidades de tiempo y su repetición. El nombre/contexto y las proporciones escritas por el administrador guían el prompt junto con la pregunta y las muestras, para peso, longitud, dinero, recuentos u otras magnitudes. Las propuestas siguen requiriendo revisión; no se ejecuta el texto de proporciones ni se infiere automáticamente toda restricción. Las definiciones nuevas v3 congelan contexto/proporciones, admiten cantidades con signo y no declaran CV sin una escala de razón establecida. Los informes y definiciones anteriores se conservan. V29 amplía la etiqueta técnica de referencia. Ver DICCIONARIOS_CUANTIFICABLES_COMPARTIDOS.md. Verificado: 690 pruebas Java, 53 JavaScript y Chrome.
+
+
+## 2026-11-09 — Referencias por renglón y prompt de carga directa
+
+El usuario confirmó una referencia principal arriba (Año/Kilogramo) y, debajo, solo nombres de referencias a convertir, uno por renglón (Meses/Días/Décadas; Gramos/Toneladas). El prompt calcula equivalencias habituales exactas, no exige fórmulas del usuario, conserva pendientes cuando falta una convención e incluye un ejemplo JSON válido separado de los datos. Se eliminan los checks de inclusión de respuestas y activación cuantificable: generar incluye las respuestas y guardar activa; la desactivación tiene botón propio. Cargar la respuesta abre revisión automáticamente. El importador rechaza el ejemplo y estados desconocidos. Verificado con 691 pruebas Java, 53 JavaScript y Chrome.
+
+
+### Equivalencias cuantificables en texto
+
+El prompt ahora solicita una línea por valor: `1.5=1,5 años|18 meses`, igual que el formato de términos. La referencia principal y las referencias a convertir siguen contextualizando el prompt. La carga combina las equivalencias con las del editor, rechaza valores contradictorios para una misma respuesta y abre la previsualización antes del guardado explícito. Las respuestas omitidas quedan pendientes; una propuesta vacía no borra el diccionario. Se conserva la importación JSON anterior por compatibilidad. Este flujo se aplica a Resultados y Reportes.
+
+### Supuesto de independencia para el ejercicio en Reportes
+
+Por instrucción del usuario, Personalizar reporte incluye una casilla marcada por defecto para asumir independencia de las observaciones en el ejercicio. Es un supuesto explícito, no una verificación de campo ni una aprobación institucional. Se conserva en la configuración y respaldo local; puede desmarcarse. Solo recalcula una proyección de los cruces del reporte con sus conteos congelados: los cruces originales, su evidencia y sus huellas no cambian. El informe identifica el supuesto y mantiene independencia_documentada=false. Las restricciones de esperadas, variación y ceros estructurales continúan aplicándose. Las configuraciones históricas sin este campo mantienen su comportamiento y serialización anterior.
+
+### Comparación exploratoria con esperadas menores de cinco
+
+El usuario autorizó permitir en Reportes la aproximación de chi-cuadrado aun con frecuencias esperadas menores de cinco. Se incorpora como opción de configuración versionada por presencia (`exploratorySmallCounts`), activada por defecto al abrir el editor; los reportes históricos sin esa opción mantienen el criterio estricto. El cálculo conserva los valores completos y registra estado EXPLORATORIO y advertencia expresa de aproximación potencialmente poco fiable, incluidos falsos positivos. No se presenta como prueba confirmatoria. La conclusión, el encabezado y los indicadores de compatibilidad usan naranja; Word conserva el aviso y encabezado naranja. No se omiten restricciones de ausencia de datos, falta de variación, independencia no asumida/documentada o ceros estructurales. Los cruces y datos fuente no se alteran.

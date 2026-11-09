@@ -1,5 +1,7 @@
 # Diccionarios y cantidades revisadas
 
+Ampliación vigente del 2026-11-09: [diccionarios cuantificables compartidos](DICCIONARIOS_CUANTIFICABLES_COMPARTIDOS.md), con alcance común y unidades de tiempo explícitas. Las secciones siguientes documentan el incremento inicial.
+
 ## Pantalla por modos (2026-11-04)
 
 La pantalla se organiza en las pestañas «Agrupación de términos» y «Datos cuantificables». Cada pestaña reúne su prompt, la carga de propuestas y, debajo, la edición y revisión del diccionario correspondiente. Alternar pestañas no elimina los campos escritos ni vuelve a cargar la página. La selección visual no registra un modo por sí sola.

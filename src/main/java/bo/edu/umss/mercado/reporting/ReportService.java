@@ -142,7 +142,7 @@ public class ReportService {
         var analysis=analyses.get(analysisId);
         var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
         var dictionary=textDictionary.global();analysis=profileAnalysis(enrichedAnalysis(analysis));
-        return map("result",textProjection.enrich((Map<String,Object>)analysis.get("result"),logical,dictionary.rules(),dictionary.revision(),Set.of(),Set.of(),textDictionary.selections(logical),false),"options",ReportAdvancedProjection.options(logical));
+        return map("result",textProjection.enrich((Map<String,Object>)analysis.get("result"),logical,dictionary.rules(),dictionary.revision(),Set.of(),Set.of(),textDictionary.selections(logical),false),"options",ReportAdvancedProjection.options(textProjection.numericLogical(logical,textDictionary.selections(logical))));
     }
     @Transactional(readOnly=true)
     @SuppressWarnings("unchecked")
@@ -186,7 +186,7 @@ public class ReportService {
         }
         if(ReportCustomization.advanced(config)){
             @SuppressWarnings("unchecked") var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");
-            content.put("format","REPORTE_HTML_V6");content.put("advanced_charts",ReportAdvancedProjection.charts(config,logical));
+            content.put("format","REPORTE_HTML_V6");content.put("advanced_charts",ReportAdvancedProjection.charts(config,textProjection.numericLogical(logical,textSelections)));
             @SuppressWarnings("unchecked") var originals=(List<Map<String,Object>>)content.get("crosses");
             content.put("display_crosses",ReportCustomization.displayCrosses(config,originals));
         }
@@ -238,7 +238,7 @@ public class ReportService {
             }
             ReportCustomization.validate(config,analysis);
             if(!advanced&&ReportCustomization.multiple(config)!= "REPORTE_HTML_V5".equals(content.get("format")))throw corrupt();
-            if(advanced){var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");if(!CanonicalJson.hash(ReportAdvancedProjection.charts(config,logical)).equals(CanonicalJson.hash(content.get("advanced_charts"))))throw corrupt();}
+            if(advanced){var logical=(Map<String,Object>)preparation.bundle((String)analysis.get("preparation_id")).get("logical");if(!CanonicalJson.hash(ReportAdvancedProjection.charts(config,textProjection.numericLogical(logical,(Map<String,Map<String,Object>>)content.getOrDefault("text_dictionaries",Map.of())))).equals(CanonicalJson.hash(content.get("advanced_charts"))))throw corrupt();}
             if(!CanonicalJson.hash(ReportCustomization.display(config,analysis)).equals(CanonicalJson.hash(content.get("display_result"))))throw corrupt();
             if(!CanonicalJson.hash(ReportCustomization.template(config)).equals(CanonicalJson.hash(content.get("template"))) || !config.comment().equals(content.get("comment")))throw corrupt();
             if(!config.crossIds().equals(((List<Map<String,Object>>)content.get("crosses")).stream().map(c->c.get("id")).toList()))throw corrupt();

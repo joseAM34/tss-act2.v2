@@ -149,4 +149,13 @@ class ImportSuggestionsTest {
         var duplicate=ImportSuggestions.propose(definition(question),List.of(List.of("1) Área principal","2) Área principal"),List.of("A","B")));
         assertThat(duplicate.pending()).isEqualTo(1);
     }
+    @Test void mixedReadingAcceptsOneTrailingCommaWithoutDroppingInteriorSelections(){
+        var q=q("q","Q","checkbox",List.of(new Question.Option("A","Desarrollo (web, móvil)"),new Question.Option("B","Redes")));
+        assertThat(ImportSuggestions.options(q,"Desarrollo (web, móvil), Redes, ","AUTO","MIXTO_V1")).containsExactly("A","B");
+        assertThat(ImportSuggestions.unrecognizedOptions(q,"Desarrollo (web, móvil), Calidad, ","AUTO","MIXTO_V1")).containsExactly("Calidad");
+        for(String raw:List.of("Redes,,","Redes, ,","Redes,,Desarrollo (web, móvil)","Desarrollo (web, móvil, Redes,"))
+            assertThatThrownBy(()->ImportSuggestions.options(q,raw,"AUTO","MIXTO_V1")).isInstanceOf(IllegalArgumentException.class);
+        var literal=q("q","Q","checkbox",List.of(new Question.Option("L","Redes,")));
+        assertThat(ImportSuggestions.options(literal,"Redes,","AUTO","MIXTO_V1")).containsExactly("L");
+    }
 }

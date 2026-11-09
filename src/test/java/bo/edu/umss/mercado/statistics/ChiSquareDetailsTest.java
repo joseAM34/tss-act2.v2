@@ -22,4 +22,11 @@ class ChiSquareDetailsTest {
         var empty=ChiSquareDetails.describe(StatisticalMath.contingency(new long[][]{{0,0},{0,0}},true,false,.05));assertThat(empty.get("diagnostic_sum")).isNull();assertThat(empty.get("uncalculated_cells")).isEqualTo(4);assertThat(cells(empty)).allSatisfy(c->assertThat(c.get("pearson_residual")).isNull());
         var withZero=ChiSquareDetails.describe(StatisticalMath.contingency(new long[][]{{10,10},{10,10},{0,0}},true,false,.05));assertThat(withZero.get("uncalculated_cells")).isEqualTo(2);assertThat(withZero.get("diagnostic_sum")).isEqualTo(0.);assertThat(withZero.get("decision").toString()).contains("No se rechaza H₀","no demuestra independencia");assertThat(cells(withZero).getLast().get("contribution")).isNull();
     }
+    @Test void criticalComparisonUsesRecordedAlphaAndNeverInfersFromBlockedTests(){
+        var valid=ChiSquareDetails.comparison(StatisticalMath.contingency(new long[][]{{10,20},{20,10}},true,false,.05));
+        assertThat((Double)valid.get("critical")).isCloseTo(3.841458820694,within(1e-9));
+        assertThat(valid.get("comparison").toString()).contains(">");
+        var blocked=ChiSquareDetails.comparison(StatisticalMath.contingency(new long[][]{{10,20},{20,10}},false,false,.05));
+        assertThat(blocked).containsEntry("executed",false).doesNotContainKey("critical");
+    }
 }

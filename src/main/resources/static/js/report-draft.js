@@ -3,7 +3,7 @@
 // Only presentation choices are persisted: never bootstrap results, HTML, tokens or hashes of previews.
 function reportDraftConfiguration(config) {
   const pick = (item, fields) => Object.fromEntries(fields.map(key => [key, item[key]]));
-  const copy = pick(config, ['analysisId', 'title', 'introduction', 'context', 'tables', 'charts', 'comment']);
+  const copy = pick(config, ['analysisId', 'title', 'introduction', 'context', 'tables', 'charts', 'comment', 'assumeIndependent', 'exploratorySmallCounts']);
   copy.questions = config.questions.map(q => ({...pick(q, ['id', 'included', 'title', 'comment', 'representations']), sensitiveAcknowledged: false}));
   copy.crossIds = [...config.crossIds];
   copy.crossSettings = (config.crossSettings || []).map(c => pick(c, ['id', 'title', 'comment', 'representations']));

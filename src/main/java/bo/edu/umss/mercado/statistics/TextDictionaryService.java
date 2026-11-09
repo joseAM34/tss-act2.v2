@@ -52,7 +52,10 @@ public class TextDictionaryService {
         checkScope(mode);if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
         var q=question(logical,key);jdbc.queryForList("SELECT id FROM survey WHERE id=? FOR UPDATE",logical.get("survey_id"));var rows=history(logical,key);int current=rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue();
         if(current!=contextRevision)throw new IllegalStateException("La elección del diccionario cambió. Recarga antes de guardar.");
-        if(!TextMentions.parse(rules).isEmpty()&&numericActive(numericEditor(logical,key)))throw new IllegalStateException("Esta pregunta usa datos cuantificables. Desactiva o vacía sus equivalencias numéricas y guarda antes de registrar términos.");
+        if(!TextMentions.parse(rules).isEmpty()){
+            var numeric=numericEditor(logical,key);if(numericActive(numeric))throw new IllegalStateException("Esta pregunta usa datos cuantificables. Desactiva o vacía sus equivalencias numéricas y guarda antes de registrar términos.");
+            var definition=(Map<?,?>)numeric.get("definition");if(Boolean.TRUE.equals(definition.get("enabled")))saveNumeric(logical,key,((Number)numeric.get("revision")).intValue(),false,(String)definition.get("unit"),"",actor);
+        }
         if(mode.equals("GLOBAL"))saveGlobal(expected,rules,actor);else if(privateSaved(rows).revision()!=expected)throw new IllegalStateException("El diccionario privado cambió. Recarga antes de guardar.");
         rules=TextMentions.canonicalize(rules);jdbc.update("INSERT INTO scoped_text_dictionary_revision(context_key,revision,survey_id,question_key,definition_hash,dictionary_scope,rules_text,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",context(logical,key),current+1,logical.get("survey_id"),key,CanonicalJson.hash(q),mode,rules,CanonicalJson.hash(rules),actor,OffsetDateTime.now());return editor(logical,key,mode);
     }
@@ -63,6 +66,7 @@ public class TextDictionaryService {
         for(int start=0;start<keys.size();start+=200){var batch=keys.subList(start,Math.min(start+200,keys.size()));String placeholders=String.join(",",Collections.nCopies(batch.size(),"?"));
             for(var row:jdbc.queryForList("SELECT * FROM scoped_text_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))histories.computeIfAbsent((String)row.get("context_key"),k->new ArrayList<>()).add(row);
             for(var row:jdbc.queryForList("SELECT * FROM numeric_dictionary_revision WHERE context_key IN ("+placeholders+") ORDER BY revision DESC",batch.toArray()))numericHistories.putIfAbsent((String)row.get("context_key"),row);}
+        var sharedIds=new LinkedHashSet<String>();for(var row:numericHistories.values()){var raw=numericView(row);var def=(Map<?,?>)raw.get("definition");if(def.get("shared_id") instanceof String id)sharedIds.add(id);}var sharedGroups=numericGroups(sharedIds);
         Saved global=null;String appliedGlobal=null;var selected=new LinkedHashMap<String,Map<String,Object>>();
         for(var entry:contexts.entrySet()){
             var rows=histories.getOrDefault(entry.getValue(),List.of());String mode=rows.isEmpty()?"GLOBAL":(String)rows.getFirst().get("dictionary_scope");checkScope(mode);
@@ -70,16 +74,47 @@ public class TextDictionaryService {
             if("PRIVATE".equals(mode)){saved=privateSaved(rows);rules=saved.rules();}
             else{if(global==null){global=global();appliedGlobal=globalRules(global.rules());}saved=global;rules=appliedGlobal;}
             var selection=new LinkedHashMap<String,Object>(Map.of("scope",mode,"revision",saved.revision(),"rules",rules,"hash",CanonicalJson.hash(rules)));
-            var numeric=numericView(numericHistories.get(entry.getValue()));if(numericActive(numeric)){selection.put("rules","");selection.put("hash",CanonicalJson.hash(""));}if(((Number)numeric.get("revision")).intValue()>0)selection.put("numeric",numeric);
+            var numeric=resolveNumeric(numericView(numericHistories.get(entry.getValue())),sharedGroups);if(numericActive(numeric)){selection.put("rules","");selection.put("hash",CanonicalJson.hash(""));}if(((Number)numeric.get("revision")).intValue()>0)selection.put("numeric",numeric);
             selected.put(entry.getKey(),selection);
         }
         return selected;
+    }
+    public List<Map<String,Object>> numericGroups(){return jdbc.queryForList("SELECT id,name,unit FROM shared_numeric_dictionary ORDER BY name,id");}
+    @Transactional
+    public Map<String,Object> createNumericGroup(String name,String unit,String actor){return createNumericGroup(name,unit,actor,"","",false);}
+    @Transactional
+    public Map<String,Object> createNumericGroup(String name,String unit,String actor,String context,String proportions,boolean generic){
+        name=name.strip();if(name.isBlank()||name.length()>120||name.chars().anyMatch(Character::isISOControl))throw new IllegalArgumentException("Escribe un nombre de hasta 120 caracteres.");
+        if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
+        if(unit.isBlank())unit=name;var definition=generic?NumericNormalization.generic(true,unit,"",context,proportions):NumericNormalization.contextual(true,unit,"");String id=UUID.randomUUID().toString();var now=OffsetDateTime.now();
+        jdbc.update("INSERT INTO shared_numeric_dictionary(id,name,unit,actor,created_at) VALUES(?,?,?,?,?)",id,name,unit,actor,now);
+        persistGroup(id,1,definition,actor);return numericGroup(id);
+    }
+    private void persistGroup(String id,int revision,Map<String,Object> definition,String actor){String json=CanonicalJson.json(definition);jdbc.update("INSERT INTO shared_numeric_dictionary_revision(dictionary_id,revision,rules_json,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?)",id,revision,json,CanonicalJson.hash(json),actor,OffsetDateTime.now());}
+    public Map<String,Object> numericGroup(String id){var groups=numericGroups(Set.of(id));var group=groups.get(id);if(group==null)throw new IllegalArgumentException("Diccionario cuantificable no encontrado.");return group;}
+    @SuppressWarnings("unchecked")
+    private Map<String,Map<String,Object>> numericGroups(Set<String> ids){
+        var result=new LinkedHashMap<String,Map<String,Object>>();var keys=new ArrayList<>(ids);
+        for(int i=0;i<keys.size();i+=200){var batch=keys.subList(i,Math.min(i+200,keys.size()));var placeholders=String.join(",",Collections.nCopies(batch.size(),"?"));
+            for(var row:jdbc.queryForList("SELECT d.id,d.name,d.unit,r.revision,r.rules_json,r.rules_hash FROM shared_numeric_dictionary d JOIN shared_numeric_dictionary_revision r ON r.dictionary_id=d.id WHERE d.id IN ("+placeholders+") AND r.revision=(SELECT MAX(x.revision) FROM shared_numeric_dictionary_revision x WHERE x.dictionary_id=d.id)",batch.toArray())){
+                String json=(String)row.get("rules_json");if(!CanonicalJson.hash(json).equals(row.get("rules_hash")))throw new IllegalStateException("El diccionario compartido no coincide con su huella.");
+                var definition=CanonicalJson.read(json,Map.class);if(!Objects.equals(row.get("unit"),definition.get("unit")))throw new IllegalStateException("La unidad del diccionario compartido cambió.");
+                result.put((String)row.get("id"),Map.of("id",row.get("id"),"name",row.get("name"),"unit",row.get("unit"),"revision",row.get("revision"),"definition",definition));
+            }
+        }return result;
+    }
+    @SuppressWarnings("unchecked")
+    private Map<String,Object> resolveNumeric(Map<String,Object> raw,Map<String,Map<String,Object>> groups){
+        var definition=(Map<String,Object>)raw.get("definition");if(!(definition.get("shared_id") instanceof String id))return raw;
+        var group=groups==null?numericGroup(id):groups.get(id);if(group==null)throw new IllegalStateException("Falta el diccionario numérico compartido.");
+        var resolved=new LinkedHashMap<>((Map<String,Object>)group.get("definition"));resolved.put("enabled",definition.get("enabled"));resolved.put("shared_id",id);resolved.put("shared_name",group.get("name"));resolved.put("shared_revision",group.get("revision"));
+        return Map.of("revision",raw.get("revision"),"definition",resolved,"hash",CanonicalJson.hash(CanonicalJson.json(resolved)));
     }
     public static String globalRules(String rules){return TextMentions.parse(rules).stream().map(t->{var aliases=t.aliases().stream().filter(a->!TextMentions.normalize(a).matches("[0-9 ]+")).toList();return aliases.isEmpty()?"":t.label()+"="+String.join("|",aliases);}).filter(s->!s.isBlank()).collect(java.util.stream.Collectors.joining("\n"));}
     @SuppressWarnings("unchecked")
     public Map<String,Object> numericEditor(Map<String,Object> logical,String key){
         var rows=jdbc.queryForList("SELECT * FROM numeric_dictionary_revision WHERE context_key=? ORDER BY revision DESC LIMIT 1",context(logical,key));
-        var saved=new LinkedHashMap<>(numericView(rows.isEmpty()?null:rows.getFirst()));var contexts=history(logical,key);
+        var saved=new LinkedHashMap<>(resolveNumeric(numericView(rows.isEmpty()?null:rows.getFirst()),null));var contexts=history(logical,key);
         String active="NONE";if(numericActive(saved))active="NUMERIC";else if(!contexts.isEmpty()){
             String scope=(String)contexts.getFirst().get("dictionary_scope");String terms=scope.equals("PRIVATE")?privateSaved(contexts).rules():globalRules(global().rules());if(!TextMentions.parse(terms).isEmpty())active="TERMS";
         }
@@ -90,6 +125,10 @@ public class TextDictionaryService {
     public Map<String,Object> deactivateTerms(Map<String,Object> logical,String key,int expectedContext,String actor){
         var rows=history(logical,key);return saveScoped(logical,key,"PRIVATE",privateSaved(rows).revision(),expectedContext,"",actor);
     }
+    @Transactional
+    public Map<String,Object> deactivateNumeric(Map<String,Object> logical,String key,int expected,String actor){
+        var definition=(Map<?,?>)numericEditor(logical,key).get("definition");return saveNumeric(logical,key,expected,false,(String)definition.get("unit"),"",actor);
+    }
     private Map<String,Object> numericView(Map<String,Object> row){
         if(row==null)return Map.of("revision",0,"definition",NumericNormalization.definition(false,"años",""));
         String json=(String)row.get("rules_json");
@@ -98,19 +137,35 @@ public class TextDictionaryService {
     }
     @Transactional
     public Map<String,Object> saveNumeric(Map<String,Object> logical,String key,int expected,boolean enabled,String unit,String rules,String actor){
+        var definition=(Map<?,?>)numericEditor(logical,key).get("definition");boolean generic=Objects.equals(definition.get("version"),3);
+        return saveNumericSelection(logical,key,expected,enabled,unit,rules,actor,"",0,Objects.toString(definition.get("context"),unit),Objects.toString(definition.get("proportions"),""),generic);
+    }
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> saveNumericSelection(Map<String,Object> logical,String key,int expected,boolean enabled,String unit,String rules,String actor,String sharedId,int expectedShared){return saveNumericSelection(logical,key,expected,enabled,unit,rules,actor,sharedId,expectedShared,"","",false);}
+    @Transactional
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> saveNumericSelection(Map<String,Object> logical,String key,int expected,boolean enabled,String unit,String rules,String actor,String sharedId,int expectedShared,String context,String proportions,boolean generic){
         var q=question(logical,key);if(TextFieldPolicy.sensitive(q.get("original_type"),q.get("label"))||!Set.of("text","textarea").contains(q.get("original_type")))throw new IllegalArgumentException("Solo se pueden normalizar preguntas de texto no identificativas.");
         if(actor==null||actor.isBlank()||actor.length()>100)throw new IllegalArgumentException("Administrador requerido.");
-        var definition=NumericNormalization.definition(enabled,unit,rules);
+        Map<String,Object> definition=generic?NumericNormalization.generic(enabled,unit,rules,context,proportions):sharedId.isBlank()?NumericNormalization.definition(enabled,unit,rules):NumericNormalization.contextual(enabled,unit,rules);
         jdbc.queryForList("SELECT id FROM survey WHERE id=? FOR UPDATE",logical.get("survey_id"));
         var previous=numericEditor(logical,key);
         if(((Number)previous.get("revision")).intValue()!=expected)throw new IllegalStateException("Las equivalencias numéricas cambiaron. Recarga antes de guardar.");
-        if(enabled&&!((Map<?,?>)definition.get("mappings")).isEmpty()){
+        if(enabled&&(!((Map<?,?>)definition.get("mappings")).isEmpty()||!sharedId.isBlank())){
             if("TERMS".equals(previous.get("activeMode")))throw new IllegalStateException("Esta pregunta usa agrupación de términos. Desactiva o vacía ese diccionario para la pregunta y guarda antes de registrar cantidades.");
             var rows=history(logical,key);if(rows.isEmpty()||!"PRIVATE".equals(rows.getFirst().get("dictionary_scope"))||!privateSaved(rows).rules().isBlank()){
                 saveScoped(logical,key,"PRIVATE",privateSaved(rows).revision(),rows.isEmpty()?0:((Number)rows.getFirst().get("revision")).intValue(),"",actor);
             }
         }
         if(((Number)previous.get("revision")).intValue()!=expected)throw new IllegalStateException("Las equivalencias numéricas cambiaron. Recarga antes de guardar.");
+        if(!sharedId.isBlank()){
+            jdbc.queryForList("SELECT id FROM shared_numeric_dictionary WHERE id=? FOR UPDATE",sharedId);var group=numericGroup(sharedId);
+            if(!unit.equals(group.get("unit")))throw new IllegalArgumentException("La unidad principal del diccionario es fija: "+group.get("unit"));
+            if(((Number)group.get("revision")).intValue()!=expectedShared)throw new IllegalStateException("El diccionario compartido cambió en otra pregunta. Recárgalo y revisa antes de guardar.");
+            if(enabled){persistGroup(sharedId,expectedShared+1,generic?NumericNormalization.generic(true,unit,rules,context,proportions):NumericNormalization.contextual(true,unit,rules),actor);group=numericGroup(sharedId);}
+            definition=new LinkedHashMap<>((Map<String,Object>)group.get("definition"));definition.put("enabled",enabled);definition.put("shared_id",sharedId);definition.put("shared_name",group.get("name"));definition.put("shared_revision",group.get("revision"));
+        }
         String json=CanonicalJson.json(definition);jdbc.update("INSERT INTO numeric_dictionary_revision(context_key,revision,survey_id,question_key,rules_json,rules_hash,actor,created_at) VALUES(?,?,?,?,?,?,?,?)",context(logical,key),expected+1,logical.get("survey_id"),key,json,CanonicalJson.hash(json),actor,OffsetDateTime.now());return numericEditor(logical,key);
     }
     @Transactional

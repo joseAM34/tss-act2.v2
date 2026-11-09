@@ -11,6 +11,21 @@ public final class ChiSquareDetails {
     public static final String CONTRIBUTION="Aporteᵢⱼ = (Oᵢⱼ − Eᵢⱼ)² / Eᵢⱼ; χ² = suma de aportes sobre las filas y columnas activas.";
     public static final String RESIDUAL="Residuo de Pearsonᵢⱼ = (Oᵢⱼ − Eᵢⱼ) / √Eᵢⱼ. Su cuadrado coincide con el aporte de la celda.";
     public static final String NOTE="Estos residuos son de Pearson, no residuos ajustados ni pruebas por celda. Un signo positivo indica más observaciones que las esperadas y uno negativo indica menos. No prueban causalidad ni sustituyen las condiciones de aplicabilidad. Si E es cero o no hay base, el cociente no se calcula.";
+    public static Map<String,Object> comparison(Map<String,Object> table){
+        var result=new LinkedHashMap<String,Object>();
+        result.put("executed",table.get("p")!=null);
+        if(table.get("p")==null){
+            result.put("message","INDEPENDENCIA_NO_DOCUMENTADA".equals(table.get("status"))?"No se puede concluir si hay asociación: falta declarar la unidad de observación y justificar la independencia de las respuestas.":"No se puede concluir si hay asociación: la prueba no cumple las condiciones de aplicabilidad. Revisa el detalle técnico.");
+            return result;
+        }
+        double alpha=((Number)table.get("alpha")).doubleValue();int df=((Number)table.get("df")).intValue();
+        double critical=org.apache.commons.statistics.distribution.ChiSquaredDistribution.of(df).inverseSurvivalProbability(alpha);
+        double chi=((Number)table.get("chi_square")).doubleValue();
+        result.put("critical",critical);result.put("comparison",String.format(Locale.ROOT,"χ² calculado %.2f %s χ² crítico %.2f",chi,chi>critical?">":chi<critical?"<":"=",critical));
+        result.put("message",Boolean.TRUE.equals(table.get("reject_h0"))?"Hay evidencia estadística de asociación (dependencia) entre las variables; se rechaza H₀ de independencia.":"No hay evidencia estadística suficiente de asociación; no se rechaza H₀ de independencia. Esto no demuestra que las variables sean independientes.");
+        if(Boolean.TRUE.equals(table.get("exploratory")))result.put("message","Comparación exploratoria: "+result.get("message")+" La aproximación puede ser poco fiable por frecuencias esperadas menores de 5; no confirma independencia ni dependencia.");
+        return result;
+    }
     @SuppressWarnings("unchecked")
     public static Map<String,Object> describe(Map<String,Object> table){
         var observed=(List<List<Number>>)table.get("observed");var expected=(List<List<Number>>)table.get("expected");

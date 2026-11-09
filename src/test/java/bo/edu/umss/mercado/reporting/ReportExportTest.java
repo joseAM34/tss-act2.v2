@@ -24,6 +24,8 @@ class ReportExportTest {
         for(byte[] xml:entries.values()) factory.newDocumentBuilder().parse(new ByteArrayInputStream(xml));
         String sheet=new String(entries.get("xl/worksheets/sheet1.xml"),StandardCharsets.UTF_8);
         assertThat(sheet).contains("t=\"inlineStr\"", "=1+1", "<v>-2</v>", "<v>0</v>", "<v>2.5</v>", "&lt;", "&amp;", "🙂").doesNotContain("<f>");
+        assertThat(sheet).contains("<cols>", "width=\"28\"");
+        assertThat(new String(entries.get("xl/styles.xml"),StandardCharsets.UTF_8)).contains("wrapText=\"1\"");
         assertThat(entries).containsKeys("[Content_Types].xml","_rels/.rels","xl/workbook.xml","xl/_rels/workbook.xml.rels");
     }
 }

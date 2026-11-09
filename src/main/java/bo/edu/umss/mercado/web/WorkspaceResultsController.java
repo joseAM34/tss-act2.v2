@@ -82,13 +82,18 @@ public class WorkspaceResultsController {
     }
     @SuppressWarnings("unchecked")
     @PostMapping("/sugerencias/numerico/{operation}") @ResponseBody
-    Map<String,Object> numeric(@PathVariable String slug,@PathVariable String operation,@RequestParam String frameId,@RequestParam String questionId,@RequestParam(defaultValue="0") int revision,@RequestParam(defaultValue="false") boolean enabled,@RequestParam(defaultValue="años") String unit,@RequestParam(defaultValue="") String rules,@RequestParam(defaultValue="false") boolean reviewed,Principal actor,HttpSession session,HttpServletResponse response){
+    Map<String,Object> numeric(@PathVariable String slug,@PathVariable String operation,@RequestParam String frameId,@RequestParam String questionId,@RequestParam(defaultValue="0") int revision,@RequestParam(defaultValue="false") boolean enabled,@RequestParam(defaultValue="años") String unit,@RequestParam(defaultValue="") String rules,@RequestParam(defaultValue="") String incoming,@RequestParam(defaultValue="false") boolean reviewed,@RequestParam(defaultValue="") String sharedId,@RequestParam(defaultValue="0") int sharedRevision,@RequestParam(defaultValue="") String groupName,@RequestParam(defaultValue="") String numericContext,@RequestParam(defaultValue="") String proportions,@RequestParam(defaultValue="false") boolean generic,Principal actor,HttpSession session,HttpServletResponse response){
         response.setHeader("Cache-Control","no-store");var frame=cached(slug,frameId,session);var answers=results.questionAnswers(frame,questionId,actor.getName(),false);
         if(!Boolean.TRUE.equals(answers.get("groupable"))||Boolean.TRUE.equals(answers.get("sensitive")))throw new IllegalArgumentException("Selecciona una pregunta de texto no identificativa.");
+        if(operation.equals("muestras"))return Map.of("rows",answers.get("rows"));
+        if(operation.equals("desactivar"))return dictionaries.deactivateNumeric(frame.logical(),questionId,revision,actor.getName());
+        if(operation.equals("grupos"))return Map.of("groups",dictionaries.numericGroups());
+        if(operation.equals("crear-grupo"))return dictionaries.createNumericGroup(groupName,unit,actor.getName(),numericContext,proportions,generic);
+        if(operation.equals("cargar-grupo"))return dictionaries.numericGroup(sharedId);
         if(operation.equals("cargar"))return dictionaries.numericEditor(frame.logical(),questionId);
-        if(operation.equals("importar"))return Map.of("rules",NumericNormalization.importJson(rules,unit));
-        var definition=NumericNormalization.definition(enabled,unit,rules);
-        if(operation.equals("guardar")){if(!reviewed)throw new IllegalArgumentException("Confirma que revisaste las conversiones.");return dictionaries.saveNumeric(frame.logical(),questionId,revision,enabled,unit,rules,actor.getName());}
+        if(operation.equals("importar"))return Map.of("rules",NumericNormalization.importProposal(incoming.isBlank()?rules:incoming,incoming.isBlank()?"":rules,unit,generic));
+        var definition=generic?NumericNormalization.generic(enabled,unit,rules,numericContext,proportions):sharedId.isBlank()?NumericNormalization.definition(enabled,unit,rules):NumericNormalization.contextual(enabled,unit,rules);
+        if(operation.equals("guardar")){if(!reviewed)throw new IllegalArgumentException("Confirma que revisaste las conversiones.");return dictionaries.saveNumericSelection(frame.logical(),questionId,revision,enabled,unit,rules,actor.getName(),sharedId,sharedRevision,numericContext,proportions,generic);}
         if(!operation.equals("previsualizar"))throw new IllegalArgumentException("Operación numérica inválida.");
         var texts=((List<Map<String,Object>>)answers.get("rows")).stream().filter(r->"CON_VALOR".equals(r.get("state"))).map(r->r.get("value").toString()).toList();
         var mappings=(Map<String,Object>)definition.get("mappings");

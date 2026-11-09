@@ -18,7 +18,9 @@ public final class ReportCustomization {
         public Advanced { questions=questions==null?null:List.copyOf(questions); }
     }
     public record Configuration(String analysisId,String title,String introduction,boolean context,boolean tables,boolean charts,
-                                String comment,List<Question> questions,List<String> crossIds,List<Cross> crossSettings,List<Advanced> advanced) {
+                                String comment,List<Question> questions,List<String> crossIds,List<Cross> crossSettings,List<Advanced> advanced, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) Boolean assumeIndependent, @com.fasterxml.jackson.annotation.JsonInclude(com.fasterxml.jackson.annotation.JsonInclude.Include.NON_NULL) Boolean exploratorySmallCounts) {
+        public Configuration(String analysisId,String title,String introduction,boolean context,boolean tables,boolean charts,String comment,List<Question> questions,List<String> crossIds,List<Cross> crossSettings,List<Advanced> advanced,Boolean assumeIndependent){this(analysisId,title,introduction,context,tables,charts,comment,questions,crossIds,crossSettings,advanced,assumeIndependent,null);}
+        public Configuration(String analysisId,String title,String introduction,boolean context,boolean tables,boolean charts,String comment,List<Question> questions,List<String> crossIds,List<Cross> crossSettings,List<Advanced> advanced){this(analysisId,title,introduction,context,tables,charts,comment,questions,crossIds,crossSettings,advanced,null);}
         public Configuration(String analysisId,String title,String introduction,boolean context,boolean tables,boolean charts,String comment,List<Question> questions,List<String> crossIds,List<Cross> crossSettings){this(analysisId,title,introduction,context,tables,charts,comment,questions,crossIds,crossSettings,null);}
         public Configuration(String analysisId,String title,String introduction,boolean context,boolean tables,boolean charts,String comment,List<Question> questions,List<String> crossIds) {
             this(analysisId,title,introduction,context,tables,charts,comment,questions,crossIds,null,null);
@@ -102,10 +104,21 @@ public final class ReportCustomization {
             if(config.crossSettings()!=null)config.crossSettings().stream().filter(c->c.id().equals(original.get("id"))).findFirst().ifPresent(c->{shown.put("display_title",c.title());shown.put("report_comment",c.comment());
                 if(c.representations()!=null){shown.put("report_tables",c.representations().contains("table")&&config.tables());shown.put("report_graphs",config.charts()?c.representations().stream().filter(r->!r.equals("table")).toList():List.of());}
             });
+            if(Boolean.TRUE.equals(config.assumeIndependent())||Boolean.TRUE.equals(config.exploratorySmallCounts())){
+                @SuppressWarnings("unchecked") var originalResult=(Map<String,Object>)original.get("result");
+                @SuppressWarnings("unchecked") var originalTable=(Map<String,Object>)originalResult.get("table");
+                if(Boolean.TRUE.equals(config.assumeIndependent())&&!Boolean.TRUE.equals(originalTable.get("independence_documented"))||Boolean.TRUE.equals(config.exploratorySmallCounts())&&"FRECUENCIAS_INSUFICIENTES".equals(originalTable.get("status"))){
+                    @SuppressWarnings("unchecked") var observed=(List<List<Number>>)originalTable.get("observed");
+                    long[][] counts=observed.stream().map(r->r.stream().mapToLong(Number::longValue).toArray()).toArray(long[][]::new);
+                    var table=bo.edu.umss.mercado.statistics.StatisticalMath.contingency(counts,Boolean.TRUE.equals(config.assumeIndependent())||Boolean.TRUE.equals(originalTable.get("independence_documented")),Boolean.TRUE.equals(originalTable.get("structural_zeros")),((Number)originalTable.get("alpha")).doubleValue(),Boolean.TRUE.equals(config.exploratorySmallCounts()));
+                    table.put("independence_documented",originalTable.get("independence_documented"));if(Boolean.TRUE.equals(config.assumeIndependent())&&!Boolean.TRUE.equals(originalTable.get("independence_documented")))table.put("independence_assumed",true);
+                    var result=new LinkedHashMap<>(originalResult);result.put("table",table);shown.put("result",result);
+                }
+            }
             return (Map<String,Object>)shown;
         }).toList();
     }
-    public static boolean multiple(Configuration c){return c.questions()!=null&&c.questions().stream().anyMatch(q->q.representations()!=null)||c.crossSettings()!=null&&c.crossSettings().stream().anyMatch(q->q.representations()!=null);}
+    public static boolean multiple(Configuration c){return Boolean.TRUE.equals(c.assumeIndependent())||Boolean.TRUE.equals(c.exploratorySmallCounts())||c.questions()!=null&&c.questions().stream().anyMatch(q->q.representations()!=null)||c.crossSettings()!=null&&c.crossSettings().stream().anyMatch(q->q.representations()!=null);}
     public static boolean advanced(Configuration c){return c.questions()!=null&&c.questions().stream().anyMatch(q->q.representations()!=null&&q.representations().stream().anyMatch(r->Set.of("histogram","box","line","area","polygon","ogive").contains(r)))||c.advanced()!=null&&!c.advanced().isEmpty();}
     public static String label(String value){return switch(value){case "text-bars"->"Barras de coincidencias";case "text-pie"->"Circular de coincidencias";case "text-donut"->"Anillo de coincidencias";case "columns"->"Columnas verticales";case "bars"->"Barras horizontales";case "pie"->"Circular";case "donut"->"Anillo";case "heat"->"Mapa de calor";case "grouped"->"Barras agrupadas";case "stacked"->"Barras apiladas";case "histogram"->"Histograma";case "polygon"->"Polígono de frecuencias";case "ogive"->"Ojiva de frecuencias acumuladas";case "box"->"Caja: mínimo, Q1, mediana, Q3, máximo";case "line"->"Línea: envíos con valor por mes de recepción";case "area"->"Área: envíos con valor por mes de recepción";default->"Tabla";};}
     public static Question catalogQuestion(Question q,Configuration c){return new Question(q.id(),(c.tables()||c.charts())&&(q.representations()==null||active(q.representations(),c)),q.title(),q.comment(),q.representations(),q.sensitiveAcknowledged());}

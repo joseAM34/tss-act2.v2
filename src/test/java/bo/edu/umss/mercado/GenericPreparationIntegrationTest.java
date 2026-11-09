@@ -420,12 +420,33 @@ class GenericPreparationIntegrationTest {
     }
     @Test void reportCrossHttpChecksAdminCsrfPreviewAndNamedCatalog() throws Exception {
         String analysis=analyses.create(crossSource(),"admin");var pair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo");String body=CanonicalJson.json(pair);
-        for(String path:List.of("/admin/reportes/personalizar/cruces/vista-previa","/admin/reportes/personalizar/cruces")){
+        for(String path:List.of("/admin/reportes/personalizar/cruces/vista-previa","/admin/reportes/personalizar/cruces/compatibilidad","/admin/reportes/personalizar/cruces")){
             mvc.perform(post(path).contentType("application/json").content(body)).andExpect(status().isForbidden());
             mvc.perform(post(path).with(csrf()).with(user("viewer").roles("USER")).contentType("application/json").content(body)).andExpect(status().isForbidden());
         }
         String json=mvc.perform(post("/admin/reportes/personalizar/cruces/vista-previa").with(csrf()).contentType("application/json").content(body)).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
         var preview=CanonicalJson.read(json,Map.class);assertThat(preview.get("html").toString()).contains("Pares con valor");
+        var assumedPair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo",null,true);
+        String checkedJson=mvc.perform(post("/admin/reportes/personalizar/cruces/compatibilidad").with(csrf()).contentType("application/json").content(CanonicalJson.json(assumedPair))).andExpect(status().isOk()).andExpect(header().string("Cache-Control","no-store")).andReturn().getResponse().getContentAsString();
+        var checked=(List<Map<String,Object>>)CanonicalJson.read(checkedJson,Map.class).get("choices");
+        assertThat(checked).anySatisfy(item->{assertThat(item.get("id")).isEqualTo("grupo");assertThat(item.get("executed")).isEqualTo(false);assertThat(item.get("status")).isEqualTo("FRECUENCIAS_INSUFICIENTES");});
+
+        String assumedJson=mvc.perform(post("/admin/reportes/personalizar/cruces/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(assumedPair))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var assumed=CanonicalJson.read(assumedJson,Map.class);
+        var assumedTable=(Map<?,?>)((Map<?,?>)((Map<?,?>)assumed.get("cross")).get("result")).get("table");
+        assertThat(assumedTable.get("independence_assumed")).isEqualTo(true);
+        assertThat(assumedTable.get("status")).isNotEqualTo("INDEPENDENCIA_NO_DOCUMENTADA");
+        assertThat(assumed.get("hash")).isEqualTo(preview.get("hash"));
+        var exploratoryPair=new bo.edu.umss.mercado.reporting.ReportCrossComposer.Pair(analysis,"control","grupo",null,true,true);
+        String exploratoryJson=mvc.perform(post("/admin/reportes/personalizar/cruces/vista-previa").with(csrf()).contentType("application/json").content(CanonicalJson.json(exploratoryPair))).andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        var exploratory=CanonicalJson.read(exploratoryJson,Map.class);
+        var exploratoryTable=(Map<?,?>)((Map<?,?>)((Map<?,?>)exploratory.get("cross")).get("result")).get("table");
+        assertThat(exploratoryTable.get("p")).isNotNull();assertThat(exploratoryTable.get("status")).isEqualTo("EXPLORATORIO");
+        assertThat(exploratory.get("html").toString()).contains("chi-exploratory","Resultado exploratorio");
+        assertThat(exploratory.get("hash")).isEqualTo(preview.get("hash"));
+
+        assertThat(assumed.get("html").toString()).contains("asumida para este ejercicio");
+
         assertThat(jdbc.queryForObject("SELECT COUNT(*) FROM survey_general_cross",Integer.class)).isZero();
         String savedJson=mvc.perform(post("/admin/reportes/personalizar/cruces").with(csrf()).contentType("application/json").content(CanonicalJson.json(Map.of("pair",pair,"expectedHash",preview.get("hash")))))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();

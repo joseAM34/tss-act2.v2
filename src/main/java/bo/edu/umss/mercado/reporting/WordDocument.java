@@ -38,21 +38,22 @@ final class WordDocument {
         return out.toString();
     }
     void table(List<? extends List<?>> rows){table(rows,false);}
-    void table(List<? extends List<?>> rows,boolean heat){
+    void table(List<? extends List<?>> rows,boolean heat){table(rows,heat,false);}
+    void table(List<? extends List<?>> rows,boolean heat,boolean warning){
         if(rows.isEmpty())return;
         int cols=rows.stream().mapToInt(List::size).max().orElse(1);
-        orientation(cols>=6);
+        orientation(cols>=6||rows.size()>24);
         int tableWidth=landscape?14292:9360,width=tableWidth/Math.max(1,cols);
         double max=rows.stream().skip(1).flatMap(List::stream).filter(Number.class::isInstance).map(Number.class::cast).mapToDouble(Number::doubleValue).max().orElse(0);
-        body.append("<w:tbl><w:tblPr><w:tblW w:w=\"").append(tableWidth).append("\" w:type=\"dxa\"/><w:tblBorders>");
+        body.append("<w:tbl><w:tblPr><w:tblW w:w=\"").append(tableWidth).append("\" w:type=\"dxa\"/><w:tblLayout w:type=\"fixed\"/><w:tblBorders>");
         for(String border:List.of("top","left","bottom","right","insideH","insideV"))body.append("<w:").append(border).append(" w:val=\"single\" w:sz=\"4\" w:color=\"CCD9D6\"/>");
         body.append("</w:tblBorders></w:tblPr><w:tblGrid>");for(int i=0;i<cols;i++)body.append("<w:gridCol w:w=\"").append(width).append("\"/>");body.append("</w:tblGrid>");
         for(int r=0;r<rows.size();r++){
-            body.append("<w:tr>");if(r==0)body.append("<w:trPr><w:tblHeader/></w:trPr>");
+            body.append("<w:tr><w:trPr><w:cantSplit/>");if(r==0)body.append("<w:tblHeader/>");body.append("</w:trPr>");
             for(int c=0;c<cols;c++){
-                Object value=c<rows.get(r).size()?rows.get(r).get(c):"";String color=r==0?"E7EEE9":"FFFFFF";
+                Object value=c<rows.get(r).size()?rows.get(r).get(c):"";String color=r==0?(warning?"FFF0D4":"E7EEE9"):"FFFFFF";
                 if(heat&&r>0&&c>0&&value instanceof Number n&&max>0){int v=(int)(255-155*n.doubleValue()/max);color=String.format(Locale.ROOT,"%02X%02XFF",v,v);}
-                body.append("<w:tc><w:tcPr><w:tcW w:w=\"").append(width).append("\" w:type=\"dxa\"/><w:shd w:fill=\"").append(color).append("\"/></w:tcPr><w:p><w:r>");
+                body.append("<w:tc><w:tcPr><w:tcW w:w=\"").append(width).append("\" w:type=\"dxa\"/><w:shd w:fill=\"").append(color).append("\"/></w:tcPr><w:p><w:pPr><w:wordWrap w:val=\"0\"/></w:pPr><w:r>");
                 body.append("<w:rPr><w:rFonts w:ascii=\"Arial\" w:hAnsi=\"Arial\" w:cs=\"Arial\"/><w:sz w:val=\"22\"/><w:szCs w:val=\"22\"/>");
                 if(r==0)body.append("<w:b/>");
                 body.append("</w:rPr>").append(text(tableValue(value))).append("</w:r></w:p></w:tc>");
@@ -63,7 +64,7 @@ final class WordDocument {
     }
     record Series(String name,List<?> values){}
     void chart(String title,String kind,List<?> labels,List<Series> series)throws IOException{
-        orientation(false);
+        orientation(labels.size()>=8||title.length()>100||kind.startsWith("scatter"));
         if(labels.isEmpty()||series.isEmpty()||series.stream().flatMap(s->s.values().stream()).noneMatch(Number.class::isInstance)){paragraph("Sin datos suficientes para representar: "+title);return;}
         int id=++charts;String name="chart"+id;
         var workbook=new ArrayList<List<Object>>();var headers=new ArrayList<Object>();headers.add(kind.startsWith("scatter")?"X":"Categoría");series.forEach(s->headers.add(s.name()));workbook.add(headers);
@@ -71,7 +72,7 @@ final class WordDocument {
         parts.put("word/embeddings/"+name+".xlsx",ReportExport.xlsx(workbook));
         parts.put("word/charts/"+name+".xml",bytes(chartXml(title,kind,labels,series)));
         parts.put("word/charts/_rels/"+name+".xml.rels",bytes(rels("<Relationship Id=\"rId1\" Type=\""+R+"package\" Target=\"../embeddings/"+name+".xlsx\"/>")));
-        body.append("<w:p><w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"5943600\" cy=\"3657600\"/><wp:docPr id=\"").append(id).append("\" name=\"").append(x(title)).append("\"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:chart r:id=\"chart").append(id).append("\"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>");
+        body.append("<w:p><w:pPr><w:keepLines/></w:pPr><w:r><w:drawing><wp:inline distT=\"0\" distB=\"0\" distL=\"0\" distR=\"0\"><wp:extent cx=\"").append(landscape?9075420:5943600).append("\" cy=\"").append(landscape?4800600:3657600).append("\"/><wp:docPr id=\"").append(id).append("\" name=\"").append(x(title)).append("\"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri=\"http://schemas.openxmlformats.org/drawingml/2006/chart\"><c:chart r:id=\"chart").append(id).append("\"/></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>");
     }
     private static String chartXml(String title,String kind,List<?> labels,List<Series> series){
         boolean pie=kind.equals("pie")||kind.equals("donut"),scatter=kind.equals("scatter")||kind.equals("scatterLine"),radar=kind.equals("radar");
@@ -114,8 +115,9 @@ final class WordDocument {
         var bytes=new ByteArrayOutputStream();try(var zip=new ZipOutputStream(bytes,StandardCharsets.UTF_8)){for(var part:parts.entrySet()){var entry=new ZipEntry(part.getKey());entry.setTime(0);zip.putNextEntry(entry);zip.write(part.getValue());zip.closeEntry();}}return bytes.toByteArray();
     }
     private static Object tableValue(Object value){
+        if(value instanceof Byte||value instanceof Short||value instanceof Integer||value instanceof Long)return value;
         if(value instanceof Number number){
-            try{return new java.math.BigDecimal(number.toString()).setScale(2,java.math.RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();}
+            try{return new java.math.BigDecimal(number.toString()).setScale(2,java.math.RoundingMode.HALF_UP).toPlainString();}
             catch(NumberFormatException ignored){return value;}
         }
         return value;

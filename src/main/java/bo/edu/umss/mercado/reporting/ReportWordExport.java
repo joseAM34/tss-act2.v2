@@ -111,21 +111,28 @@ public final class ReportWordExport {
         var c=map(saved.get("result"));var table=map(c.get("table"));String title=Objects.toString(saved.get("display_title"),s(c.get("row_label"))+" × "+s(c.get("column_label")));
         doc.heading(title,3);if(saved.get("report_comment")!=null)doc.paragraph(saved.get("report_comment"));doc.paragraph("Total: "+s(c.get("total_submissions"))+" · Pares con valor: "+s(table.get("n"))+" · Excluidos: "+s(c.get("excluded_pairs")));
         var detail=bo.edu.umss.mercado.statistics.ChiSquareDetails.describe(table);
+        if(Boolean.TRUE.equals(table.get("independence_assumed")))doc.paragraph("Independencia de las observaciones asumida para este ejercicio; no verificada en la recolección.");
+        var comparison=bo.edu.umss.mercado.statistics.ChiSquareDetails.comparison(table);
+        doc.heading("Resultado de la comparación",4);
+        if(Boolean.TRUE.equals(table.get("exploratory")))doc.paragraph("ADVERTENCIA: resultado exploratorio con esperadas menores de 5. La aproximación puede ser poco fiable y producir falsos positivos; no es una conclusión confirmatoria.");
+        if(Boolean.TRUE.equals(comparison.get("executed"))){
+            doc.table(List.of(row("Medida","Valor"),row("χ² calculado",table.get("chi_square")),row("Grados de libertad",table.get("df")),row("Nivel de significancia (α)",table.get("alpha")),row("χ² crítico (valor de la tabla)",comparison.get("critical"))),false,Boolean.TRUE.equals(table.get("exploratory")));
+            doc.paragraph(comparison.get("comparison"));
+        }else doc.paragraph("Comparación no disponible: la prueba no se ha ejecutado.");
+        doc.paragraph(comparison.get("message"));
+
         doc.heading("Hipótesis de chi-cuadrado de Pearson",4);doc.paragraph(detail.get("h0"));doc.paragraph(detail.get("h1"));
-        doc.paragraph("Solo si la prueba es aplicable: rechazar H₀ si p < α. Alpha registrado: "+s(table.get("alpha"))+". La independencia de las observaciones es un supuesto previo distinto de H₀.");
-        doc.paragraph(detail.get("expected_formula"));
         var columns=maps(c.get("column_options"));var rows=maps(c.get("row_options"));
         for(String metric:List.of("observed","row_percentages","column_percentages","total_percentages","expected")){
             doc.heading(switch(metric){case "observed"->"Conteos observados";case "row_percentages"->"% sobre total de cada fila";case "column_percentages"->"% sobre total de cada columna";case "total_percentages"->"% sobre pares con valor";default->"Frecuencias esperadas (diagnóstico)";},4);
             doc.table(matrix(rows,columns,list(table.get(metric))));
         }
         doc.paragraph("Totales de fila: "+s(table.get("row_totals"))+" · Totales de columna: "+s(table.get("column_totals")));
-        doc.heading("Aportes por celda y residuos de Pearson",4);doc.paragraph(detail.get("contribution_formula"));doc.paragraph(detail.get("residual_formula"));
-        doc.paragraph("gl = (filas activas − 1) × (columnas activas − 1). V de Cramér = √[χ² / (n × min(filas activas − 1, columnas activas − 1))]. Las categorías con total cero se retiran de la prueba y permanecen en las tablas.");
+        doc.heading("Aportes por celda y residuos de Pearson",4);
         var diagnostics=new ArrayList<List<?>>();diagnostics.add(row("Fila","Columna","O","E","O − E","(O − E)² / E","Residuo de Pearson"));
         for(var cell:maps(detail.get("cells")))diagnostics.add(row(rows.get(((Number)cell.get("row")).intValue()).get("label"),columns.get(((Number)cell.get("column")).intValue()).get("label"),cell.get("observed"),cell.get("expected"),cell.get("difference"),cell.get("contribution"),cell.get("pearson_residual")));doc.table(diagnostics);
         doc.table(List.of(row("Detalle","Valor"),row("Suma diagnóstica de aportes calculables",detail.get("diagnostic_sum")),row("Celdas calculables",detail.get("calculated_cells")),row("Celdas no calculables",detail.get("uncalculated_cells"))));
-        doc.paragraph(detail.get("notes"));doc.paragraph("Redondeo a dos decimales solo de presentación; la suma de aportes redondeados puede diferir del total.");doc.paragraph(detail.get("decision"));
+        doc.paragraph(detail.get("decision"));
         doc.paragraph("Aplicabilidad: "+s(table.get("status"))+" · Motivo: "+s(table.get("reason"))+" · Alpha: "+s(table.get("alpha")));
         for(String metric:List.of("min_expected","below_five_count","chi_square","df","p","cramers_v","reject_h0"))doc.paragraph(metric+": "+s(table.get(metric)));
         if(table.get("p")==null)doc.paragraph("Prueba no ejecutada; la ausencia de p no significa ausencia de asociación.");

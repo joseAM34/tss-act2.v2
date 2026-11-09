@@ -46,7 +46,7 @@
       choices.filter(item=>item[3]===group).forEach(([id,label,reason])=>{
         const button=node('button');button.type='button';button.dataset.representation=id;button.disabled=!!reason;button.title=reason||label;button.setAttribute('aria-pressed',String(values.includes(id)));
         const icon=node('span',icons[id]||icons[id.replace('text-','')]||icons.table);icon.className='representation-icon';icon.setAttribute('aria-hidden','true');button.append(icon,node('span',label));
-        button.addEventListener('click',()=>{const index=values.indexOf(id);if(index<0)values.push(id);else values.splice(index,1);button.setAttribute('aria-pressed',String(values.includes(id)));onChange();});buttons.append(button);
+        button.addEventListener('click',()=>{const index=values.indexOf(id);if(index<0)values.push(id);else values.splice(index,1);button.setAttribute('aria-pressed',String(values.includes(id)));onChange();});if(reason){const hint=node('span');hint.className='representation-unavailable';hint.title=reason;hint.tabIndex=0;hint.setAttribute('aria-label',label+': '+reason);button.setAttribute('aria-label',label+': '+reason);hint.append(button);buttons.append(hint);}else buttons.append(button);
       });field.append(buttons);const unavailable=choices.filter(item=>item[3]===group&&item[2]);
       if(unavailable.length){const details=node('details');details.append(node('summary','¿Por qué hay opciones en gris?'));unavailable.forEach(([,label,reason])=>details.append(node('p',label+': '+reason)));field.append(details);}container.append(field);
     }
@@ -55,7 +55,14 @@
   const crossChoices=[['table','Tabla',null,'Datos'],['heat','Mapa de calor',null,'Comparaciones'],['grouped','Barras agrupadas',null,'Comparaciones'],['stacked','Barras apiladas',null,'Comparaciones'],['radar','Radar','Requiere varios criterios de escala compatible.','Otros'],['scatter','Dispersión','Requiere dos variables numéricas.','Otros']];
   function questionButtons(){
     const q=active(),variable=bootstrap.result.variables.find(v=>v.question_id===question),exclusive=['radio','select','coverage'].includes(variable.type)&&!variable.numeric,advanced=variable.advanced||{},sensitiveLocked=variable.sensitive_text&&!q.sensitiveAcknowledged,textReason=sensitiveLocked?'Confirma la advertencia de datos sensibles.':variable.text_counts?.distribution?.some(row=>row.count>0)?null:'Requiere coincidencias del diccionario en respuestas abiertas.';
-    representationButtons($('question-representations'),q.representations,[['text-content','Textos',sensitiveLocked?'Confirma la advertencia de datos sensibles.':variable.text_available||variable.text_counts?null:'Requiere respuestas abiertas.','Respuestas abiertas'],['text-table','Tabla de coincidencias',textReason,'Respuestas abiertas'],['text-bars','Barras de coincidencias',textReason,'Respuestas abiertas'],['text-pie','Circular de coincidencias',textReason,'Respuestas abiertas'],['text-donut','Anillo de coincidencias',textReason,'Respuestas abiertas'],['table','Tabla',null,'Datos'],['columns','Columnas',null,'Comparar cantidades'],['bars','Barras',null,'Comparar cantidades'],['pie','Circular',exclusive?null:'Requiere categorías de selección única.','Partes de un total'],['donut','Anillo',exclusive?null:'Requiere categorías de selección única.','Partes de un total'],['line','Líneas',advanced.time?null:'Requiere fechas de recepción congeladas.','Evolución de recepción'],['area','Áreas',advanced.time?null:'Requiere fechas de recepción congeladas.','Evolución de recepción'],['histogram','Histograma',advanced.histogram?null:'Requiere al menos un valor numérico.','Distribución'],['polygon','Polígono de frecuencias',(variable.univariate||variable.quality)?.intervals?.length?null:'Requiere valores numéricos.','Distribución'],['ogive','Ojiva acumulada',(variable.univariate||variable.quality)?.intervals?.length?null:'Requiere valores numéricos.','Distribución'],['box','Caja',advanced.box?null:'Requiere al menos dos valores numéricos.','Distribución'],['scatter','Dispersión','Requiere dos variables numéricas.','Otros'],['radar','Radar','Requiere varios criterios de escala compatible.','Otros']],invalidate);
+    representationButtons($('question-representations'),q.representations,[['text-content','Textos',sensitiveLocked?'Confirma la advertencia de datos sensibles.':variable.text_available||variable.text_counts?null:'Requiere respuestas abiertas.','Respuestas abiertas'],['text-table','Tabla de coincidencias',textReason,'Respuestas abiertas'],['text-bars','Barras de coincidencias',textReason,'Respuestas abiertas'],['text-pie','Circular de coincidencias',textReason,'Respuestas abiertas'],['text-donut','Anillo de coincidencias',textReason,'Respuestas abiertas'],['table','Tabla',null,'Datos'],['columns','Columnas',null,'Comparar cantidades'],['bars','Barras',null,'Comparar cantidades'],['pie','Circular',exclusive?null:'Requiere categorías de selección única.','Partes de un total'],['donut','Anillo',exclusive?null:'Requiere categorías de selección única.','Partes de un total'],['line','Líneas',advanced.time?null:'Requiere fechas de recepción congeladas.','Evolución de recepción'],['area','Áreas',advanced.time?null:'Requiere fechas de recepción congeladas.','Evolución de recepción'],['histogram','Histograma',advanced.histogram?null:'Requiere al menos un valor numérico.','Distribución'],['polygon','Polígono de frecuencias',(variable.univariate||variable.quality)?.intervals?.length?null:'Requiere valores numéricos.','Distribución'],['ogive','Ojiva acumulada',(variable.univariate||variable.quality)?.intervals?.length?null:'Requiere valores numéricos.','Distribución'],['box','Caja',advanced.box?null:'Requiere al menos dos valores numéricos.','Distribución'],['scatter','Dispersión','Requiere dos variables numéricas.','Otros'],['radar','Radar','Requiere varios criterios de escala compatible.','Otros']].map(choice=>{
+      const item=[...choice],id=item[0],derived=variable.converted!=null;
+      if(id==='text-content')item[3]='Datos de respuestas abiertas';
+      else if(id.startsWith('text-')){item[3]='Datos de respuestas abiertas';if(derived)item[2]='Esta pregunta utiliza cantidades extraídas; las coincidencias de términos no están activas.';}
+      else if(['histogram','polygon','ogive','box'].includes(id)){item[3]=derived?'Datos de respuestas abiertas':'Datos originales';if(item[2])item[2]=derived?'Las conversiones revisadas no contienen suficientes valores válidos para esta representación.':'Requiere datos numéricos originales compatibles o cantidades extraídas y revisadas. '+item[2];}
+      else if(['table','columns','bars','pie','donut'].includes(id))item[3]='Datos originales';
+      return item;
+    }),invalidate);
     if(variable.sensitive_text){const warning=node('aside');warning.className='workspace-notice';warning.setAttribute('role','note');warning.append(node('strong','Datos sensibles o identificativos'),node('p','Este campo puede identificar personas u organizaciones. Sus textos y coincidencias pueden revelar esa información en el reporte y sus archivos descargados. Revisa el contenido y limita su distribución.'));const label=node('label'),check=node('input');check.type='checkbox';check.dataset.sensitiveAcknowledgement='true';check.checked=!!q.sensitiveAcknowledged;check.addEventListener('change',()=>{q.sensitiveAcknowledged=check.checked;if(!check.checked)q.representations=q.representations.filter(r=>!r.startsWith('text-'));previewCache.clear();clearRenderedPreviews();questionButtons();invalidate();});label.append(check,document.createTextNode(' Entiendo la advertencia y habilito textos y coincidencias sensibles para esta pregunta.'));warning.append(label);$('question-representations').prepend(warning);}if((variable.text_available||variable.text_counts)&&!sensitiveLocked){for(const key of ['text-content']){const button=$('question-representations').querySelector('[data-representation="'+key+'"]'),split=node('div'),gear=node('a','⚙');split.className='report-text-split';gear.className='button button-outline';gear.dataset.dictionaryGear=key;gear.href='/admin/diccionario?analysisId='+encodeURIComponent(config.analysisId)+'&questionId='+encodeURIComponent(question)+'&sensitiveAcknowledged='+String(!!q.sensitiveAcknowledged);gear.target='_blank';gear.rel='noopener';gear.title='Alimentar diccionario universal (abre otra pestaña)';gear.setAttribute('aria-label','Alimentar diccionario universal para '+variable.label);gear.addEventListener('click',()=>dictionaryOpened=true);button.replaceWith(split);split.append(button,gear);}const help=node('p','Textos incluye el contenido original de las respuestas. El engranaje permite alimentar el diccionario en otra pestaña.');help.className='representation-help';$('question-representations').querySelector('[data-representation=text-content]').closest('fieldset').append(help);}
   }
   const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
@@ -64,6 +71,25 @@
   const questions=()=>config.questions;
   const active=()=>questions().find(q=>q.id===question);
   const input=(id,value,change,checked=false)=>{const element=$(id);element[checked?'checked':'value']=value;element.addEventListener(checked?'change':'input',()=>{change(element[checked?'checked':'value']);invalidate();});};
+  if(config.exploratorySmallCounts==null)config.exploratorySmallCounts=true;
+  if(config.assumeIndependent==null)config.assumeIndependent=true;
+  input('assume-independent',config.assumeIndependent,value=>{config.assumeIndependent=value;previewCache.clear();clearRenderedPreviews();pairHash='';pairPreview=null;pairSequence++;pairController?.abort();if(screen==='cruce-nuevo'){renderCandidates();if(pair.length===2)previewPair();}},true);
+  const independenceButtons=[...root.querySelectorAll('[data-cross-independence]')];
+  const syncIndependenceButtons=()=>independenceButtons.forEach(button=>{const enabled=$('assume-independent').checked;button.setAttribute('aria-pressed',String(enabled));button.replaceChildren();const icon=node('span','χ²');icon.className='representation-icon';icon.setAttribute('aria-hidden','true');button.append(icon,node('span','Independencia'));button.title='Asumir independencia de las observaciones: '+(enabled?'activada':'desactivada');button.setAttribute('aria-label',button.title);});
+  independenceButtons.forEach(button=>button.addEventListener('click',()=>{const check=$('assume-independent');check.checked=!check.checked;check.dispatchEvent(new Event('change',{bubbles:true}));}));
+  $('assume-independent').addEventListener('change',syncIndependenceButtons);syncIndependenceButtons();
+  const assumptionsDialog=$('analysis-assumptions');
+  if(assumptionsDialog){
+    const noticeKey='umss:analysis-assumptions:'+JSON.stringify([root.dataset.draftOwner,config.analysisId,bootstrap.cutoff]);
+    const remember=()=>{try{sessionStorage.setItem(noticeKey,'seen');}catch{}};
+    const dismiss=()=>{remember();assumptionsDialog.close();};
+    $('analysis-assumptions-continue').addEventListener('click',dismiss);
+    $('analysis-assumptions-review').addEventListener('click',()=>{dismiss();const controls=$('analysis-controls');controls.open=true;controls.scrollIntoView({block:'center'});$('assume-independent').focus();});
+    assumptionsDialog.addEventListener('cancel',remember);
+    let seen=false;try{seen=sessionStorage.getItem(noticeKey)==='seen';}catch{}
+    if(!config.assumeIndependent)$('analysis-assumptions-message').textContent='Este reporte tiene desactivado el supuesto de independencia. Se conserva tu elección; puedes cambiarla en Revisar controles.';
+    if(!seen)assumptionsDialog.showModal();
+  }
   input('reportTitle',config.title,value=>config.title=value);
   input('custom-introduction',config.introduction,value=>config.introduction=value);
   input('custom-comment',config.comment,value=>config.comment=value);
@@ -97,18 +123,33 @@
   $('add-scatter').addEventListener('click',()=>{const x=$('scatter-x').value,y=$('scatter-y').value;if(!x||!y||x===y){$('advanced-status').textContent='Selecciona dos magnitudes distintas.';return;}addAdvanced('scatter',[x,y],advancedOptions.numeric.find(item=>item.id===x).label+' × '+advancedOptions.numeric.find(item=>item.id===y).label);});
   advancedOptions.radar.forEach(item=>{const button=node('button',item.title);button.type='button';button.className='button button-outline';button.addEventListener('click',()=>addAdvanced('radar',item.questions,item.title));$('radar-options').append(button);});
   if(!advancedOptions.radar.length)$('radar-options').append(node('p','No hay paneles compatibles de cinco criterios de empleadores con su escala original en este conjunto.'));
+  const questionKinds=()=>[...root.querySelectorAll('[data-question-kind]:checked')].map(input=>input.dataset.questionKind);
+  const visibleQuestionIds=()=>reportVisibleQuestions(questions(),bootstrap.result.variables,questionKinds());
+  function applyQuestionFilters(){
+    const visible=new Set(visibleQuestionIds());
+    $('custom-questions').querySelectorAll('[data-question]').forEach(button=>button.closest('.custom-choice').hidden=!visible.has(button.dataset.question));
+    $('questions-visible-status').textContent=visible.size+' de '+questions().length+' preguntas visibles. Las ocultas conservan su selección.';
+    $('questions-select-visible').disabled=visible.size===0;$('questions-deselect-visible').disabled=visible.size===0;
+  }
+  root.querySelectorAll('[data-question-kind]').forEach(input=>input.addEventListener('change',()=>{applyQuestionFilters();if(question&&!visibleQuestionIds().includes(question)){question=null;render();}}));
+  for(const [id,included] of [['questions-select-visible',true],['questions-deselect-visible',false]])$(id).addEventListener('click',()=>{
+    reportIncludeVisible(questions(),visibleQuestionIds(),included);
+    $('custom-questions').querySelectorAll('input[name=questions]').forEach(check=>check.checked=questions().find(q=>q.id===check.value).included);
+    invalidate();
+  });
   const hiddenCrosses=new Set();
   const list=(container,items,isCross)=>{
     items.forEach(item=>{
     const id=item.id,row=node('div');row.className='custom-choice';
       const label=node('label'),check=node('input');check.type='checkbox';check.setAttribute('aria-label','Incluir '+(isCross?item.result.row_label+' × '+item.result.column_label:item.title));
       check.name=isCross?'crossIds':'questions';check.value=id;check.checked=isCross?config.crossIds.includes(id):item.included;
-      check.addEventListener('change',()=>{if(isCross){config.crossIds=config.crossIds.filter(value=>value!==id);if(check.checked){crossSetting(id);config.crossIds.push(id);}}else item.included=check.checked;invalidate();});label.append(check,node('span','Incluir'));
+      check.addEventListener('change',()=>{if(isCross){config.crossIds=config.crossIds.filter(value=>value!==id);if(check.checked){crossSetting(id);config.crossIds.push(id);}}else item.included=check.checked;invalidate();});label.append(check);if(isCross)label.append(node('span','Incluir'));
       const button=node('button',isCross?item.result.row_label+' × '+item.result.column_label:item.title);button.type='button';button.dataset[isCross?'cross':'question']=id;button.setAttribute('aria-pressed','false');
       button.addEventListener('click',()=>{if(isCross){cross=cross===id?null:id;if(cross&&!hasCrossPreview(cross))refresh();}else question=question===id?null:id;render();});row.append(label,button);
       if(isCross){const remove=node('button','Quitar');remove.type='button';remove.className='remove-report-cross';remove.setAttribute('aria-label','Quitar del reporte '+(config.crossSettings.find(c=>c.id===id)?.title||crossName(item)));remove.addEventListener('click',()=>{hiddenCrosses.add(id);config.crossIds=config.crossIds.filter(value=>value!==id);if(cross===id)cross=null;previewCache.clear();clearRenderedPreviews();renderCrossList();invalidate();render();});row.append(remove);}
       container.append(row);
     });
+    if(!isCross)applyQuestionFilters();
   };
   const renderCrossList=()=>{
     const container=$('custom-crosses');container.replaceChildren();
@@ -168,7 +209,7 @@
       const section=[...source.querySelectorAll('[data-question-id]')].find(item=>item.dataset.questionId===question);
       const target=$(screen==='preguntas'?'question-list-preview':'question-editor-preview');if(section)draw(target,section.outerHTML,latest.catalog);else target.append(node('p','Activa una representación para previsualizar esta pregunta.'));
     }
-    if((screen==='cruces'||screen==='cruce-editar')&&cross){const source=node('div');source.innerHTML=latest.catalogHtml;const section=[...source.querySelectorAll('[data-cross-id]')].find(item=>item.dataset.crossId===cross),target=$(screen==='cruces'?'cross-list-preview':'edit-cross-preview');if(section)draw(target,section.outerHTML,latest.catalog);else target.append(node('p','Activa una representación para previsualizar esta comparación.'));}
+    if((screen==='cruces'||screen==='cruce-editar')&&cross){root.dataset.crossExploratory=String(!!(latest.catalog.display_crosses||latest.catalog.crosses||[]).find(item=>item.id===cross)?.result.table.exploratory);const source=node('div');source.innerHTML=latest.catalogHtml;const section=[...source.querySelectorAll('[data-cross-id]')].find(item=>item.dataset.crossId===cross),target=$(screen==='cruces'?'cross-list-preview':'edit-cross-preview');if(section)draw(target,section.outerHTML,latest.catalog);else target.append(node('p','Activa una representación para previsualizar esta comparación.'));}
     if((screen==='avanzados'||screen==='avanzado')&&advancedIndex!==null){
       const source=node('div');source.innerHTML=latest.catalogHtml;const key=advancedKey(config.advanced[advancedIndex]),section=[...source.querySelectorAll('[data-advanced-id]')].find(item=>item.dataset.advancedId===key);
       if(section)draw($(screen==='avanzados'?'advanced-list-preview':'advanced-editor-preview'),section.outerHTML,latest.catalog);
@@ -178,7 +219,21 @@
       p.append(node('h3','Introducción'),node('p',t.introduction||'Sin introducción.'),node('h3','Comentario general'),node('p',latest.content.comment||'Sin comentarios.'));
     }
   }
+  const compatibilityCache=new Map();let compatibilityController,compatibilityKey='';
+  function checkCandidatePairs(){
+    if(!pair.length)return;
+    const key=pair[0]+'|'+!!config.assumeIndependent+'|'+!!config.exploratorySmallCounts;
+    if(compatibilityCache.has(key)||compatibilityKey===key)return;
+    compatibilityController?.abort();compatibilityController=new AbortController();compatibilityKey=key;
+    const request=compatibilityController;
+    post('/admin/reportes/personalizar/cruces/compatibilidad',{analysisId:config.analysisId,row:pair[0],column:'',assumeIndependent:config.assumeIndependent,exploratorySmallCounts:config.exploratorySmallCounts},request.signal).then(result=>{
+      if(request!==compatibilityController)return;
+      compatibilityCache.set(key,new Map(result.choices.map(choice=>[choice.id,choice])));compatibilityKey='';
+      if(screen==='cruce-nuevo')renderCandidates();
+    }).catch(()=>{if(request!==compatibilityController)return;compatibilityKey='';compatibilityCache.set(key,new Map((bootstrap.crossChoices||[]).map(choice=>[choice.id,{status:'ERROR_COMPROBACION',executed:false}])));if(screen==='cruce-nuevo')renderCandidates();});
+  }
   function renderCandidates(){
+    checkCandidatePairs();
     const container=$('cross-candidates');container.replaceChildren();
     const choices=bootstrap.crossChoices||[];
     for(const group of [...new Set(choices.map(item=>item.group))]){
@@ -190,14 +245,18 @@
         const card=node('div');card.className='cross-candidate '+(chosen?'chosen':disabled?'unavailable':pair.length?'compatible':'');
         const label=node('label'),check=node('input');check.type='checkbox';check.checked=chosen;check.disabled=disabled;check.dataset.candidate=choice.id;
         check.addEventListener('change',()=>{pairHash='';pairPreview=null;pairSequence++;pairController?.abort();newDispose?.();newDispose=null;$('new-cross-preview').replaceChildren();if(check.checked)pair.push(choice.id);else pair=pair.filter(id=>id!==choice.id);$('new-cross-title').value=pair.map(id=>choices.find(item=>item.id===id).label).join(' × ').slice(0,200);renderCandidates();previewPair();});
-        label.append(check,node('span',choice.label));card.append(label,node('small',chosen?'Seleccionada':cells?'Supera las 2500 celdas admitidas.':!choice.eligible?choice.reason:pair.length===2?'Quita una selección para cambiarla.':pair.length?'Compatible con la pregunta seleccionada.':choice.reason));details.append(card);
+        label.append(check,node('span',choice.label));card.append(label,node('small',chosen?'Seleccionada':cells?'Supera las 2500 celdas admitidas.':!choice.eligible?choice.reason:pair.length===2?'Quita una selección para cambiarla.':pair.length?'Compatible con la pregunta seleccionada.':choice.reason));const compatible=choice.eligible&&!cells;
+        const candidateResult=pair.length===2&&chosen&&pairPreview?{executed:pairPreview.cross.result.table.p!=null,status:pairPreview.cross.result.table.status,belowFive:pairPreview.cross.result.table.below_five_count,exploratory:!!pairPreview.cross.result.table.exploratory}:compatibilityCache.get(pair[0]+'|'+!!config.assumeIndependent+'|'+!!config.exploratorySmallCounts)?.get(choice.id);
+        const verified=compatible&&candidateResult?.executed;
+        const badge=node('span',verified?'✓✓':compatible?'✓':'⊘');badge.className='cross-test-compatibility';badge.dataset.compatible=String(compatible);badge.setAttribute('role','img');const reason=compatible?'Tipo compatible con chi-cuadrado; las frecuencias esperadas se comprueban al elegir el par.':cells?'El cruce supera las 2500 celdas admitidas.':choice.reason;const explanation=!compatible?reason:candidateResult?.exploratory?'Comparación exploratoria: hay esperadas menores de 5; la aproximación puede dar conclusiones poco fiables.':verified?'Prueba aplicable con la pregunta seleccionada: controles de chi-cuadrado superados.':candidateResult?.status==='FRECUENCIAS_INSUFICIENTES'?'Tipo compatible, pero este par tiene '+candidateResult.belowFive+' celdas con frecuencia esperada menor de 5.':candidateResult?.status==='INDEPENDENCIA_NO_DOCUMENTADA'?'Tipo compatible; falta activar o documentar la independencia de las observaciones.':candidateResult?.status==='ERROR_COMPROBACION'?'No se pudo comprobar este par; vuelve a abrir el editor para reintentar.':candidateResult?'Tipo compatible; la prueba no es aplicable a este par ('+candidateResult.status+').':pair.length?'Tipo compatible; comprobando este par.':'Tipo compatible; selecciona una pregunta para comprobar el par.';
+        badge.dataset.exploratory=String(!!candidateResult?.exploratory);badge.dataset.verified=String(!!verified);badge.title=explanation;badge.setAttribute('aria-label',explanation);badge.tabIndex=0;card.append(badge);details.append(card);
       }container.append(details);
     }
     $('cross-pair-status').textContent=pair.length+'/2 preguntas seleccionadas';$('add-report-cross').disabled=pair.length!==2||!pairHash||pairSaving||!pairRepresentations.length;
   }
   function drawNewCross(){
     newDispose?.();newDispose=null;const container=$('new-cross-preview');container.replaceChildren();if(!pairPreview||screen!=='cruce-nuevo')return;
-    container.innerHTML=pairPreview.html;const heading=container.querySelector('h3');if(heading)heading.textContent=$('new-cross-title').value.trim()||'Nueva comparación';
+    root.dataset.crossExploratory=String(!!pairPreview.cross.result.table.exploratory);container.innerHTML=pairPreview.html;const heading=container.querySelector('h3');if(heading)heading.textContent=$('new-cross-title').value.trim()||'Nueva comparación';
     const comment=$('new-cross-comment').value;if(comment.trim()){const p=node('p',comment);p.className='report-prose';heading?.after(p);}
     newDispose=window.ReportCharts(container,{analysis:{result:{variables:[]}},crosses:[pairPreview.cross]});
   }
@@ -206,7 +265,7 @@
     const token=++pairSequence;pairController?.abort();pairController=new AbortController();$('new-cross-status').textContent='Calculando desde el conjunto congelado…';
     const requestController=pairController,timeout=setTimeout(()=>requestController.abort(),PREVIEW_TIMEOUT_MS);
     try{
-      const result=await post('/admin/reportes/personalizar/cruces/vista-previa',{analysisId:config.analysisId,row:pair[0],column:pair[1],representations:pairRepresentations},pairController.signal);
+      const result=await post('/admin/reportes/personalizar/cruces/vista-previa',{analysisId:config.analysisId,row:pair[0],column:pair[1],representations:pairRepresentations,assumeIndependent:config.assumeIndependent,exploratorySmallCounts:config.exploratorySmallCounts},pairController.signal);
       if(token!==pairSequence)return;pairPreview=result;pairHash=result.hash;$('new-cross-status').textContent='Cruce verificado. Revisa su tabla y diagnóstico antes de añadirlo.';drawNewCross();renderCandidates();
     }catch(error){if(token!==pairSequence)return;pairHash='';$('new-cross-status').textContent=error.name==='AbortError'?'La consulta tardó demasiado. Cambia una selección para volver a intentar.':error.message;renderCandidates();}
     finally{clearTimeout(timeout);}
@@ -216,7 +275,7 @@
     if(pairSaving||!pairHash||pair.length!==2)return;
     if(config.crossIds.length>=10){$('new-cross-status').textContent='Ya hay diez comparaciones incluidas. Quita una antes de añadir otra.';return;}
     pairSaving=true;renderCandidates();const title=$('new-cross-title').value.trim(),comment=$('new-cross-comment').value;
-    const representations=[...pairRepresentations],request={pair:{analysisId:config.analysisId,row:pair[0],column:pair[1],representations},expectedHash:pairHash};
+    const representations=[...pairRepresentations],request={pair:{analysisId:config.analysisId,row:pair[0],column:pair[1],representations,assumeIndependent:config.assumeIndependent,exploratorySmallCounts:config.exploratorySmallCounts},expectedHash:pairHash};
     try{
       const saved=await post('/admin/reportes/personalizar/cruces',request);
       if(!bootstrap.crosses.some(item=>item.id===saved.id))bootstrap.crosses.unshift(saved);
@@ -278,6 +337,5 @@
     pairRepresentations=ui.pairRepresentations||['table','heat'];$('new-cross-title').value=ui.pairTitle||'';$('new-cross-comment').value=ui.pairComment||'';
   }
   root.addEventListener('input',saveDraft);root.addEventListener('change',saveDraft);
-  $('custom-draft-discard').addEventListener('click',()=>{if(draftStore.clear()){localFinished=true;location.reload();}else draftStatus.textContent='No se pudo eliminar la copia local o fue modificada en otra pestaña. Recarga para revisar la copia más reciente.';});
-  window.addEventListener('focus',()=>{if(dictionaryOpened){dictionaryOpened=false;previewCache.clear();clearRenderedPreviews();invalidate();}});window.addEventListener('hashchange',route);window.addEventListener('pagehide',()=>{if(localDirty)saveDraft();previewCache.clear();clearRenderedPreviews();controller?.abort();clearTimeout(timer);newDispose?.();pairController?.abort();});route();refresh();
+  window.addEventListener('focus',()=>{if(dictionaryOpened){dictionaryOpened=false;previewCache.clear();clearRenderedPreviews();invalidate();}});window.addEventListener('hashchange',route);window.addEventListener('pagehide',()=>{compatibilityController?.abort();if(localDirty)saveDraft();previewCache.clear();clearRenderedPreviews();controller?.abort();clearTimeout(timer);newDispose?.();pairController?.abort();});route();refresh();
 })();

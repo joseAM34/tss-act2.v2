@@ -50,13 +50,18 @@ public class DictionaryController {
     }
     @PostMapping("/numerico/{operation}") @ResponseBody
     @SuppressWarnings("unchecked")
-    Map<String,Object> numeric(@PathVariable String operation,@RequestParam String analysisId,@RequestParam String questionId,@RequestParam(defaultValue="0") int revision,@RequestParam(defaultValue="false") boolean enabled,@RequestParam(defaultValue="años") String unit,@RequestParam(defaultValue="") String rules,@RequestParam(defaultValue="false") boolean reviewed,Principal actor,HttpServletResponse response){
+    Map<String,Object> numeric(@PathVariable String operation,@RequestParam String analysisId,@RequestParam String questionId,@RequestParam(defaultValue="0") int revision,@RequestParam(defaultValue="false") boolean enabled,@RequestParam(defaultValue="años") String unit,@RequestParam(defaultValue="") String rules,@RequestParam(defaultValue="") String incoming,@RequestParam(defaultValue="false") boolean reviewed,@RequestParam(defaultValue="") String sharedId,@RequestParam(defaultValue="0") int sharedRevision,@RequestParam(defaultValue="") String groupName,@RequestParam(defaultValue="") String numericContext,@RequestParam(defaultValue="") String proportions,@RequestParam(defaultValue="false") boolean generic,Principal actor,HttpServletResponse response){
         response.setHeader("Cache-Control","no-store");var logical=reports.dictionaryLogical(analysisId,questionId,false);var context=reports.dictionaryContext(analysisId,questionId,false);
         if(Boolean.TRUE.equals(context.get("sensitive")))throw new IllegalArgumentException("Selecciona una pregunta no identificativa.");
+        if(operation.equals("muestras"))return Map.of("rows",((List<String>)context.get("originals")).stream().map(t->Map.of("state","CON_VALOR","value",t)).toList());
+        if(operation.equals("desactivar"))return dictionaries.deactivateNumeric(logical,questionId,revision,actor.getName());
+        if(operation.equals("grupos"))return Map.of("groups",dictionaries.numericGroups());
+        if(operation.equals("crear-grupo"))return dictionaries.createNumericGroup(groupName,unit,actor.getName(),numericContext,proportions,generic);
+        if(operation.equals("cargar-grupo"))return dictionaries.numericGroup(sharedId);
         if(operation.equals("cargar"))return dictionaries.numericEditor(logical,questionId);
-        if(operation.equals("importar"))return Map.of("rules",NumericNormalization.importJson(rules,unit));
-        var definition=NumericNormalization.definition(enabled,unit,rules);
-        if(operation.equals("guardar")){if(!reviewed)throw new IllegalArgumentException("Revisa las conversiones antes de guardar.");return dictionaries.saveNumeric(logical,questionId,revision,enabled,unit,rules,actor.getName());}
+        if(operation.equals("importar"))return Map.of("rules",NumericNormalization.importProposal(incoming.isBlank()?rules:incoming,incoming.isBlank()?"":rules,unit,generic));
+        var definition=generic?NumericNormalization.generic(enabled,unit,rules,numericContext,proportions):sharedId.isBlank()?NumericNormalization.definition(enabled,unit,rules):NumericNormalization.contextual(enabled,unit,rules);
+        if(operation.equals("guardar")){if(!reviewed)throw new IllegalArgumentException("Revisa las conversiones antes de guardar.");return dictionaries.saveNumericSelection(logical,questionId,revision,enabled,unit,rules,actor.getName(),sharedId,sharedRevision,numericContext,proportions,generic);}
         if(!operation.equals("previsualizar"))throw new IllegalArgumentException("Operación numérica inválida.");
         var texts=(List<String>)context.get("originals");var mappings=(Map<String,Object>)definition.get("mappings");
         return Map.of("definition",definition,"projection",NumericNormalization.project(definition,texts,context.get("label").toString()),"rows",texts.stream().map(t->Map.of("original",t,"value",mappings.getOrDefault(NumericNormalization.key(t),"Pendiente: excluido"))).toList());

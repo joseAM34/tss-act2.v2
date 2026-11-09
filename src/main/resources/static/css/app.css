@@ -14,3 +14,30 @@
 .review-card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:26px;margin-block:26px}.review-card h2{font-size:1.55rem;margin-bottom:14px}.review-card p{font-size:.86rem;margin-bottom:16px}.review-card .field-hint{font-size:.76rem;margin-top:7px}.data-form{max-width:680px;margin-top:24px}.data-form input,.data-form select,.data-form textarea{width:100%;padding:11px 13px;border:1px solid #bdccc5;border-radius:5px;background:#fff;color:var(--ink)}.data-section{margin-top:26px}.download-links{display:flex;flex-wrap:wrap;gap:14px;align-items:center;margin-block:22px}.content-hash{display:block;overflow-wrap:anywhere;font-size:.83rem;margin-block:12px}.manifest-list{font-size:.8rem}.manifest-list div{padding-block:12px;border-bottom:1px solid var(--line)}.manifest-list dt{font-weight:600;overflow-wrap:anywhere}.manifest-list dd{margin:5px 0 0;overflow-wrap:anywhere;white-space:pre-wrap}.review-card summary{cursor:pointer;font-weight:600;font-size:.85rem}
 @media print{body{background:#fff;font-size:12px}.site-header,.site-footer,.admin-bar,.back-link,.response-main>.button{display:none}.container{width:100%;max-width:none}.page-main{padding:0}.response-main h1{font-size:24px}.answers-list{border:0;padding:0}.answer-row{break-inside:avoid}.confidential-note{border-color:#aaa;background:transparent}.response-meta{font-size:11px}}
 .statistics-detail{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}.statistics-detail summary{line-height:1.6}.statistics-detail .table-scroll{margin-top:12px}.statistics-note{display:block;color:var(--muted);font-size:.72rem;white-space:normal}.statistics-measures{display:flex;flex-wrap:wrap;gap:18px 28px;margin-top:20px}.statistics-measures dt{font-size:.75rem;color:var(--muted)}.statistics-measures dd{margin:4px 0;font-weight:600}.statistics-detail .badge{margin-left:9px}
+/* Shared responsive layout: wide content scrolls locally, never the page. */
+@media screen{
+  main,.container,.review-card,.table-scroll,form,fieldset{min-width:0}
+  fieldset{max-width:100%}
+  :is(input,select,textarea){max-width:100%;min-width:0}
+  :is(h1,h2,h3,h4,p,legend,label,.content-hash){overflow-wrap:anywhere}
+  .table-scroll{display:block;width:100%;max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain;-webkit-overflow-scrolling:touch}
+  .table-scroll table{table-layout:auto}
+  .header-inner>*,.footer-inner>*,.workspace-heading>*,.workspace-context>*{min-width:0}
+  .draft-actions,.filter-actions,.header-nav{flex-wrap:wrap}
+  :is(img,video,svg){max-width:100%}
+}
+@media screen and (max-width:760px){
+  .container{width:calc(100% - 28px)}
+  .header-inner,.footer-inner,.workspace-heading{flex-wrap:wrap;gap:14px}
+  .header-inner{padding-block:14px}
+  .header-nav{gap:10px 18px}
+  .workspace-cards,.workspace-panels{grid-template-columns:minmax(0,1fr)}
+  .review-card{padding:16px}
+  fieldset{margin-inline:0;padding-inline:10px}
+  .workspace-context form{width:100%}
+  .workspace-context select{width:100%;max-width:100%}
+  .draft-actions .button{max-width:100%;white-space:normal}
+  input,select,textarea{font-size:16px}
+}
+/* A checkbox must not shrink beside a long label. */
+input[type="checkbox"]{width:18px;height:18px;min-width:18px;min-height:18px;max-width:18px;flex:0 0 18px;padding:0;accent-color:var(--teal);vertical-align:middle}

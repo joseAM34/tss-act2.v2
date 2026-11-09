@@ -1,4 +1,7 @@
 'use strict';
+function wrapChartAxis(text,width=42){
+  const lines=[''];for(const word of String(text).split(/\s+/)){const last=lines.length-1;if(lines[last]&&lines[last].length+word.length+1>width)lines.push(word);else lines[last]+=(lines[last]?' ':'')+word;}return lines.join('\n');
+}
 const ReportChartOptions={
   labels:{'text-bars':'Barras de coincidencias','text-pie':'Circular de coincidencias','text-donut':'Anillo de coincidencias',columns:'Columnas verticales',bars:'Barras horizontales',pie:'Circular',donut:'Anillo',heat:'Mapa de calor',grouped:'Barras agrupadas',stacked:'Barras apiladas',polygon:'Polígono de frecuencias',ogive:'Ojiva acumulada',histogram:'Histograma',box:'Caja',line:'Envíos con valor por mes de recepción',area:'Envíos con valor por mes de recepción'},
   variable(v,style){
@@ -9,7 +12,7 @@ const ReportChartOptions={
     if(style.startsWith('text-')){const distribution=v.text_counts.distribution.filter(row=>row.count>0);if(!distribution.length)return {animation:false,title:{text:'Sin coincidencias para esta fuente',left:'center',top:'center',textStyle:{fontSize:14}},series:[]};return this.variable({distribution},style.slice(5));}
     if(['histogram','box','line','area'].includes(style)){
       const base={animation:false,aria:{enabled:true},tooltip:{trigger:'axis',renderMode:'richText',...(style==='box'?{valueFormatter:value=>Array.isArray(value)?value.map(n=>Number(n).toFixed(2)).join(', '):Number(value).toFixed(2)}:{})},grid:{containLabel:true,left:20,right:20,bottom:80}};
-      if(style==='box')return {...base,xAxis:{type:'category',data:[v.label],axisLabel:{width:120,overflow:'truncate'}},yAxis:{type:'value',name:v.unit},series:[{type:'boxplot',data:[v.advanced.box.values]}]};
+      if(style==='box')return {...base,xAxis:{type:'category',data:[v.label],axisLabel:{width:120,overflow:'truncate'}},yAxis:{type:'value',name:v.unit,axisLabel:{formatter:value=>Number(value).toFixed(2)}},series:[{type:'boxplot',data:[v.advanced.box.values]}]};
       if(style==='histogram')return {...base,xAxis:{type:'category',data:v.advanced.histogram.bins.map(b=>'['+Number(b.lower).toFixed(2)+', '+Number(b.upper).toFixed(2)+(b.closed_upper?']':')')),axisLabel:{rotate:25,width:100,overflow:'truncate'}},yAxis:{type:'value',name:'Envíos',minInterval:1},series:[{type:'bar',barCategoryGap:0,data:v.advanced.histogram.bins.map(b=>b.count)}]};
       return {...base,xAxis:{type:'category',name:'Mes de recepción',data:v.advanced.time.months,axisLabel:{rotate:25}},yAxis:{type:'value',name:'Envíos con valor',minInterval:1},series:[{type:'line',smooth:false,connectNulls:false,...(style==='area'?{areaStyle:{opacity:.2}}:{}),data:v.advanced.time.counts}]};
     }
@@ -21,8 +24,8 @@ const ReportChartOptions={
   },
   advanced(a){
     const base={animation:false,aria:{enabled:true},tooltip:{renderMode:'richText',valueFormatter:value=>Array.isArray(value)?value.map((n,i)=>a.type==='scatter'&&i===2?String(n):Number(n).toFixed(2)).join(', '):Number(value).toFixed(2)}};
-    if(a.type==='scatter')return {...base,grid:{left:20,right:25,bottom:75,containLabel:true},xAxis:{type:'value',axisLabel:{formatter:value=>Number(value).toFixed(2)},name:a.x_label+' ('+a.x_unit+')',nameLocation:'middle',nameGap:35},yAxis:{type:'value',axisLabel:{formatter:value=>Number(value).toFixed(2)},name:a.y_label+' ('+a.y_unit+')',nameLocation:'middle',nameGap:40},series:[{type:'scatter',symbolSize:9,dimensions:['X','Y','Frecuencia'],data:a.points}]};
-    return {...base,radar:{indicator:a.criteria.map(c=>({name:c.label,min:0,max:100})),radius:'58%',axisName:{width:120,overflow:'truncate'}},series:[{type:'radar',data:[{name:'% acuerdo sustantivo',value:a.criteria.map(c=>c.percentage)}]}]};
+    if(a.type==='scatter')return {...base,grid:{left:100,right:30,top:30,bottom:100,containLabel:true},xAxis:{type:'value',axisLabel:{formatter:value=>Number(value).toFixed(2)},name:wrapChartAxis(a.x_label+' ('+a.x_unit+')'),nameTextStyle:{fontSize:11,lineHeight:15},nameLocation:'middle',nameGap:35},yAxis:{type:'value',axisLabel:{formatter:value=>Number(value).toFixed(2)},name:wrapChartAxis(a.y_label+' ('+a.y_unit+')',34),nameTextStyle:{fontSize:11,lineHeight:15},nameLocation:'middle',nameGap:55},series:[{type:'scatter',symbolSize:9,dimensions:['X','Y','Frecuencia'],data:a.points}]};
+    return {...base,radar:{axisLabel:{formatter:value=>Number(value).toFixed(2)},indicator:a.criteria.map(c=>({name:c.label,min:0,max:100})),radius:'58%',axisName:{width:120,overflow:'truncate'}},series:[{type:'radar',data:[{name:'% acuerdo sustantivo',value:a.criteria.map(c=>c.percentage)}]}]};
   },
   cross(c,style){
     const base={animation:false,aria:{enabled:true},tooltip:{renderMode:'richText'},grid:{left:15,right:20,bottom:85,containLabel:true}};

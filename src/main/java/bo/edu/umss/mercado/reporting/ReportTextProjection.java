@@ -10,6 +10,37 @@ import org.springframework.stereotype.Service;
 public class ReportTextProjection {
     private final CaptureStore captures;
     public ReportTextProjection(CaptureStore captures){this.captures=captures;}
+    /** Temporary numeric view; frozen source and selections are never modified. */
+    @SuppressWarnings("unchecked")
+    public Map<String,Object> numericLogical(Map<String,Object> logical,Map<String,Map<String,Object>> selections){
+        var output=new LinkedHashMap<>(logical);
+        var fields=new ArrayList<Map<String,Object>>();
+        var definitions=new HashMap<String,Map<String,Object>>();
+        for(var original:(List<Map<String,Object>>)logical.get("dictionary")){
+            var q=new LinkedHashMap<>(original);fields.add(q);var selection=selections.get(q.get("question_id"));
+            if(selection==null||!(selection.get("numeric") instanceof Map<?,?> numeric))continue;
+            var definition=(Map<String,Object>)numeric.get("definition");
+            if(!bo.edu.umss.mercado.data.CanonicalJson.hash(bo.edu.umss.mercado.data.CanonicalJson.json(definition)).equals(numeric.get("hash")))throw new IllegalStateException("Equivalencias congeladas alteradas.");
+            if(!Boolean.TRUE.equals(definition.get("enabled"))||sensitive(q,false))continue;
+            definitions.put((String)q.get("question_id"),definition);q.put("treatment","MAGNITUD_ENTERA");q.put("unit",definition.get("unit"));
+        }
+        if(definitions.isEmpty())return logical;
+        var matrix=(List<Map<String,Object>>)logical.get("matrix");
+        var inputs=new HashMap<String,CaptureStore.Input>();for(var input:captures.inputs(matrix.stream().map(r->(String)r.get("response_id")).distinct().toList()))inputs.put(input.responseId(),input);
+        var members=new HashMap<String,Map<String,Object>>();for(var member:(List<Map<String,Object>>)logical.get("members"))members.put((String)member.get("response_id"),member);
+        var converted=new ArrayList<Map<String,Object>>();
+        for(var row:matrix){var copy=new LinkedHashMap<>(row);var values=new LinkedHashMap<>((Map<String,Object>)row.get("values"));copy.put("values",values);converted.add(copy);
+            for(var q:fields){String id=(String)q.get("question_id");var definition=definitions.get(id);if(definition==null)continue;values.remove(id);
+                if(!"CON_VALOR".equals(((Map<?,?>)row.get("states")).get(id)))continue;
+                String response=(String)row.get("response_id");var input=Objects.requireNonNull(inputs.get(response),"Captura no encontrada.");
+                if(!Objects.equals(members.get(response).get("capture_hash"),input.captureHash()))throw new IllegalStateException("Captura congelada alterada.");
+                String text=String.join(" · ",input.answers().getOrDefault((String)q.get("original_id"),List.of()));
+                Object number=((Map<?,?>)definition.get("mappings")).get(bo.edu.umss.mercado.statistics.NumericNormalization.key(text));
+                if(number instanceof Number)values.put(id,number);
+            }
+        }
+        output.put("dictionary",fields);output.put("matrix",converted);return output;
+    }
     @SuppressWarnings("unchecked")
     public Map<String,Object> enrich(Map<String,Object> result,Map<String,Object> logical,String rules,int revision){
         return enrich(result,logical,rules,revision,Set.of());

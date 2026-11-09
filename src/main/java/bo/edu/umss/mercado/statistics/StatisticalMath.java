@@ -62,6 +62,9 @@ public final class StatisticalMath {
 
     public static Map<String, Object> contingency(long[][] counts, boolean independenceDocumented,
                                                   boolean structuralZeros, double alpha) {
+        return contingency(counts,independenceDocumented,structuralZeros,alpha,false);
+    }
+    public static Map<String,Object> contingency(long[][] counts,boolean independenceDocumented,boolean structuralZeros,double alpha,boolean exploratory){
         validateAlpha(alpha);
         if (counts == null) throw new IllegalArgumentException("La tabla no puede ser nula.");
         int rows = counts.length, cols = rows == 0 ? 0 : counts[0] == null ? -1 : counts[0].length;
@@ -118,7 +121,7 @@ public final class StatisticalMath {
         if (ar.size() < 2 || ac.size() < 2) return status(result, "SIN_VARIACION", "MENOS_DE_DOS_CATEGORIAS_ACTIVAS");
         if (!independenceDocumented) return status(result, "INDEPENDENCIA_NO_DOCUMENTADA", "FALTA_UNIDAD_Y_EVIDENCIA_DE_INDEPENDENCIA");
         if (structuralZeros) return status(result, "ESTRUCTURA_INCOMPATIBLE", "CEROS_ESTRUCTURALES_DECLARADOS");
-        if (belowFive > 0) return status(result, "FRECUENCIAS_INSUFICIENTES", "ALGUNA_ESPERADA_MENOR_5");
+        if (belowFive > 0&&!exploratory) return status(result, "FRECUENCIAS_INSUFICIENTES", "ALGUNA_ESPERADA_MENOR_5");
         try {
             var test = ChiSquareTest.withDefaults().test(active);
             double chi = test.getStatistic(), p = test.getPValue();
@@ -128,6 +131,7 @@ public final class StatisticalMath {
             }
             result.put("chi_square", chi); result.put("df", (ar.size() - 1) * (ac.size() - 1));
             result.put("p", p); result.put("cramers_v", v); result.put("reject_h0", p < alpha);
+            if(belowFive>0){result.put("status","EXPLORATORIO");result.put("reason","ESPERADAS_MENORES_5_APROXIMACION_NO_FIABLE");result.put("exploratory",true);result.put("expected_policy","EXPLORATORIO_CON_ADVERTENCIA");}
             return result;
         } catch (RuntimeException ex) { return status(result, "ERROR_CALCULO", "ERROR_BIBLIOTECA_ESTADISTICA"); }
     }

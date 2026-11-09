@@ -10,3 +10,16 @@
 .text-manager [data-lookup-found],.text-manager [data-lookup-empty],.text-manager [data-lookup-pending]{max-height:400px;overflow:auto;margin-block:16px;border:1px solid #d6e0d8;border-radius:8px;padding:12px}.text-manager [data-lookup-found]{background:#f2f8ef}.text-manager [data-lookup-pending]{background:#fff8eb}.text-manager .lookup-item{padding-block:10px;border-bottom:1px solid #d6e0d8}
 
 .dictionary-tabs{display:flex;gap:1rem;flex-wrap:wrap;margin:1.5rem 0 1rem}.dictionary-tabs button{flex:1;padding:1rem;border:2px solid #14746c;border-radius:.5rem;background:var(--surface,#fff);color:var(--ink,#17324d);font:inherit;font-weight:600}.dictionary-tabs button[aria-selected=true]{background:#14746c;color:#fff}.dictionary-tabs button:disabled{opacity:.45;cursor:not-allowed}.text-manager [data-mode-fields]{border:0;padding:0;margin:0;min-width:0}.text-manager [role=tabpanel][hidden]{display:none}
+
+.result-representations [data-derived-controls]{display:flex;flex-direction:column;gap:5px;flex:0 0 auto}.result-representations [data-derived-controls][hidden]{display:none}.result-representations [data-text-representation][hidden]{display:none}.result-representations .text-split-button:has([data-text-representation][hidden]) [data-synonym-editor]{border:1px solid #b5c9c1;border-radius:5px;min-height:30px}
+/* Keep statistical columns readable without squeezing the first column. */
+.workspace-results .univariate-summary table{table-layout:auto;max-width:none;width:100%}
+.workspace-results .univariate-summary table thead th{white-space:normal;overflow-wrap:normal;word-break:normal;min-width:7rem}
+.workspace-results .univariate-summary table tbody td{white-space:nowrap;overflow-wrap:normal;word-break:normal}
+.workspace-results .univariate-summary .table-scroll{max-width:100%;overflow-x:auto}
+/* Coverage and categorical tables follow the same wrapping rules. */
+.workspace-results .table-scroll table{table-layout:auto;max-width:none;width:100%}
+.workspace-results .table-scroll table thead th{white-space:normal;overflow-wrap:normal;word-break:normal;min-width:6rem}
+.workspace-results .table-scroll table :is(th,td):first-child{min-width:8rem;white-space:normal;overflow-wrap:normal;word-break:normal}
+.workspace-results .table-scroll{min-width:0;max-width:100%;overflow-x:auto}
+.workspace-results .individual-answer-scroll td{overflow-wrap:anywhere}

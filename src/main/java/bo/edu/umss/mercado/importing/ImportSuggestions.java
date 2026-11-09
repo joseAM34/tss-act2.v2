@@ -119,7 +119,7 @@ public final class ImportSuggestions {
         for(String separator:List.of("|",";",",")) {
             if(!raw.contains(separator))continue;
             try {
-                var pieces=separator.equals(",")?topLevelComma(raw):Arrays.asList(raw.split(java.util.regex.Pattern.quote(separator),-1));
+                var pieces=separator.equals(",")?commaValues(raw):Arrays.asList(raw.split(java.util.regex.Pattern.quote(separator),-1));
                 var values=pieces.stream().map(v->option(question,v,mode,true)).toList();
                 if(new HashSet<>(values).size()==values.size())interpretations.add(values);
             } catch(IllegalArgumentException ignored) { }
@@ -142,7 +142,7 @@ public final class ImportSuggestions {
         else {
             if(raw.endsWith(";"))raw=raw.substring(0,raw.length()-1).stripTrailing();
             for(String delimiter:List.of("|",";",","))if(raw.contains(delimiter))try {
-                lists.add(delimiter.equals(",")?topLevelComma(raw):Arrays.asList(raw.split(java.util.regex.Pattern.quote(delimiter),-1)));
+                lists.add(delimiter.equals(",")?commaValues(raw):Arrays.asList(raw.split(java.util.regex.Pattern.quote(delimiter),-1)));
             }catch(IllegalArgumentException ignored){}
         }
         int best=0;var choices=new LinkedHashSet<List<String>>();
@@ -160,6 +160,14 @@ public final class ImportSuggestions {
             }
         }
         return choices.size()==1?choices.iterator().next():List.of();
+    }
+    private static List<String> commaValues(String raw) {
+        var pieces=topLevelComma(raw);
+        // A single trailing comma is a source terminator, not a selected option.
+        // Keep interior empties and repeated terminators invalid.
+        if(pieces.size()>1&&pieces.getLast().isBlank()&&!pieces.get(pieces.size()-2).isBlank())
+            return pieces.subList(0,pieces.size()-1);
+        return pieces;
     }
     private static List<String> topLevelComma(String raw) {
         var result=new ArrayList<String>(); int depth=0,start=0;

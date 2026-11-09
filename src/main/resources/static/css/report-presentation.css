@@ -26,3 +26,42 @@ body.report-guides :is([data-report-customizer],[data-report-url]) .stat-help{di
 :is([data-report-customizer],[data-report-url]) .report-document,
 :is([data-report-customizer],[data-report-url]) .report-document :is(p,table,caption,th,td,li,dl,dt,dd,summary,span,a,strong,code){font-family:Arial,sans-serif;font-size:11pt}
 :is([data-report-customizer],[data-report-url]) .report-document :is(h1,h2,h3,h4,h5,h6){font-family:Arial,sans-serif;font-size:12pt;font-weight:700}
+
+@media screen{
+:is([data-report-customizer],[data-report-url]) .table-scroll{min-width:0;max-width:100%;overflow-x:auto}
+:is([data-report-customizer],[data-report-url]) .table-scroll table{width:100%;max-width:none}
+:is([data-report-customizer],[data-report-url]) table thead th{min-width:6rem;white-space:normal;overflow-wrap:normal;word-break:normal}
+:is([data-report-customizer],[data-report-url]) table :is(th,td):first-child{min-width:8rem;overflow-wrap:normal;word-break:normal}
+}
+@media print{
+[data-report-url] table :is(th,td){white-space:normal;overflow-wrap:normal;word-break:normal}
+}
+@media print{body.report-guides :is([data-report-customizer],[data-report-url]) .stat-help,:is([data-report-customizer],[data-report-url]) .stat-help{display:none!important}.report-guide-toggle{display:none!important}}
+
+@media print{.site-calculation-help{display:none!important}}
+
+.chi-comparison{margin-block:18px;padding:16px;border:1px solid #d9dfd2;border-radius:8px}.chi-comparison h3{margin-top:0}.chi-comparison table{width:100%;max-width:560px}.chi-comparison-values{font-weight:600;padding-block:10px}.chi-conclusion{padding:12px 14px;border-left:4px solid #127569;background:#edf5f2}.chi-conclusion p{margin-bottom:0}.cross-technical{margin-block:16px}.cross-technical summary{cursor:pointer;font-weight:600}@media print{.chi-comparison{break-inside:avoid}.chi-conclusion{background:transparent}}
+
+:is([data-report-customizer],[data-report-url]) .site-calculation-help{display:none}body.report-guides :is([data-report-customizer],[data-report-url]) .site-calculation-help{display:block}
+@media print{body.report-guides :is([data-report-customizer],[data-report-url]) .site-calculation-help{display:none!important}}
+@media screen{
+  :is([data-report-customizer],[data-report-url]) .table-scroll{width:100%;max-width:100%;overscroll-behavior-inline:contain}
+  :is([data-report-customizer],[data-report-url]) .table-scroll table thead th{min-width:6rem;max-width:12rem;white-space:normal;overflow-wrap:normal;word-break:normal}
+  :is([data-report-customizer],[data-report-url]) table :is(th,td){overflow-wrap:normal;word-break:normal}
+  #full-preview,[data-report-url]{min-width:0;max-width:100%;box-sizing:border-box}
+}
+@media screen and (max-width:760px){
+  [data-report-url]{width:100%;padding-inline:12px}
+  .chi-comparison{padding:12px}
+}
+
+@media print{
+[data-report-url] .report-print-landscape{break-inside:avoid-page}
+[data-report-url] .report-print-landscape table{font-size:9pt}
+[data-report-url] .report-print-compact table{font-size:8.5pt}
+[data-report-url] .report-print-compact :is(th,td){padding:2px 4px}
+[data-report-url] :is(.general-chart,.result-chart){break-inside:avoid-page;max-height:210mm}
+[data-report-url] :is(.general-chart,.result-chart).report-print-landscape{width:245mm;height:145mm!important;max-height:145mm}
+}
+
+.chi-exploratory{border-color:#d89b40}.chi-exploratory .chi-conclusion{background:#fff3dc;border-left-color:#c27a13;color:#714409}.chi-exploratory .chi-conclusion p,.chi-exploratory-warning{color:#714409}.chi-exploratory thead th{background:#fff0d4!important;color:#714409!important}@media print{.chi-exploratory .chi-conclusion{border-left-color:#c27a13}}

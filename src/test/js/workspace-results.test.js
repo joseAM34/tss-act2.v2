@@ -23,3 +23,10 @@ test('coincidencias y gráficas usan menciones del diccionario guardado, no resp
 });
 test('una consulta anterior no puede reemplazar una actualización manual más reciente',()=>{const c=createResultsCoordinator(),old=c.start(),latest=c.start();assert.equal(c.current(old),false);assert.equal(c.current(latest),true);c.invalidate();assert.equal(c.current(latest),false);});
 test('las representaciones dependen de la escala y los datos preparados, no fabrican compatibilidad',()=>{const multiple=resultRepresentations({type:'checkbox'}),single=resultRepresentations({type:'select'}),numeric=resultRepresentations({type:'number',numeric:{n:3},advanced:{histogram:{},box:{},time:{}}});assert.equal(multiple.find(([id])=>id==='pie')[2],false);assert.equal(single.find(([id])=>id==='pie')[2],true);assert.equal(numeric.find(([id])=>id==='pie')[2],false);assert.equal(numeric.find(([id])=>id==='histogram')[2],true);assert.equal(multiple.find(([id])=>id==='histogram')[2],false);});
+
+test('Coincidencias admite cantidades convertidas y conserva el bloqueo sensible',()=>{
+ const data={base:3,numericVariable:{numeric:{n:2}}};
+ assert.equal(textRepresentationAvailability(data).matches,true);
+ assert.equal(textRepresentationAvailability(data)['match-pie'],false);
+ assert.equal(textRepresentationAvailability({...data,sensitive:true}).matches,false);
+});

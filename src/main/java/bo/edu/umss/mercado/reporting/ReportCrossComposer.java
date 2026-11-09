@@ -12,7 +12,9 @@ import org.springframework.web.server.ResponseStatusException;
 /** Builds exploratory comparisons from an analysis' exact frozen preparation. */
 @Service
 public class ReportCrossComposer {
-    public record Pair(String analysisId,String row,String column,List<String> representations) {
+    public record Pair(String analysisId,String row,String column,List<String> representations,Boolean assumeIndependent,Boolean exploratorySmallCounts) {
+        public Pair(String analysisId,String row,String column,List<String> representations,Boolean assumeIndependent){this(analysisId,row,column,representations,assumeIndependent,null);}
+        public Pair(String analysisId,String row,String column,List<String> representations){this(analysisId,row,column,representations,null);}
         public Pair(String analysisId,String row,String column){this(analysisId,row,column,null);}
         public Pair { representations=representations==null?null:List.copyOf(representations); }
     }
@@ -33,6 +35,26 @@ public class ReportCrossComposer {
                 "group",Objects.toString(groups.get(q.get("question_id")),"Preguntas del conjunto"), "options",((List<?>)q.get("options")).size(),
                 "reason",eligible?"Compatible con otra pregunta de selección única, hasta 2500 celdas.":"Este cruce requiere categorías nominales de selección única.");
         }).toList();
+    }
+    @Transactional(readOnly=true)
+    @SuppressWarnings("unchecked")
+    public List<Map<String,Object>> compatibility(Pair pair){
+        if(pair==null||pair.row()==null)throw new IllegalArgumentException("Selecciona una pregunta.");
+        var analysis=analyses.get(pair.analysisId());var logical=crosses.source((String)analysis.get("preparation_id"));
+        var candidates=choices(pair.analysisId());
+        var base=candidates.stream().filter(q->q.get("id").equals(pair.row())&&Boolean.TRUE.equals(q.get("eligible"))).findFirst().orElseThrow(()->new IllegalArgumentException("Selecciona una pregunta compatible."));
+        var output=new ArrayList<Map<String,Object>>();
+        for(var choice:candidates){
+            String id=(String)choice.get("id");if(id.equals(pair.row())||!Boolean.TRUE.equals(choice.get("eligible"))||((Number)base.get("options")).intValue()*((Number)choice.get("options")).intValue()>2500)continue;
+            var result=crosses.calculate(logical,new GenericCrossService.Spec(pair.row(),id,.05,false,"","",false));
+            var table=(Map<String,Object>)result.get("table");
+            if(Boolean.TRUE.equals(pair.assumeIndependent())){
+                var observed=(List<List<Number>>)table.get("observed");
+                table=StatisticalMath.contingency(observed.stream().map(r->r.stream().mapToLong(Number::longValue).toArray()).toArray(long[][]::new),true,false,.05,Boolean.TRUE.equals(pair.exploratorySmallCounts()));
+            }
+            output.add(Map.of("id",id,"executed",table.get("p")!=null,"status",table.get("status"),"reason",table.get("reason"),"belowFive",table.get("below_five_count"),"exploratory",Boolean.TRUE.equals(table.get("exploratory"))));
+        }
+        return output;
     }
     @Transactional(readOnly=true)
     public Map<String,Object> preview(Pair pair){
